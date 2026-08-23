@@ -25,26 +25,22 @@ Para esta fase inicial, focamos na entrega do valor central e em funcionalidades
 O projeto adota uma arquitetura robusta e escalável dividida em microsserviços/módulos para suportar persistência de dados relacionais e rotinas automatizadas.
 
 * **Front-end:** **React Native** - Para desenvolvimento móvel híbrido (Android/iOS) focado em alta performance, usabilidade e suporte a mapas e geolocalização.
-* **Back-end:** **Node.js** (Express / NestJS) - Para construção de APIs RESTful eficientes, gerenciamento das regras de negócio, autenticação e execução do serviço de Cron Job.
-* **Banco de Dados:** **PostgreSQL** - Banco de dados relacional escolhido para estruturar adequadamente usuários, fóruns, histórico de quizzes, oportunidades e dados geoespaciais.
+* **Back-end:** **Node.js** (Fastfy) - Para construção de APIs eficientes, gerenciamento das regras de negócio, autenticação e execução do serviço de Cron Job.
+* **Banco de Dados:** **PostgreSQL** - Banco de dados relacional escolhido para estruturar adequadamente usuários, fóruns, histórico de quizzes, oportunidades.
 
 ---
 
 ## ⚙️ Como executar o projeto localmente
 
-*(Instruções para a equipe de desenvolvimento e avaliadores)*
-
 ### Pré-requisitos:
 * **Node.js** (versão LTS recomendada)
-* **PostgreSQL** instalado e executando localmente (ou via Docker)
-* Gerenciador de pacotes (**NPM** ou **Yarn**)
-* Emulador Android/iOS ou o aplicativo **Expo Go** instalado no smartphone físico.
+* **PostgreSQL** 
 
 ### Passo a passo:
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/seu-usuario/trilha-tech-app.git
+   https://github.com/G4brielV/Trilha-Tech.git
    ```
 
 2. **Acesse a pasta do projeto:**
@@ -74,8 +70,11 @@ O projeto adota uma arquitetura robusta e escalável dividida em microsserviços
 
 ## 👥 Equipe
 
-* **Luan Vinícius**
 * **Gabriel Vinícius**
+* **Luan Vinícius**
+* **Rodrigo Santana**
+* **Victor Souza**
+* **Leandro Khalel**
 * **Thalyson Kauan**
 
 ---
