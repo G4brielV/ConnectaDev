@@ -1,10 +1,10 @@
-# 🚀 Trilha Tech - Seu Guia para o Futuro em Tecnologia
+# 🚀 ConnectaDev - Seu Guia para o Futuro em Tecnologia
 
 **Projeto MVP - Disciplina de Engenharia de Software / Projetos Acadêmicos**
 
-O **Trilha Tech** é um aplicativo móvel voltado para jovens do 3º ano do Ensino Médio, vestibulandos e pessoas em transição de carreira residentes na **Região Metropolitana do Recife (RMR)**. O objetivo principal do app é democratizar e orientar o acesso ao ecossistema de tecnologia e inovação de Pernambuco, fornecendo direcionamento personalizado de estudos (ENEM e vestibulares regionais), oportunidades de carreira e integração com o ecossistema local.
+O **ConnectaDev** é um aplicativo móvel voltado para jovens do 3º ano do Ensino Médio, vestibulandos e pessoas em transição de carreira residentes na **Região Metropolitana do Recife (RMR)**. O objetivo principal do app é democratizar e orientar o acesso ao ecossistema de tecnologia e inovação de Pernambuco, fornecendo direcionamento personalizado de estudos (ENEM e vestibulares regionais), oportunidades de carreira e integração com o ecossistema local.
 
-Diferente de plataformas genéricas de estudo, o Trilha Tech conecta o perfil do usuário diretamente às demandas e oportunidades do mercado tech de Pernambuco, oferecendo rotas customizadas, geolocalização de eventos/pontos de apoio e acompanhamento contínuo de evolução.
+Diferente de plataformas genéricas de estudo, o ConnectaDev conecta o perfil do usuário diretamente às demandas e oportunidades do mercado tech de Pernambuco, oferecendo rotas customizadas, geolocalização de eventos/pontos de apoio e acompanhamento contínuo de evolução.
 
 ---
 
