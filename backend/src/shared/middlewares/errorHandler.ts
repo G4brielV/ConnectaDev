@@ -2,7 +2,7 @@ import { FastifyError, FastifyRequest, FastifyReply } from "fastify";
 import { AppError } from "../errors/AppError";
 
 export function errorHandler(
-  error: FastifyError,
+  error: FastifyError | AppError | Error,
   request: FastifyRequest,
   reply: FastifyReply
 ) {
@@ -11,16 +11,18 @@ export function errorHandler(
       statusCode: error.statusCode,
       error: "App Error",
       message: error.message,
-      ...(error.details && { details: error.details }),
+      ...(error.details !== undefined && { details: error.details }),
     });
   }
 
+  const fastifyError = error as FastifyError;
+
   // Se for um erro nativo do Fastify (ex: JSON mal formado, rota não encontrada)
-  if (error.statusCode) {
-    return reply.status(error.statusCode).send({
-      statusCode: error.statusCode,
-      error: error.name,
-      message: error.message,
+  if (typeof fastifyError.statusCode === "number") {
+    return reply.status(fastifyError.statusCode).send({
+      statusCode: fastifyError.statusCode,
+      error: fastifyError.name || "Error",
+      message: fastifyError.message,
     });
   }
 

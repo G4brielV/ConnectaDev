@@ -27,7 +27,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const response = await auth.handler(req);
     
     // Copy headers to Fastify reply
-    response.headers.forEach((value, key) => {
+    response.headers.forEach((value: string, key: string) => {
       reply.header(key, value);
     });
 
