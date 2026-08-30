@@ -2,6 +2,7 @@ import fastify from "fastify";
 import cors from "@fastify/cors";
 import dotenv from "dotenv";
 import { authRoutes } from "./routes/auth.routes";
+import { errorHandler } from "./shared/middlewares/errorHandler";
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
+
+// Setup Error Handler
+app.setErrorHandler(errorHandler);
 
 // Register routes
 app.register(authRoutes);
