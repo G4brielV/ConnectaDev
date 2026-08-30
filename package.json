@@ -1,0 +1,21 @@
+{
+  "name": "connectadev",
+  "version": "1.0.0",
+  "description": "**Projeto MVP - Disciplina de Engenharia de Software / Projetos Acadêmicos**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "node -e \"console.log('OK')\"",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
+    "husky": "^9.1.7"
+  }
+}
