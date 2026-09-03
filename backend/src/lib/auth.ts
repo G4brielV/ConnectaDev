@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { jwt } from "better-auth/plugins";
+import { bearer, jwt } from "better-auth/plugins";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
@@ -17,6 +17,7 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
+    bearer(),
     jwt({
       jwt: {
         expirationTime: "7d",

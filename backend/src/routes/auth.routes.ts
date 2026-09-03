@@ -18,10 +18,17 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const url = new URL(request.url, `http://${request.headers.host}`);
     
+    const requestBody =
+      request.body === undefined || request.body === null
+        ? undefined
+        : typeof request.body === "string"
+          ? request.body
+          : JSON.stringify(request.body);
+
     const req = new Request(url, {
       method: request.method,
       headers,
-      body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body as any,
+      body: ["GET", "HEAD"].includes(request.method) ? undefined : requestBody,
     });
 
     const response = await auth.handler(req);
@@ -31,6 +38,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       reply.header(key, value);
     });
 
-    return reply.status(response.status).send(response.body);
+    const responseBody = await response.text();
+    return reply.status(response.status).send(responseBody);
   });
 }
