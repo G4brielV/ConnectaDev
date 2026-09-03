@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   BackHandler,
+  Easing,
   Pressable,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +22,9 @@ export function QuizScreen() {
   const [isComplete, setIsComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [answerValidationMessage, setAnswerValidationMessage] = useState<string | null>(null);
+  const questionTransition = useRef(new Animated.Value(1)).current;
+  const previousQuestionIndex = useRef(currentIndex);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,6 +62,24 @@ export function QuizScreen() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (previousQuestionIndex.current === currentIndex) {
+      return undefined;
+    }
+
+    previousQuestionIndex.current = currentIndex;
+    questionTransition.setValue(0);
+    const animation = Animated.timing(questionTransition, {
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
+
+    animation.start();
+    return () => animation.stop();
+  }, [currentIndex, questionTransition]);
 
   useEffect(() => {
     if (Platform.OS !== "android") {
@@ -113,6 +137,7 @@ export function QuizScreen() {
   const canAdvance = question.type === "open" ? answer.trim().length > 0 : answer.length > 0;
 
   function selectAnswer(value: string): void {
+    setAnswerValidationMessage(null);
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
       [question.id]: value,
@@ -121,6 +146,9 @@ export function QuizScreen() {
 
   function goToNextQuestion(): void {
     if (!canAdvance) {
+      if (question.type === "multiple-choice") {
+        setAnswerValidationMessage("Selecione uma opção para continuar");
+      }
       return;
     }
 
@@ -171,38 +199,68 @@ export function QuizScreen() {
       <View style={styles.progressTrack}>
         <View style={[styles.progressValue, { width: `${progress}%` }]} />
       </View>
-      <View style={styles.card}>
-        <Text style={styles.question}>{question.prompt}</Text>
-        {question.options?.map((option) => (
-          <Pressable
-            key={option.id}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: answer === option.id }}
-            onPress={() => selectAnswer(option.id)}
-            style={[styles.option, answer === option.id && styles.selectedOption]}
-          >
-            <View style={[styles.optionIndicator, answer === option.id && styles.selectedIndicator]} />
-            <Text style={styles.optionText}>{option.label}</Text>
-          </Pressable>
-        ))}
-        {question.type === "open" && (
-          <TextInput
-            accessibilityLabel="Resposta aberta"
-            multiline
-            onChangeText={selectAnswer}
-            placeholder="Escreva sua resposta..."
-            placeholderTextColor="#60717A"
-            style={styles.textInput}
-            value={answer}
-          />
-        )}
-      </View>
+      <Animated.View
+        style={[
+          styles.card,
+          {
+            opacity: questionTransition,
+            transform: [
+              {
+                translateX: questionTransition.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [18, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={styles.questionContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.questionScroll}
+        >
+          <Text style={styles.question}>{question.prompt}</Text>
+          {question.options?.map((option) => (
+            <Pressable
+              key={option.id}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: answer === option.id }}
+              onPress={() => selectAnswer(option.id)}
+              style={[styles.option, answer === option.id && styles.selectedOption]}
+            >
+              <View style={[styles.optionIndicator, answer === option.id && styles.selectedIndicator]} />
+              <Text style={styles.optionText}>{option.label}</Text>
+            </Pressable>
+          ))}
+          {question.type === "open" && (
+            <TextInput
+              accessibilityLabel="Resposta aberta"
+              multiline
+              onChangeText={selectAnswer}
+              placeholder="Escreva sua resposta..."
+              placeholderTextColor="#60717A"
+              style={styles.textInput}
+              value={answer}
+            />
+          )}
+        </ScrollView>
+      </Animated.View>
       <View style={styles.actions}>
+        {answerValidationMessage && (
+          <Text accessibilityRole="alert" style={styles.validationText}>
+            {answerValidationMessage}
+          </Text>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: !canAdvance }}
-          disabled={!canAdvance}
-          style={[styles.nextButton, !canAdvance && styles.disabledButton]}
+          style={[
+            styles.nextButton,
+            question.type === "multiple-choice" && styles.multipleChoiceNextButton,
+            !canAdvance && styles.disabledButton,
+          ]}
           onPress={goToNextQuestion}
         >
           <Text style={styles.nextText}>
@@ -245,6 +303,16 @@ const styles = StyleSheet.create({
     minWidth: 84,
     paddingVertical: 8,
   },
+  multipleChoiceNextButton: {
+    transform: [{ translateY: -6 }],
+  },
+  questionContent: {
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+  questionScroll: {
+    flex: 1,
+  },
   headerBackPlaceholder: {
     minWidth: 84,
   },
@@ -280,7 +348,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     elevation: 2,
+    flex: 1,
     marginTop: 24,
+    overflow: "hidden",
     padding: 24,
     shadowColor: "#031634",
     shadowOffset: { width: 0, height: 4 },
@@ -329,6 +399,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 24,
     minHeight: 48,
+  },
+  validationText: {
+    color: "#D9534F",
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    marginRight: 12,
   },
   nextButton: {
     backgroundColor: "#036564",
