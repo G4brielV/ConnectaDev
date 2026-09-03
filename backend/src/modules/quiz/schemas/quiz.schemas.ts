@@ -15,3 +15,7 @@ export interface QuizQuestion {
 export interface QuizQuestionsResponse {
   questions: QuizQuestion[];
 }
+
+export interface QuizSubmitRequest {
+  answers: Record<string, string>;
+}

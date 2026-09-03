@@ -4,6 +4,8 @@ import {
   Animated,
   BackHandler,
   Easing,
+  Keyboard,
+  KeyboardAvoidingView,
   Pressable,
   Platform,
   ScrollView,
@@ -12,7 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { fetchQuizQuestions, QuizQuestion } from "../shared/api/quizApi";
+import { fetchQuizQuestions, QuizQuestion, submitQuiz } from "../shared/api/quizApi";
 import { getAuthToken } from "../shared/lib/authSession";
 
 export function QuizScreen() {
@@ -20,9 +22,11 @@ export function QuizScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [answerValidationMessage, setAnswerValidationMessage] = useState<string | null>(null);
+  const textInputRef = useRef<TextInput | null>(null);
   const questionTransition = useRef(new Animated.Value(1)).current;
   const previousQuestionIndex = useRef(currentIndex);
 
@@ -134,7 +138,10 @@ export function QuizScreen() {
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answer = answers[question.id] ?? "";
-  const canAdvance = question.type === "open" ? answer.trim().length > 0 : answer.length > 0;
+  const canAdvance =
+    question.type === "open"
+      ? answer.trim().length >= 20 && answer.trim().length <= 500
+      : answer.length > 0;
 
   function selectAnswer(value: string): void {
     setAnswerValidationMessage(null);
@@ -144,7 +151,32 @@ export function QuizScreen() {
     }));
   }
 
-  function goToNextQuestion(): void {
+  async function goToNextQuestion(): Promise<void> {
+    Keyboard.dismiss();
+    let submissionAnswers = answers;
+
+    if (question.type === "open") {
+      const sanitizedAnswer = answer.trim();
+      if (sanitizedAnswer.length < 20 || sanitizedAnswer.length > 500) {
+        setAnswerValidationMessage(
+          sanitizedAnswer.length < 20
+            ? `Escreva pelo menos 20 caracteres para detalhar sua resposta`
+            : "A resposta não pode ultrapassar 500 caracteres.",
+        );
+        textInputRef.current?.focus();
+        return;
+      }
+
+      submissionAnswers = {
+        ...answers,
+        [question.id]: sanitizedAnswer,
+      };
+      setAnswers((currentAnswers) => ({
+        ...currentAnswers,
+        [question.id]: sanitizedAnswer,
+      }));
+    }
+
     if (!canAdvance) {
       if (question.type === "multiple-choice") {
         setAnswerValidationMessage("Selecione uma opção para continuar");
@@ -153,7 +185,30 @@ export function QuizScreen() {
     }
 
     if (currentIndex === questions.length - 1) {
-      setIsComplete(true);
+      if (isSubmitting) {
+        return;
+      }
+
+      setIsSubmitting(true);
+      const token = await getAuthToken();
+      if (!token) {
+        setErrorMessage("Sua sessão não é válida. Faça login para continuar.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      try {
+        await submitQuiz(token, { answers: submissionAnswers });
+        setIsComplete(true);
+      } catch (error) {
+        setAnswerValidationMessage(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível enviar suas respostas.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -173,7 +228,11 @@ export function QuizScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+      style={styles.container}
+    >
       <View style={styles.header}>
         {currentIndex > 0 ? (
           <Pressable
@@ -238,24 +297,44 @@ export function QuizScreen() {
             <TextInput
               accessibilityLabel="Resposta aberta"
               multiline
+              maxLength={500}
               onChangeText={selectAnswer}
               placeholder="Escreva sua resposta..."
               placeholderTextColor="#60717A"
-              style={styles.textInput}
+              ref={textInputRef}
+              style={[
+                styles.textInput,
+                answerValidationMessage && styles.warningInput,
+                answer.length >= 500 && styles.maxLengthInput,
+              ]}
               value={answer}
             />
+          )}
+          {question.type === "open" && answerValidationMessage && answer.trim().length < 20 && (
+            <Text accessibilityRole="alert" style={styles.openValidationText}>
+              Escreva pelo menos 20 caracteres para detalhar sua resposta (atual: {answer.trim().length})
+            </Text>
+          )}
+          {question.type === "open" && (
+            <Text
+              accessibilityLabel={`${answer.length} de 500 caracteres`}
+              style={[styles.characterCount, answer.length >= 500 && styles.maxLengthText]}
+            >
+              {answer.length}/500
+            </Text>
           )}
         </ScrollView>
       </Animated.View>
       <View style={styles.actions}>
-        {answerValidationMessage && (
+        {answerValidationMessage && question.type !== "open" && (
           <Text accessibilityRole="alert" style={styles.validationText}>
             {answerValidationMessage}
           </Text>
         )}
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !canAdvance }}
+          accessibilityState={{ disabled: !canAdvance || isSubmitting }}
+          disabled={isSubmitting}
           style={[
             styles.nextButton,
             question.type === "multiple-choice" && styles.multipleChoiceNextButton,
@@ -263,12 +342,18 @@ export function QuizScreen() {
           ]}
           onPress={goToNextQuestion}
         >
-          <Text style={styles.nextText}>
-            {currentIndex === questions.length - 1 ? "Concluir" : "Avançar"}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" accessibilityLabel="Enviando respostas" />
+          ) : (
+            <Text style={styles.nextText}>
+              {currentIndex === questions.length - 1
+                ? "Concluir e Analisar Perfil"
+                : "Avançar"}
+            </Text>
+          )}
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -436,6 +521,28 @@ const styles = StyleSheet.create({
     minHeight: 120,
     padding: 16,
     textAlignVertical: "top",
+  },
+  warningInput: {
+    borderColor: "#D9534F",
+  },
+  maxLengthInput: {
+    borderColor: "#CDB380",
+  },
+  openValidationText: {
+    color: "#D9534F",
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  characterCount: {
+    color: "#60717A",
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "right",
+  },
+  maxLengthText: {
+    color: "#D9534F",
+    fontWeight: "700",
   },
   completedTitle: {
     color: "#033649",
