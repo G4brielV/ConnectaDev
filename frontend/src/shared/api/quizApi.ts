@@ -22,6 +22,13 @@ export interface QuizSubmitPayload {
   answers: Record<string, string>;
 }
 
+export interface QuizAnalysisResult {
+  areaPrincipal: string;
+  areasSecundarias: string[];
+  justificativa: string;
+  tecnologiasSugeridas: string[];
+}
+
 export async function fetchQuizQuestions(
   token: string,
 ): Promise<QuizQuestion[]> {
@@ -47,7 +54,7 @@ export async function fetchQuizQuestions(
 export async function submitQuiz(
   token: string,
   payload: QuizSubmitPayload,
-): Promise<void> {
+): Promise<QuizAnalysisResult> {
   const response = await fetch(`${API_URL}/quiz/submit`, {
     method: "POST",
     headers: {
@@ -65,4 +72,6 @@ export async function submitQuiz(
         : "Não foi possível enviar suas respostas.",
     );
   }
+
+  return (await response.json()) as QuizAnalysisResult;
 }

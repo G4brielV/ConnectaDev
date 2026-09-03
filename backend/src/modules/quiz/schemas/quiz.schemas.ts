@@ -19,3 +19,10 @@ export interface QuizQuestionsResponse {
 export interface QuizSubmitRequest {
   answers: Record<string, string>;
 }
+
+export interface QuizAnalysisResult {
+  areaPrincipal: string;
+  areasSecundarias: string[];
+  justificativa: string;
+  tecnologiasSugeridas: string[];
+}

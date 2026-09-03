@@ -5,8 +5,8 @@ export function configureAuthToken(token: string | null): void {
 }
 
 export async function getAuthToken(): Promise<string | null> {
-  if (process.env.EXPO_PUBLIC_ALLOW_QUIZ_WITHOUT_AUTH === "true") {
-    return "development-bypass";
+  if (process.env.NODE_ENV === "development") {
+    return "development-user";
   }
 
   return configuredToken;

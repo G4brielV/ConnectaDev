@@ -2,7 +2,11 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { auth } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { QuizSubmitRequest } from "../schemas/quiz.schemas";
-import { submitQuiz } from "../services/submitQuiz.service";
+import {
+  AiGatewayTimeoutError,
+  AiGatewayRequestError,
+  submitQuiz,
+} from "../services/submitQuiz.service";
 
 export async function submitQuizController(
   request: FastifyRequest<{ Body: QuizSubmitRequest }>,
@@ -17,14 +21,10 @@ export async function submitQuizController(
     }
   }
 
-  const developmentBypass =
-    process.env.NODE_ENV !== "production" &&
-    process.env.ALLOW_QUIZ_WITHOUT_AUTH === "true";
-  const session = developmentBypass
-    ? null
-    : await auth.api.getSession({ headers });
+  const developmentMode = process.env.NODE_ENV === "development";
+  const session = developmentMode ? null : await auth.api.getSession({ headers });
 
-  if (!session && !developmentBypass) {
+  if (!session && !developmentMode) {
     throw new AppError("É necessário estar autenticado para enviar o quiz.", 401);
   }
 
@@ -33,5 +33,26 @@ export async function submitQuizController(
     throw new AppError("As respostas do quiz são obrigatórias.", 400);
   }
 
-  return reply.send(submitQuiz(payload));
+  try {
+    const userId = session?.user.id ?? "development-user";
+    return reply.send(await submitQuiz(payload, userId));
+  } catch (error) {
+    if (error instanceof AiGatewayTimeoutError) {
+      throw new AppError(error.message, 504);
+    }
+
+    if (error instanceof AiGatewayRequestError) {
+      throw new AppError(
+        `Não foi possível processar o perfil pela IA: ${error.message}`,
+        502,
+      );
+    }
+
+    throw new AppError(
+      error instanceof Error
+        ? error.message
+        : "Não foi possível processar o perfil pela IA.",
+      502,
+    );
+  }
 }

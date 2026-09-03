@@ -16,14 +16,10 @@ export async function getQuizQuestionsController(
     }
   }
 
-  const developmentBypass =
-    process.env.NODE_ENV !== "production" &&
-    process.env.ALLOW_QUIZ_WITHOUT_AUTH === "true";
-  const session = developmentBypass
-    ? null
-    : await auth.api.getSession({ headers });
+  const developmentMode = process.env.NODE_ENV === "development";
+  const session = developmentMode ? null : await auth.api.getSession({ headers });
 
-  if (!session && !developmentBypass) {
+  if (!session && !developmentMode) {
     throw new AppError("É necessário estar autenticado para acessar o quiz.", 401);
   }
 

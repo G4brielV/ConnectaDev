@@ -14,7 +14,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { fetchQuizQuestions, QuizQuestion, submitQuiz } from "../shared/api/quizApi";
+import {
+  fetchQuizQuestions,
+  QuizAnalysisResult,
+  QuizQuestion,
+  submitQuiz,
+} from "../shared/api/quizApi";
 import { getAuthToken } from "../shared/lib/authSession";
 
 export function QuizScreen() {
@@ -22,6 +27,7 @@ export function QuizScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<QuizAnalysisResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -136,6 +142,22 @@ export function QuizScreen() {
     );
   }
 
+  if (isSubmitting) {
+    return (
+      <View style={styles.processingScreen}>
+        <View style={styles.processingCard}>
+          <ActivityIndicator
+            color="#036564"
+            size="large"
+            accessibilityLabel="Processando perfil"
+          />
+          <Text style={styles.processingTitle}>Processando perfil</Text>
+          <Text style={styles.processingText}>Analisando sua vocação...</Text>
+        </View>
+      </View>
+    );
+  }
+
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answer = answers[question.id] ?? "";
   const canAdvance =
@@ -198,7 +220,8 @@ export function QuizScreen() {
       }
 
       try {
-        await submitQuiz(token, { answers: submissionAnswers });
+        const result = await submitQuiz(token, { answers: submissionAnswers });
+        setAnalysisResult(result);
         setIsComplete(true);
       } catch (error) {
         setAnswerValidationMessage(
@@ -217,12 +240,30 @@ export function QuizScreen() {
 
   if (isComplete) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.eyebrow}>QUIZ VOCACIONAL</Text>
-        <Text style={styles.completedTitle}>Respostas registradas!</Text>
-        <Text style={styles.errorText}>
-          Obrigado por compartilhar seu perfil. Em breve você verá suas recomendações.
-        </Text>
+      <View style={styles.resultScreen}>
+        <View style={styles.resultCard}>
+          <Text style={styles.eyebrow}>QUIZ VOCACIONAL</Text>
+          <Text style={styles.completedTitle}>ANÁLISE DO PERFIL</Text>
+          {analysisResult ? (
+            <ScrollView
+              contentContainerStyle={styles.resultContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.resultLabel}>ÁREA PRINCIPAL</Text>
+              <Text style={styles.resultPrimaryArea}>{analysisResult.areaPrincipal}</Text>
+              <Text style={styles.resultLabel}>POR QUE ESSA ÁREA?</Text>
+              <Text style={styles.resultText}>{analysisResult.justificativa}</Text>
+              <Text style={styles.resultLabel}>TECNOLOGIAS SUGERIDAS</Text>
+              <Text style={styles.resultText}>
+                {analysisResult.tecnologiasSugeridas.join(" • ")}
+              </Text>
+            </ScrollView>
+          ) : (
+            <Text style={styles.errorText}>
+              Não foi possível carregar a análise do seu perfil.
+            </Text>
+          )}
+        </View>
       </View>
     );
   }
@@ -310,9 +351,9 @@ export function QuizScreen() {
               value={answer}
             />
           )}
-          {question.type === "open" && answerValidationMessage && answer.trim().length < 20 && (
+          {question.type === "open" && answerValidationMessage && (
             <Text accessibilityRole="alert" style={styles.openValidationText}>
-              Escreva pelo menos 20 caracteres para detalhar sua resposta (atual: {answer.trim().length})
+              {answerValidationMessage}
             </Text>
           )}
           {question.type === "open" && (
@@ -342,15 +383,11 @@ export function QuizScreen() {
           ]}
           onPress={goToNextQuestion}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" accessibilityLabel="Enviando respostas" />
-          ) : (
-            <Text style={styles.nextText}>
-              {currentIndex === questions.length - 1
-                ? "Concluir e Analisar Perfil"
-                : "Avançar"}
-            </Text>
-          )}
+          <Text style={styles.nextText}>
+            {currentIndex === questions.length - 1
+              ? "Concluir e Analisar Perfil"
+              : "Avançar"}
+          </Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -370,6 +407,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F9F8F5",
     padding: 24,
+  },
+  processingCard: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 16,
+    borderWidth: 1,
+    elevation: 3,
+    padding: 28,
+    shadowColor: "#031634",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  processingScreen: {
+    alignItems: "center",
+    backgroundColor: "#F9F8F5",
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  processingTitle: {
+    color: "#033649",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 18,
+  },
+  processingText: {
+    color: "#60717A",
+    fontSize: 14,
+    marginTop: 8,
   },
   eyebrow: {
     color: "#036564",
@@ -549,6 +617,51 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     marginBottom: 12,
+    textAlign: "center",
+  },
+  resultContent: {
+    alignSelf: "stretch",
+    paddingBottom: 16,
+    paddingTop: 20,
+  },
+  resultScreen: {
+    backgroundColor: "#F9F8F5",
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  resultCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 16,
+    borderWidth: 1,
+    elevation: 2,
+    maxHeight: "90%",
+    padding: 24,
+    shadowColor: "#031634",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+  },
+  resultLabel: {
+    color: "#036564",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginTop: 18,
+  },
+  resultPrimaryArea: {
+    color: "#033649",
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 6,
+    textAlign: "center",
+  },
+  resultText: {
+    color: "#031634",
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 6,
     textAlign: "center",
   },
 });
