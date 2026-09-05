@@ -5,12 +5,22 @@ import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { AuthError } from '../api/authService';
 
-export function LoginForm() {
+export interface LoginFormProps {
+  initialEmail?: string;
+}
+
+export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail || '');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
 
   // Erros de validação de campo
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
