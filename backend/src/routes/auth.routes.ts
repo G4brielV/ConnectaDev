@@ -135,4 +135,59 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     return reply.status(response.status).send(response.body);
   });
+
+  // Cenário 1: Endpoint de Logout com revogação de sessão e tokens
+  fastify.post("/auth/logout", async (request: FastifyRequest, reply: FastifyReply) => {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (typeof value === "string") {
+        headers.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => headers.append(key, v));
+      }
+    }
+    headers.set("content-type", "application/json");
+
+    const host = request.headers.host || "localhost:3000";
+    const url = new URL("/api/auth/sign-out", `http://${host}`);
+
+    let body: string | undefined = undefined;
+    if (request.body !== undefined) {
+      body = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
+    }
+
+    const req = new Request(url, {
+      method: "POST",
+      headers,
+      body,
+    });
+
+    try {
+      await auth.handler(req);
+    } catch (err) {
+      request.log.warn({ err }, "Aviso ao revogar sessão via Better Auth");
+    }
+
+    // Revogação direta de segurança no banco de dados via Prisma
+    try {
+      const authHeader = request.headers.authorization;
+      const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+      const bodyData = (request.body || {}) as { refreshToken?: string; token?: string };
+      const targetToken = bearerToken || bodyData?.refreshToken || bodyData?.token;
+
+      if (targetToken) {
+        await prisma.session.deleteMany({
+          where: { token: targetToken },
+        }).catch(() => null);
+      }
+    } catch {
+      // Ignora erro se registro de sessão já não existir
+    }
+
+    return reply.status(200).send({
+      message: "Logout realizado com sucesso",
+      success: true,
+    });
+  });
 }
+
