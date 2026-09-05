@@ -17,7 +17,7 @@ export class AuthError extends Error {
 
 export async function loginRequest(credentials: LoginCredentials): Promise<AuthResponse> {
   try {
-    const response = await apiClient.post('/auth/login', {
+    const response = await apiClient.post('/api/auth/sign-in/email', {
       email: credentials.email.trim(),
       password: credentials.password,
     });
@@ -27,12 +27,15 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
     // Extrai o token e usuário da resposta do Better Auth
     const token =
       data?.token ||
+      data?.accessToken ||
       data?.session?.token ||
       (typeof data === 'string' ? data : null);
 
+    const refreshToken = data?.refreshToken || data?.session?.token || token;
+
     const user = data?.user || {
       id: data?.id || 'unknown',
-      email: credentials.email,
+      email: credentials.email.trim(),
       name: data?.name,
     };
 
@@ -40,7 +43,7 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
       throw new AuthError('Token de autenticação não foi retornado pelo servidor.');
     }
 
-    return { token, user };
+    return { token, accessToken: token, refreshToken, user };
   } catch (error) {
     if (error instanceof AuthError) {
       throw error;
