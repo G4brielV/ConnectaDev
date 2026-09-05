@@ -12,6 +12,16 @@ export const prisma = new PrismaClient({ adapter });
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  trustedOrigins: (req) => [
+    "http://localhost:8081",
+    "http://localhost:3000",
+    "http://127.0.0.1:8081",
+    "http://127.0.0.1:3000",
+    req?.headers.get("origin") || null,
+  ],
+  advanced: {
+    disableCSRFCheck: true,
+  },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

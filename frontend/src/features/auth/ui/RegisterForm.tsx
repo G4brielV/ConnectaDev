@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useAuth } from '@/entities/session';
 import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
@@ -32,6 +32,9 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
   // Estado do Modal de Conflito 409 (TT-59 / Cenário 4)
   const [showConflictModal, setShowConflictModal] = useState(false);
+
+  // Estado de erro geral (banner na tela)
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Estado do Toast de Erro de Rede (TT-61 / Cenário 6)
   const [networkToast, setNetworkToast] = useState<{
@@ -82,6 +85,8 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
   };
 
   const handleRegister = async () => {
+    setApiError(null);
+
     // Cenário 2: Se houver campos vazios ou inválidos, NÃO dispara requisição de rede
     if (!validateForm()) {
       return;
@@ -110,18 +115,22 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
             visible: true,
             message: error.message,
           });
+          setApiError(error.message);
           return;
         }
 
         // Outros erros da API
+        setApiError(error.message);
         setNetworkToast({
           visible: true,
           message: error.message,
         });
       } else {
+        const msg = 'Sem conexão com a internet. Verifique sua rede e tente novamente';
+        setApiError(msg);
         setNetworkToast({
           visible: true,
-          message: 'Sem conexão com a internet. Verifique sua rede e tente novamente',
+          message: msg,
         });
       }
     } finally {
@@ -136,6 +145,12 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
   return (
     <View style={styles.formContainer}>
+      {apiError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{apiError}</Text>
+        </View>
+      )}
+
       {/* Campo: Nome Completo */}
       <Input
         label="Nome completo"
@@ -144,6 +159,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         onChangeText={(text) => {
           setName(text);
           if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+          if (apiError) setApiError(null);
         }}
         autoCapitalize="words"
         autoCorrect={false}
@@ -160,6 +176,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
           if (errors.email) {
             setErrors((prev) => ({ ...prev, email: undefined }));
           }
+          if (apiError) setApiError(null);
           // Validação visual inline de e-mail ao digitar
           if (text.trim().length > 0 && !EMAIL_REGEX.test(text.trim())) {
             setErrors((prev) => ({ ...prev, email: 'Informe um e-mail válido' }));
@@ -181,6 +198,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
           if (errors.password) {
             setErrors((prev) => ({ ...prev, password: undefined }));
           }
+          if (apiError) setApiError(null);
         }}
         secureTextEntry
         autoCapitalize="none"
@@ -227,6 +245,20 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
+  },
+  errorBanner: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#F87171',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorBannerText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   submitButton: {
     marginTop: 8,
