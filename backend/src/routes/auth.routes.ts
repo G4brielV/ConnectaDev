@@ -33,4 +33,33 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     return reply.status(response.status).send(response.body);
   });
+
+  fastify.post("/auth/login", async (request: FastifyRequest, reply: FastifyReply) => {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (typeof value === "string") {
+        headers.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => headers.append(key, v));
+      }
+    }
+    headers.set("content-type", "application/json");
+
+    const host = request.headers.host || "localhost:3000";
+    const url = new URL("/api/auth/sign-in/email", `http://${host}`);
+
+    const req = new Request(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(request.body),
+    });
+
+    const response = await auth.handler(req);
+
+    response.headers.forEach((value: string, key: string) => {
+      reply.header(key, value);
+    });
+
+    return reply.status(response.status).send(response.body);
+  });
 }
