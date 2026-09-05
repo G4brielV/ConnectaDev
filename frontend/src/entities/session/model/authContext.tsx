@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User, LoginCredentials, RegisterCredentials } from './types';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
-import { loginRequest, registerRequest } from '@/features/auth/api/authService';
+import { loginRequest, registerRequest, logoutRequest } from '@/features/auth/api/authService';
 import { registerSessionExpiredCallback } from '@/shared/api/apiClient';
 
 interface AuthContextData {
@@ -74,11 +74,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await registerRequest(credentials);
   };
 
-  // Logout com limpeza de tokens
+  // Cenário 1: Logout com revogação no backend, limpeza total do Secure Storage e reset de estado
   const logout = async (): Promise<void> => {
-    await tokenStorage.clearTokens();
-    setToken(null);
-    setUser(null);
+    try {
+      await logoutRequest();
+    } catch {
+      // Falha de rede ou backend não deve impedir a limpeza local
+    } finally {
+      await tokenStorage.clearTokens();
+      setToken(null);
+      setUser(null);
+    }
   };
 
   const contextValue = useMemo<AuthContextData>(

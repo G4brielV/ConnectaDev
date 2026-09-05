@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useAuth } from '@/entities/session';
 import { Button } from '@/shared/ui/Button/Button';
+import { LogoutConfirmationModal } from '@/features/auth';
 
 export function HomePage() {
   const { user, logout } = useAuth();
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutModalVisible(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -23,8 +36,15 @@ export function HomePage() {
         <Button
           title="Sair da Conta"
           variant="outline"
-          onPress={logout}
+          onPress={() => setIsLogoutModalVisible(true)}
           style={styles.logoutButton}
+        />
+
+        <LogoutConfirmationModal
+          visible={isLogoutModalVisible}
+          onConfirm={handleConfirmLogout}
+          onCancel={() => setIsLogoutModalVisible(false)}
+          isLoading={isLoggingOut}
         />
       </View>
     </SafeAreaView>

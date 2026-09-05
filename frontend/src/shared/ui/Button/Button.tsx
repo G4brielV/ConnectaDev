@@ -10,7 +10,7 @@ import {
 export interface ButtonProps extends TouchableOpacityProps {
   title: string;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
 }
 
 export function Button({
@@ -71,6 +71,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#0284C7',
   },
+  danger: {
+    backgroundColor: '#EF4444',
+  },
   disabled: {
     opacity: 0.6,
   },
@@ -85,3 +88,4 @@ const styles = StyleSheet.create({
     color: '#0284C7',
   },
 });
+

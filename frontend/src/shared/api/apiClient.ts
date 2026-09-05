@@ -73,6 +73,8 @@ apiClient.interceptors.response.use(
       requestUrl.includes('/sign-in') ||
       requestUrl.includes('/sign-up') ||
       requestUrl.includes('/register') ||
+      requestUrl.includes('/logout') ||
+      requestUrl.includes('/sign-out') ||
       requestUrl.includes('/refresh-token');
 
     // Se receber 401 em rotas de login/cadastro ou sem configuração, propaga o erro

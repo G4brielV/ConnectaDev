@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import { apiClient } from '@/shared/api/apiClient';
+import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
 import { AuthResponse, LoginCredentials } from '@/entities/session/model/types';
 import { normalizeApiError } from '@/shared/lib/errors';
 
@@ -137,3 +138,15 @@ export async function registerRequest(credentials: {
     );
   }
 }
+
+// Cenário 1: Serviço de requisição de logout para revogação no backend
+export async function logoutRequest(): Promise<void> {
+  try {
+    const refreshToken = await tokenStorage.getRefreshToken();
+    await apiClient.post('/auth/logout', { refreshToken });
+  } catch (error) {
+    // Falha de conectividade ou resposta de erro do backend não deve travar o logout local
+    console.warn('Falha na comunicação de logout com o backend:', error);
+  }
+}
+
