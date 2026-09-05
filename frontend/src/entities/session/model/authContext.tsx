@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { User, LoginCredentials } from './types';
+import { User, LoginCredentials, RegisterCredentials } from './types';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
-import { loginRequest } from '@/features/auth/api/authService';
+import { loginRequest, registerRequest } from '@/features/auth/api/authService';
 import { registerSessionExpiredCallback } from '@/shared/api/apiClient';
 
 interface AuthContextData {
@@ -10,6 +10,7 @@ interface AuthContextData {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -64,6 +65,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(response.user);
   };
 
+  // TT-56: Atualizar estado global e salvar accessToken/refreshToken no SecureStore após cadastro
+  const register = async (credentials: RegisterCredentials): Promise<void> => {
+    const response = await registerRequest(credentials);
+    const activeToken = response.accessToken || response.token;
+    await tokenStorage.setAccessToken(activeToken);
+    if (response.refreshToken) {
+      await tokenStorage.setRefreshToken(response.refreshToken);
+    }
+    setToken(activeToken);
+    setUser(response.user);
+  };
+
   // Logout com limpeza de tokens
   const logout = async (): Promise<void> => {
     await tokenStorage.clearTokens();
@@ -78,6 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: !!token,
       isLoading,
       login,
+      register,
       logout,
     }),
     [user, token, isLoading]
