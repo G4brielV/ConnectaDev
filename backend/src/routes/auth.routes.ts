@@ -16,12 +16,20 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const url = new URL(request.url, `http://${request.headers.host}`);
+    const url = new URL(request.url, `http://${request.headers.host || "localhost:3000"}`);
     
+    let body: string | undefined = undefined;
+    if (!["GET", "HEAD"].includes(request.method) && request.body !== undefined) {
+      body = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
+      if (!headers.has("content-type")) {
+        headers.set("content-type", "application/json");
+      }
+    }
+
     const req = new Request(url, {
       method: request.method,
       headers,
-      body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body as any,
+      body,
     });
 
     const response = await auth.handler(req);

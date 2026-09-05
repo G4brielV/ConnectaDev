@@ -86,6 +86,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
         onChangeText={(text) => {
           setEmail(text);
           if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+          if (apiError) setApiError(null);
         }}
         keyboardType="email-address"
         autoCapitalize="none"
@@ -100,6 +101,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+          if (apiError) setApiError(null);
         }}
         secureTextEntry
         autoCapitalize="none"

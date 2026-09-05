@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import { apiClient } from '@/shared/api/apiClient';
 import { AuthResponse, LoginCredentials } from '@/entities/session/model/types';
+import { normalizeApiError } from '@/shared/lib/errors';
 
 export class AuthError extends Error {
   public readonly statusCode?: number;
@@ -59,24 +60,13 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
       );
     }
 
-    if (axiosError.response?.status === 400) {
-      const serverMsg = axiosError.response.data?.message;
-      throw new AuthError(
-        serverMsg || 'Dados de login inválidos. Verifique os campos.',
-        400
-      );
-    }
-
-    if (!axiosError.response) {
-      throw new AuthError(
-        'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.'
-      );
-    }
-
-    throw new AuthError(
-      'Ocorreu um erro ao realizar o login. Tente novamente mais tarde.',
-      axiosError.response.status
+    // Tratamento global para nunca vazar erros técnicos (ex: JSON mal formado, parser, internal)
+    const safeMessage = normalizeApiError(
+      error,
+      'Ocorreu um erro ao realizar o login. Tente novamente mais tarde.'
     );
+
+    throw new AuthError(safeMessage, axiosError.response?.status);
   }
 }
 
@@ -130,31 +120,20 @@ export async function registerRequest(credentials: {
       );
     }
 
-    if (axiosError.response?.status === 400) {
-      const serverMsg = axiosError.response.data?.message;
-      throw new AuthError(
-        serverMsg || 'Dados de cadastro inválidos. Verifique os campos.',
-        400
-      );
-    }
+    const safeMessage = normalizeApiError(
+      error,
+      'Ocorreu um erro ao realizar o cadastro. Tente novamente mais tarde.'
+    );
 
-    // TT-61 / Cenário 6: Falha de conexão de rede ou timeout rápido
-    if (
+    const isNetworkError =
       !axiosError.response ||
       axiosError.code === 'ERR_NETWORK' ||
-      axiosError.code === 'ECONNABORTED' ||
-      axiosError.message?.toLowerCase().includes('network')
-    ) {
-      throw new AuthError(
-        'Sem conexão com a internet. Verifique sua rede e tente novamente',
-        0,
-        'NETWORK_ERROR'
-      );
-    }
+      axiosError.code === 'ECONNABORTED';
 
     throw new AuthError(
-      'Ocorreu um erro ao realizar o cadastro. Tente novamente mais tarde.',
-      axiosError.response.status
+      safeMessage,
+      axiosError.response?.status || 0,
+      isNetworkError ? 'NETWORK_ERROR' : undefined
     );
   }
 }

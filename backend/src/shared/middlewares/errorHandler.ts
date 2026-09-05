@@ -19,10 +19,16 @@ export function errorHandler(
 
   // Se for um erro nativo do Fastify (ex: JSON mal formado, rota não encontrada)
   if (typeof fastifyError.statusCode === "number") {
+    let message = fastifyError.message;
+    // Sanitização para evitar vazamento de erros de parser ou traces na resposta
+    if (fastifyError.statusCode === 400 && /json|syntax|token|body/i.test(fastifyError.message)) {
+      message = "Formato de requisição inválido. Verifique os dados enviados.";
+    }
+
     return reply.status(fastifyError.statusCode).send({
       statusCode: fastifyError.statusCode,
       error: fastifyError.name || "Error",
-      message: fastifyError.message,
+      message,
     });
   }
 
