@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "prisma generate && tsc --noEmit"
+    "test": "prisma generate && tsc --noEmit",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "migrate": "prisma db push"
   },
   "keywords": [],
   "author": "",
