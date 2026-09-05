@@ -20,6 +20,7 @@ export function LoginPage() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
   const initialEmail = route.params?.initialEmail;
+  const successMessage = route.params?.successMessage;
 
   return (
     <KeyboardAvoidingView
@@ -39,6 +40,13 @@ export function LoginPage() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Login</Text>
+
+          {successMessage ? (
+            <View style={styles.successBanner}>
+              <Text style={styles.successBannerText}>{successMessage}</Text>
+            </View>
+          ) : null}
+
           <LoginForm initialEmail={initialEmail} />
 
           <View style={styles.footer}>
@@ -96,6 +104,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     marginBottom: 20,
+  },
+  successBanner: {
+    backgroundColor: '#DEF7EC',
+    borderWidth: 1,
+    borderColor: '#31C48D',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  successBannerText: {
+    color: '#03543F',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',

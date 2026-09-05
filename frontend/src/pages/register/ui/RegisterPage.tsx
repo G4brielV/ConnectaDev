@@ -18,8 +18,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 export function RegisterPage() {
   const navigation = useNavigation<NavigationProp>();
 
-  const handleNavigateToLogin = (initialEmail?: string) => {
-    navigation.navigate('Login', initialEmail ? { initialEmail } : undefined);
+  const handleNavigateToLogin = (initialEmail?: string, successMessage?: string) => {
+    navigation.navigate('Login', initialEmail ? { initialEmail, successMessage } : undefined);
   };
 
   return (

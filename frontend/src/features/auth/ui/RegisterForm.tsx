@@ -9,7 +9,7 @@ import { PasswordRequirements, checkPasswordComplexity } from './PasswordRequire
 import { ConflictModal } from './ConflictModal';
 
 export interface RegisterFormProps {
-  onNavigateToLogin?: (initialEmail?: string) => void;
+  onNavigateToLogin?: (initialEmail?: string, successMessage?: string) => void;
 }
 
 // Regex estrita para validação de e-mail (TT-58 / Cenário 3)
@@ -100,7 +100,12 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         email: email.trim(),
         password,
       });
-      // Sucesso: authContext atualiza isAuthenticated, resetando a navegação
+
+      // Redireciona para o login informando sucesso (não entra diretamente no app)
+      onNavigateToLogin?.(
+        email.trim(),
+        'Conta criada com sucesso! Faça login para acessar.'
+      );
     } catch (error) {
       if (error instanceof AuthError) {
         // Cenário 4: Conflito 409 (e-mail já cadastrado)

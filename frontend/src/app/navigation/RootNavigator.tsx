@@ -8,7 +8,7 @@ import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 
 export type RootStackParamList = {
-  Login: { initialEmail?: string } | undefined;
+  Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: undefined;
 };

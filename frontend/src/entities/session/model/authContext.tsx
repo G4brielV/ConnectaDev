@@ -69,16 +69,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(response.user);
   };
 
-  // TT-56: Atualizar estado global e salvar accessToken/refreshToken no SecureStore após cadastro
+  // Cadastro de novo usuário (sem autenticação automática imediata)
   const register = async (credentials: RegisterCredentials): Promise<void> => {
-    const response = await registerRequest(credentials);
-    const activeToken = response.accessToken || response.token;
-    await tokenStorage.setAccessToken(activeToken);
-    if (response.refreshToken) {
-      await tokenStorage.setRefreshToken(response.refreshToken);
-    }
-    setToken(activeToken);
-    setUser(response.user);
+    await registerRequest(credentials);
   };
 
   // Logout com limpeza de tokens
