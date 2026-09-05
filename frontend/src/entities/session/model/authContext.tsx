@@ -57,11 +57,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  // TT-51: Atualizar estado global de autenticação após login
+  // TT-51 & TT-53: Atualizar estado global de autenticação e salvar tokens após login
   const login = async (credentials: LoginCredentials): Promise<void> => {
     const response = await loginRequest(credentials);
-    await tokenStorage.setAccessToken(response.token);
-    setToken(response.token);
+    const activeToken = response.accessToken || response.token;
+    await tokenStorage.setAccessToken(activeToken);
+    if (response.refreshToken) {
+      await tokenStorage.setRefreshToken(response.refreshToken);
+    }
+    setToken(activeToken);
     setUser(response.user);
   };
 

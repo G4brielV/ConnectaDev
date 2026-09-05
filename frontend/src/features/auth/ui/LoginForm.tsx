@@ -9,6 +9,8 @@ export interface LoginFormProps {
   initialEmail?: string;
 }
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   const { login } = useAuth();
 
@@ -33,7 +35,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
     if (!email.trim()) {
       newErrors.email = 'Informe o seu e-mail';
-    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
+    } else if (!EMAIL_REGEX.test(email.trim())) {
       newErrors.email = 'Informe um e-mail válido';
     }
 
