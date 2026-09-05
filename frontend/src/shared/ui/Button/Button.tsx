@@ -13,14 +13,14 @@ export interface ButtonProps extends TouchableOpacityProps {
   variant?: 'primary' | 'secondary' | 'outline';
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export function Button({
   title,
   loading = false,
   variant = 'primary',
   disabled,
   style,
   ...props
-}) => {
+}: ButtonProps) {
   const isButtonDisabled = disabled || loading;
 
   return (

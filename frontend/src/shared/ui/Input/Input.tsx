@@ -12,12 +12,12 @@ export interface InputProps extends TextInputProps {
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({
+export function Input({
   label,
   error,
   style,
   ...props
-}) => {
+}: InputProps) {
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}

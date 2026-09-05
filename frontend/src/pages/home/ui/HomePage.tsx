@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useAuth } from '@/entities/session';
 import { Button } from '@/shared/ui/Button/Button';
 
-export const HomePage: React.FC = () => {
+export function HomePage() {
   const { user, logout } = useAuth();
 
   return (

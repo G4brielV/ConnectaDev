@@ -5,7 +5,7 @@ import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { AuthError } from '../api/authService';
 
-export const LoginForm: React.FC = () => {
+export function LoginForm() {
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');

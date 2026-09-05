@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LoginForm } from '@/features/auth';
 
-export const LoginPage: React.FC = () => {
+export function LoginPage() {
   return (
     <KeyboardAvoidingView
       style={styles.keyboardContainer}
