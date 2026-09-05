@@ -8,18 +8,19 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LoginForm } from '@/features/auth';
+import { RegisterForm } from '@/features/auth';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
-type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<LoginRouteProp>();
-  const initialEmail = route.params?.initialEmail;
+
+  const handleNavigateToLogin = (initialEmail?: string) => {
+    navigation.navigate('Login', initialEmail ? { initialEmail } : undefined);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -33,25 +34,25 @@ export function LoginPage() {
         <View style={styles.header}>
           <Text style={styles.logoTitle}>ConnectaDev</Text>
           <Text style={styles.subtitle}>
-            Acesse sua conta para se conectar com o ecossistema tech de Pernambuco
+            Crie sua conta para explorar trilhas, desafios e o ecossistema tech de Pernambuco
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Login</Text>
-          <LoginForm initialEmail={initialEmail} />
+          <Text style={styles.cardTitle}>Cadastro</Text>
+          <RegisterForm onNavigateToLogin={handleNavigateToLogin} />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Não tem uma conta? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Cadastre-se</Text>
+            <Text style={styles.footerText}>Já tem uma conta? </Text>
+            <TouchableOpacity onPress={() => handleNavigateToLogin()}>
+              <Text style={styles.footerLink}>Fazer Login</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   keyboardContainer: {
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoTitle: {
     fontSize: 32,
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 8,
-    maxWidth: 280,
+    maxWidth: 290,
     lineHeight: 20,
   },
   card: {

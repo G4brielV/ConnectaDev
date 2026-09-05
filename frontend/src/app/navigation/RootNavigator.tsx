@@ -4,10 +4,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '@/entities/session';
 import { LoginPage } from '@/pages/login';
+import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 
 export type RootStackParamList = {
-  Login: undefined;
+  Login: { initialEmail?: string } | undefined;
+  Register: { initialEmail?: string } | undefined;
   Home: undefined;
 };
 
@@ -24,15 +26,18 @@ export function RootNavigator() {
     );
   }
 
-  // TT-50: Ao alternar o estado de autenticação, o React Navigation desmonta a pilha anterior
-  // executando o reset completo de navegação e impedindo retorno à tela de login
+  // TT-50 & TT-56: Ao alternar o estado de autenticação, o React Navigation desmonta a pilha anterior
+  // executando o reset completo de navegação e direcionando diretamente para a HomeScreen
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Home" component={HomePage} />
         ) : (
-          <Stack.Screen name="Login" component={LoginPage} />
+          <>
+            <Stack.Screen name="Login" component={LoginPage} />
+            <Stack.Screen name="Register" component={RegisterPage} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
