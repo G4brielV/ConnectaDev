@@ -28,6 +28,7 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
 
     // Extrai o token e usuário da resposta do Better Auth
     const token =
+      response.headers['set-auth-token'] ||
       data?.token ||
       data?.accessToken ||
       data?.session?.token ||
@@ -87,6 +88,7 @@ export async function registerRequest(credentials: {
     const data = response.data;
 
     const token =
+      response.headers['set-auth-token'] ||
       data?.token ||
       data?.accessToken ||
       data?.session?.token ||
@@ -149,4 +151,3 @@ export async function logoutRequest(): Promise<void> {
     console.warn('Falha na comunicação de logout com o backend:', error);
   }
 }
-

@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useAuth } from '@/entities/session';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { Button } from '@/shared/ui/Button/Button';
 import { LogoutConfirmationModal } from '@/features/auth';
 
 export function HomePage() {
   const { user, logout } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -32,6 +36,12 @@ export function HomePage() {
             Navegação resetada com sucesso. Você não consegue retornar para o login pressionando "Voltar".
           </Text>
         </View>
+
+        <Button
+          title="Ir para o quiz"
+          onPress={() => navigation.navigate('Quiz')}
+          style={styles.quizButton}
+        />
 
         <Button
           title="Sair da Conta"
@@ -104,5 +114,8 @@ const styles = StyleSheet.create({
   logoutButton: {
     marginBottom: 16,
     borderColor: '#EF4444',
+  },
+  quizButton: {
+    marginBottom: 12,
   },
 });

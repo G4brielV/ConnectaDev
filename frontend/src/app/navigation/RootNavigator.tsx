@@ -6,11 +6,13 @@ import { useAuth } from '@/entities/session';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
+import { QuizScreen } from '@/pages/QuizScreen';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: undefined;
+  Quiz: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -32,7 +34,10 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Home" component={HomePage} />
+          <>
+            <Stack.Screen name="Home" component={HomePage} />
+            <Stack.Screen name="Quiz" component={QuizScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginPage} />

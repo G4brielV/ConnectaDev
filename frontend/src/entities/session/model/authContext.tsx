@@ -3,6 +3,7 @@ import { User, LoginCredentials, RegisterCredentials } from './types';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
 import { loginRequest, registerRequest, logoutRequest } from '@/features/auth/api/authService';
 import { registerSessionExpiredCallback } from '@/shared/api/apiClient';
+import { configureAuthToken } from '@/shared/lib/authSession';
 
 interface AuthContextData {
   user: User | null;
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const storedToken = await tokenStorage.getAccessToken();
         if (storedToken) {
           setToken(storedToken);
+          configureAuthToken(storedToken);
           // Usuário recuperado ou placeholder até a rota /me
           setUser({ id: 'current-user', email: '' });
         }
@@ -48,6 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // TT-55: Registrar interceptor de expiração de sessão
   useEffect(() => {
     const unregister = registerSessionExpiredCallback(() => {
+      configureAuthToken(null);
       setToken(null);
       setUser(null);
     });
@@ -62,6 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const response = await loginRequest(credentials);
     const activeToken = response.accessToken || response.token;
     await tokenStorage.setAccessToken(activeToken);
+    configureAuthToken(activeToken);
     if (response.refreshToken) {
       await tokenStorage.setRefreshToken(response.refreshToken);
     }
@@ -82,6 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Falha de rede ou backend não deve impedir a limpeza local
     } finally {
       await tokenStorage.clearTokens();
+      configureAuthToken(null);
       setToken(null);
       setUser(null);
     }

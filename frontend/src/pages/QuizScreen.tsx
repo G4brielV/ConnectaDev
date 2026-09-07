@@ -20,9 +20,10 @@ import {
   QuizQuestion,
   submitQuiz,
 } from "../shared/api/quizApi";
-import { getAuthToken } from "../shared/lib/authSession";
+import { useAuth } from "../entities/session";
 
 export function QuizScreen() {
+  const { isAuthenticated, isLoading: isAuthLoading, token } = useAuth();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -40,10 +41,14 @@ export function QuizScreen() {
     let isMounted = true;
 
     async function loadQuiz(): Promise<void> {
-      const token = await getAuthToken();
-      if (!token) {
+      if (isAuthLoading) {
+        return;
+      }
+
+      if (!isAuthenticated || !token) {
         if (isMounted) {
-          setErrorMessage("Faça login para iniciar seu questionário.");
+          setQuestions([]);
+          setErrorMessage(null);
           setIsLoading(false);
         }
         return;
@@ -67,11 +72,15 @@ export function QuizScreen() {
       }
     }
 
-    void loadQuiz();
+    setIsLoading(isAuthLoading || isAuthenticated);
+    setErrorMessage(null);
+    if (isAuthenticated && token) {
+      void loadQuiz();
+    }
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isAuthenticated, isAuthLoading, token]);
 
   useEffect(() => {
     if (previousQuestionIndex.current === currentIndex) {
@@ -212,7 +221,6 @@ export function QuizScreen() {
       }
 
       setIsSubmitting(true);
-      const token = await getAuthToken();
       if (!token) {
         setErrorMessage("Sua sessão não é válida. Faça login para continuar.");
         setIsSubmitting(false);

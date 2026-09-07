@@ -68,6 +68,18 @@ model Verification {
   @@map("verification")
 }
 
+model Jwks {
+  id        String    @id
+  publicKey String
+  privateKey String
+  createdAt DateTime
+  expiresAt DateTime?
+  alg       String?
+  crv       String?
+
+  @@map("jwks")
+}
+
 model UserProfile {
   userId             String   @id @map("user_id")
   bio                String?

@@ -33,7 +33,7 @@ export const auth = betterAuth({
     jwt({
       jwt: {
         expirationTime: "7d",
-      }
-    })
+      },
+    }),
   ]
 });

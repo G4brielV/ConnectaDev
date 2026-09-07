@@ -3,8 +3,8 @@ import {
 } from "../schemas/quiz.schemas";
 import { z } from "zod";
 
-const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const AI_REQUEST_TIMEOUT_MS = 30_000;
 
 const SUPPORTED_AREAS = [
