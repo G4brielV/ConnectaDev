@@ -1,10 +1,9 @@
+import "dotenv/config";
 import fastify from "fastify";
 import cors from "@fastify/cors";
-import dotenv from "dotenv";
 import { authRoutes } from "./routes/auth.routes";
 import { errorHandler } from "./shared/middlewares/errorHandler";
-
-dotenv.config();
+import { quizRoutes } from "./modules/quiz/routes/quiz.routes";
 
 const app = fastify({ logger: true });
 
@@ -21,6 +20,7 @@ app.setErrorHandler(errorHandler);
 
 // Register routes
 app.register(authRoutes);
+app.register(quizRoutes);
 
 // Health check
 app.get("/health", async () => {

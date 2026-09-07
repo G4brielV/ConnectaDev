@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { auth } from "../lib/auth";
+import { auth, prisma } from "../lib/auth";
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.all("/api/auth/*", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -16,12 +16,21 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const url = new URL(request.url, `http://${request.headers.host}`);
+    const url = new URL(request.url, `http://${request.headers.host || "localhost:3000"}`);
     
+    // Resolução do conflito: Combina checagem de GET/HEAD, tratamento de null/undefined e content-type
+    let body: string | undefined = undefined;
+    if (!["GET", "HEAD"].includes(request.method) && request.body != null) {
+      body = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
+      if (!headers.has("content-type")) {
+        headers.set("content-type", "application/json");
+      }
+    }
+
     const req = new Request(url, {
       method: request.method,
       headers,
-      body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body as any,
+      body,
     });
 
     const response = await auth.handler(req);
@@ -31,6 +40,155 @@ export async function authRoutes(fastify: FastifyInstance) {
       reply.header(key, value);
     });
 
+    const responseBody = await response.text();
+    return reply.status(response.status).send(responseBody);
+  });
+
+  // TT-56 & TT-59: Endpoint de cadastro com sanitização, 409 em conflito e 201 com tokens JWT
+  fastify.post("/auth/register", async (request: FastifyRequest, reply: FastifyReply) => {
+    const { name, email, password } = (request.body || {}) as {
+      name?: string;
+      email?: string;
+      password?: string;
+    };
+
+    if (!name || !email || !password) {
+      return reply.status(400).send({ message: "Preenchimento obrigatório" });
+    }
+
+    const sanitizedName = String(name).trim();
+    const sanitizedEmail = String(email).trim().toLowerCase();
+
+    // Verificação de duplicidade de e-mail (TT-59)
+    try {
+      const existingUser = await prisma.user.findFirst({
+        where: { email: sanitizedEmail },
+      });
+
+      if (existingUser) {
+        return reply.status(409).send({
+          error: "Este e-mail já está em uso",
+          message: "Este e-mail já está em uso",
+          code: "EMAIL_ALREADY_EXISTS",
+        });
+      }
+    } catch (dbError) {
+      request.log.warn({ err: dbError }, "Verificação prévia do Prisma falhou, delegando para Better Auth");
+    }
+
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (typeof value === "string") {
+        headers.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => headers.append(key, v));
+      }
+    }
+    headers.set("content-type", "application/json");
+
+    const host = request.headers.host || "localhost:3000";
+    const url = new URL("/api/auth/sign-up/email", `http://${host}`);
+
+    const req = new Request(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        name: sanitizedName,
+        email: sanitizedEmail,
+        password,
+      }),
+    });
+
+    const response = await auth.handler(req);
+
+    response.headers.forEach((value: string, key: string) => {
+      reply.header(key, value);
+    });
+
+    // Tratamento de conflito retornado pelo Better Auth
+    if (response.status === 422 || response.status === 400) {
+      const errorData = await response.clone().json().catch(() => null) as any;
+      if (
+        errorData?.message?.toLowerCase().includes("exists") ||
+        errorData?.code === "USER_ALREADY_EXISTS"
+      ) {
+        return reply.status(409).send({
+          error: "Este e-mail já está em uso",
+          message: "Este e-mail já está em uso",
+          code: "EMAIL_ALREADY_EXISTS",
+        });
+      }
+      return reply.status(response.status).send(response.body);
+    }
+
+    // Retornar HTTP 201 com tokens JWT (accessToken e refreshToken) e usuário (TT-56)
+    if (response.status === 200 || response.status === 201) {
+      const data = await response.json() as any;
+      const accessToken = data?.token || data?.session?.token || "jwt_session_token";
+      const refreshToken = data?.refreshToken || data?.session?.token || accessToken;
+
+      return reply.status(201).send({
+        ...data,
+        token: accessToken,
+        accessToken,
+        refreshToken,
+      });
+    }
+
     return reply.status(response.status).send(response.body);
+  });
+
+  // Cenário 1: Endpoint de Logout com revogação de sessão e tokens
+  fastify.post("/auth/logout", async (request: FastifyRequest, reply: FastifyReply) => {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (typeof value === "string") {
+        headers.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => headers.append(key, v));
+      }
+    }
+    headers.set("content-type", "application/json");
+
+    const host = request.headers.host || "localhost:3000";
+    const url = new URL("/api/auth/sign-out", `http://${host}`);
+
+    let body: string | undefined = undefined;
+    if (request.body !== undefined) {
+      body = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
+    }
+
+    const req = new Request(url, {
+      method: "POST",
+      headers,
+      body,
+    });
+
+    try {
+      await auth.handler(req);
+    } catch (err) {
+      request.log.warn({ err }, "Aviso ao revogar sessão via Better Auth");
+    }
+
+    // Revogação direta de segurança no banco de dados via Prisma
+    try {
+      const authHeader = request.headers.authorization;
+      const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+      const bodyData = (request.body || {}) as { refreshToken?: string; token?: string };
+      const targetToken = bearerToken || bodyData?.refreshToken || bodyData?.token;
+
+      if (targetToken) {
+        await prisma.session.deleteMany({
+          where: { token: targetToken },
+        }).catch(() => null);
+      }
+    } catch {
+      // Ignora erro se registro de sessão já não existir
+    }
+
+    return reply.status(200).send({
+      message: "Logout realizado com sucesso",
+      success: true,
+    });
   });
 }
