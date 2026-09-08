@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "prisma generate && tsc --noEmit"
+    "test": "prisma generate && tsc --noEmit",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "migrate": "prisma db push"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +21,8 @@
     "better-auth": "^1.7.2",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.1",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
