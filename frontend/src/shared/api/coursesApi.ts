@@ -36,3 +36,20 @@ export async function fetchCourseRecommendations(
 
   return (await response.json()) as CourseRecommendationsResponse;
 }
+
+export async function bookmarkCourse(
+  token: string,
+  courseId: string,
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/courses/${courseId}/bookmark`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível salvar o curso nos seus favoritos.");
+  }
+}

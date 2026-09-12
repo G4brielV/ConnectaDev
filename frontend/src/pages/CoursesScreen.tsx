@@ -11,9 +11,14 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { fetchCourseRecommendations, CourseRecommendation } from "../shared/api/coursesApi";
+import {
+  bookmarkCourse,
+  fetchCourseRecommendations,
+  CourseRecommendation,
+} from "../shared/api/coursesApi";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { Toast } from "../shared/ui/Toast";
 
 export function CoursesScreen() {
   const { token } = useAuth();
@@ -24,12 +29,39 @@ export function CoursesScreen() {
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [savedCourseIds, setSavedCourseIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [savingCourseId, setSavingCourseId] = useState<string | null>(null);
 
   async function openCourse(externalUrl: string): Promise<void> {
     try {
       await Linking.openURL(externalUrl);
     } catch {
       setErrorMessage("Não foi possível abrir o conteúdo do curso.");
+    }
+  }
+
+  async function saveCourse(courseId: string): Promise<void> {
+    if (!token || savedCourseIds.has(courseId) || savingCourseId) return;
+
+    setSavingCourseId(courseId);
+    try {
+      await bookmarkCourse(token, courseId);
+      setSavedCourseIds((current) => new Set(current).add(courseId));
+      setToastMessage("Curso salvo nos seus favoritos!");
+      setToastVisible(true);
+    } catch (error: unknown) {
+      setToastMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar o curso nos seus favoritos.",
+      );
+      setToastVisible(true);
+    } finally {
+      setSavingCourseId(null);
     }
   }
 
@@ -99,9 +131,38 @@ export function CoursesScreen() {
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.meta}>{item.provider} • {item.level}</Text>
             <Text style={styles.tags}>{item.tags.join(" • ")}</Text>
+            <Pressable
+              accessibilityLabel={
+                savedCourseIds.has(item.id)
+                  ? `Curso ${item.title} salvo`
+                  : `Salvar curso ${item.title}`
+              }
+              accessibilityRole="button"
+              disabled={savingCourseId === item.id}
+              onPress={(event) => {
+                event.stopPropagation();
+                void saveCourse(item.id);
+              }}
+              style={styles.bookmarkButton}
+            >
+              <Text
+                style={[
+                  styles.bookmarkIcon,
+                  savedCourseIds.has(item.id) && styles.bookmarkIconActive,
+                ]}
+              >
+                🔖
+              </Text>
+            </Pressable>
           </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Nenhum curso recomendado disponível.</Text>}
+      />
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastMessage === "Curso salvo nos seus favoritos!" ? "success" : "error"}
+        onDismiss={() => setToastVisible(false)}
       />
     </View>
   );
@@ -116,6 +177,9 @@ const styles = StyleSheet.create({
   title: { color: "#031634", fontSize: 17, fontWeight: "700", padding: 16, paddingBottom: 6 },
   meta: { color: "#60717A", paddingHorizontal: 16 },
   tags: { color: "#036564", fontSize: 12, padding: 16, paddingBottom: 0 },
+  bookmarkButton: { alignSelf: "flex-end", padding: 12 },
+  bookmarkIcon: { fontSize: 24, opacity: 0.45 },
+  bookmarkIconActive: { opacity: 1 },
   empty: { color: "#60717A", textAlign: "center" },
   emptyStateCard: {
     backgroundColor: "#FFFFFF",
