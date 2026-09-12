@@ -1,6 +1,6 @@
 import { API_URL } from "../config/api";
 
-export type QuizQuestionType = "open" | "multiple-choice";
+export type QuizQuestionType = "MULTIPLE_CHOICE" | "OPEN_TEXT";
 
 export interface QuizOption {
   id: string;
@@ -14,15 +14,22 @@ export interface QuizQuestion {
   sequence: number;
   isActive: boolean;
   options?: QuizOption[];
+  validation?: QuizValidation;
+}
+
+export interface QuizValidation {
+  minLength?: number;
+  maxLength?: number;
 }
 
 interface QuizQuestionRecord {
   id: string;
   statement: string;
-  type: QuizQuestionType;
+  type: QuizQuestionType | "multiple-choice" | "open";
   sequence: number;
   isActive: boolean;
   options?: QuizOption[];
+  validation?: QuizValidation;
 }
 
 export interface QuizSubmitPayload {
@@ -57,11 +64,17 @@ export async function fetchQuizQuestions(
   const payload = (await response.json()) as QuizQuestionRecord[];
   return payload.map((question) => ({
     id: question.id,
-    type: question.type,
+    type:
+      question.type === "multiple-choice"
+        ? "MULTIPLE_CHOICE"
+        : question.type === "open"
+          ? "OPEN_TEXT"
+          : question.type,
     prompt: question.statement,
     sequence: question.sequence,
     isActive: question.isActive,
     options: question.options,
+    validation: question.validation,
   }));
 }
 

@@ -1,4 +1,4 @@
-export type QuizQuestionType = "open" | "multiple-choice";
+export type QuizQuestionType = "MULTIPLE_CHOICE" | "OPEN_TEXT";
 
 export interface QuizOption {
   id: string;
@@ -12,6 +12,12 @@ export interface QuizQuestion {
   sequence: number;
   isActive: boolean;
   options?: QuizOption[];
+  validation?: QuizValidation;
+}
+
+export interface QuizValidation {
+  minLength?: number;
+  maxLength?: number;
 }
 
 export interface QuizSubmitRequest {

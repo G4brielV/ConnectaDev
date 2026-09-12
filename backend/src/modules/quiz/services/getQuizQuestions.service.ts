@@ -3,6 +3,7 @@ import {
   QuizOption,
   QuizQuestion,
   QuizQuestionType,
+  QuizValidation,
 } from "../schemas/quiz.schemas";
 
 function parseOptions(value: unknown): QuizOption[] | undefined {
@@ -23,6 +24,34 @@ function parseOptions(value: unknown): QuizOption[] | undefined {
   return options.length > 0 ? options : undefined;
 }
 
+function normalizeType(value: string): QuizQuestionType {
+  if (value === "MULTIPLE_CHOICE" || value === "multiple-choice") {
+    return "MULTIPLE_CHOICE";
+  }
+
+  return "OPEN_TEXT";
+}
+
+function parseValidation(value: unknown): QuizValidation | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const minLength =
+    typeof record.minLength === "number" && record.minLength >= 0
+      ? record.minLength
+      : undefined;
+  const maxLength =
+    typeof record.maxLength === "number" && record.maxLength >= 0
+      ? record.maxLength
+      : undefined;
+
+  return minLength !== undefined || maxLength !== undefined
+    ? { minLength, maxLength }
+    : undefined;
+}
+
 export async function getQuizQuestions(): Promise<QuizQuestion[]> {
   const questions = await prisma.quizQuestion.findMany({
     where: { isActive: true },
@@ -34,17 +63,21 @@ export async function getQuizQuestions(): Promise<QuizQuestion[]> {
       sequence: true,
       isActive: true,
       options: true,
+      validation: true,
     },
   });
 
   return questions.map((question) => ({
     id: question.id,
     statement: question.statement,
-    type: question.type as QuizQuestionType,
+    type: normalizeType(question.type),
     sequence: question.sequence,
     isActive: question.isActive,
     ...(parseOptions(question.options) && {
       options: parseOptions(question.options),
+    }),
+    ...(parseValidation(question.validation) && {
+      validation: parseValidation(question.validation),
     }),
   }));
 }

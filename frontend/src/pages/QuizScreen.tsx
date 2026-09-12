@@ -169,10 +169,15 @@ export function QuizScreen() {
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answer = answers[question.id] ?? "";
+  const isMultipleChoice = question.type === "MULTIPLE_CHOICE";
+  const isOpenText = question.type === "OPEN_TEXT";
+  const hasOptions = isMultipleChoice && (question.options?.length ?? 0) > 0;
+  const minLength = question.validation?.minLength ?? (isOpenText ? 20 : 0);
+  const maxLength = question.validation?.maxLength ?? (isOpenText ? 500 : 0);
   const canAdvance =
-    question.type === "open"
-      ? answer.trim().length >= 20 && answer.trim().length <= 500
-      : answer.length > 0;
+    isOpenText
+      ? answer.trim().length >= minLength && answer.trim().length <= maxLength
+      : hasOptions && answer.length > 0;
 
   function selectAnswer(value: string): void {
     setAnswerValidationMessage(null);
@@ -186,13 +191,13 @@ export function QuizScreen() {
     Keyboard.dismiss();
     let submissionAnswers = answers;
 
-    if (question.type === "open") {
+    if (isOpenText) {
       const sanitizedAnswer = answer.trim();
-      if (sanitizedAnswer.length < 20 || sanitizedAnswer.length > 500) {
+      if (sanitizedAnswer.length < minLength || sanitizedAnswer.length > maxLength) {
         setAnswerValidationMessage(
-          sanitizedAnswer.length < 20
-            ? `Escreva pelo menos 20 caracteres para detalhar sua resposta`
-            : "A resposta não pode ultrapassar 500 caracteres.",
+          sanitizedAnswer.length < minLength
+            ? `Escreva pelo menos ${minLength} caracteres para detalhar sua resposta`
+            : `A resposta não pode ultrapassar ${maxLength} caracteres.`,
         );
         textInputRef.current?.focus();
         return;
@@ -209,7 +214,7 @@ export function QuizScreen() {
     }
 
     if (!canAdvance) {
-      if (question.type === "multiple-choice") {
+      if (isMultipleChoice) {
         setAnswerValidationMessage("Selecione uma opção para continuar");
       }
       return;
@@ -330,7 +335,7 @@ export function QuizScreen() {
           style={styles.questionScroll}
         >
           <Text style={styles.question}>{question.prompt}</Text>
-          {question.options?.map((option) => (
+          {hasOptions && question.options?.map((option) => (
             <Pressable
               key={option.id}
               accessibilityRole="radio"
@@ -342,11 +347,11 @@ export function QuizScreen() {
               <Text style={styles.optionText}>{option.label}</Text>
             </Pressable>
           ))}
-          {question.type === "open" && (
+          {isOpenText && (
             <TextInput
               accessibilityLabel="Resposta aberta"
               multiline
-              maxLength={500}
+              maxLength={maxLength}
               onChangeText={selectAnswer}
               placeholder="Escreva sua resposta..."
               placeholderTextColor="#60717A"
@@ -354,28 +359,28 @@ export function QuizScreen() {
               style={[
                 styles.textInput,
                 answerValidationMessage && styles.warningInput,
-                answer.length >= 500 && styles.maxLengthInput,
+                answer.length >= maxLength && styles.maxLengthInput,
               ]}
               value={answer}
             />
           )}
-          {question.type === "open" && answerValidationMessage && (
+          {isOpenText && answerValidationMessage && (
             <Text accessibilityRole="alert" style={styles.openValidationText}>
               {answerValidationMessage}
             </Text>
           )}
-          {question.type === "open" && (
+          {isOpenText && (
             <Text
-              accessibilityLabel={`${answer.length} de 500 caracteres`}
-              style={[styles.characterCount, answer.length >= 500 && styles.maxLengthText]}
+              accessibilityLabel={`${answer.length} de ${maxLength} caracteres`}
+              style={[styles.characterCount, answer.length >= maxLength && styles.maxLengthText]}
             >
-              {answer.length}/500
+              {answer.length}/{maxLength}
             </Text>
           )}
         </ScrollView>
       </Animated.View>
       <View style={styles.actions}>
-        {answerValidationMessage && question.type !== "open" && (
+        {answerValidationMessage && !isOpenText && (
           <Text accessibilityRole="alert" style={styles.validationText}>
             {answerValidationMessage}
           </Text>
@@ -386,7 +391,7 @@ export function QuizScreen() {
           disabled={isSubmitting}
           style={[
             styles.nextButton,
-            question.type === "multiple-choice" && styles.multipleChoiceNextButton,
+            isMultipleChoice && styles.multipleChoiceNextButton,
             !canAdvance && styles.disabledButton,
           ]}
           onPress={goToNextQuestion}
