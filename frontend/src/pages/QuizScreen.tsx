@@ -108,6 +108,10 @@ export function QuizScreen() {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
+        if (isLoading || isSubmitting) {
+          return true;
+        }
+
         if (isComplete) {
           setIsComplete(false);
           setCurrentIndex(Math.max(0, questions.length - 1));
@@ -124,7 +128,7 @@ export function QuizScreen() {
     );
 
     return () => subscription.remove();
-  }, [currentIndex, isComplete, questions.length]);
+  }, [currentIndex, isComplete, isLoading, isSubmitting, questions.length]);
 
   if (isLoading) {
     return (
@@ -188,6 +192,10 @@ export function QuizScreen() {
   }
 
   async function goToNextQuestion(): Promise<void> {
+    if (isLoading || isSubmitting) {
+      return;
+    }
+
     Keyboard.dismiss();
     let submissionAnswers = answers;
 
