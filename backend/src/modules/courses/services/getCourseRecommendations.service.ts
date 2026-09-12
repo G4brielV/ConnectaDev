@@ -60,8 +60,10 @@ export async function getCourseRecommendations(
           tags,
         },
         score: (areaMatch ? 100 : 0) + technologyMatches,
+        areaMatch,
       };
     })
+    .filter(({ areaMatch }) => areaMatch)
     .sort((left, right) => right.score - left.score)
     .map(({ course }) => course as CourseRecommendation);
 
