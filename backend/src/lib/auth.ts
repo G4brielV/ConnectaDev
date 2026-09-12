@@ -37,3 +37,21 @@ export const auth = betterAuth({
     }),
   ]
 });
+
+export async function ensureDevelopmentUser(): Promise<string> {
+  const userId = "development-user";
+  await prisma.user.upsert({
+    where: { id: userId },
+    create: {
+      id: userId,
+      name: "Development User",
+      email: "development-user@connectadev.local",
+      emailVerified: true,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {},
+  });
+  return userId;
+}

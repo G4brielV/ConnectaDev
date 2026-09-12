@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { auth } from "../../../lib/auth";
+import { auth, ensureDevelopmentUser } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { bookmarkCourse } from "../services/bookmarkCourse.service";
 
@@ -20,12 +20,13 @@ export async function bookmarkCourseController(
   }
 
   const session = await auth.api.getSession({ headers });
-  if (!session) {
+  if (!session && process.env.NODE_ENV === "production") {
     throw new AppError("É necessário estar autenticado para salvar cursos.", 401);
   }
 
+  const userId = session?.user.id ?? await ensureDevelopmentUser();
   try {
-    await bookmarkCourse(session.user.id, request.params.courseId);
+    await bookmarkCourse(userId, request.params.courseId);
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "Curso não encontrado.") {
       throw new AppError(error.message, 404);

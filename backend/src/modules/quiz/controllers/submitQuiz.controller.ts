@@ -7,7 +7,7 @@ import {
   AiGatewayRequestError,
   submitQuiz,
 } from "../services/submitQuiz.service";
-import { prisma } from "../../../lib/auth";
+import { ensureDevelopmentUser, prisma } from "../../../lib/auth";
 
 export async function submitQuizController(
   request: FastifyRequest<{ Body: QuizSubmitRequest }>,
@@ -22,7 +22,7 @@ export async function submitQuizController(
     }
   }
 
-  const developmentMode = process.env.NODE_ENV === "development";
+  const developmentMode = process.env.NODE_ENV !== "production";
   const session = developmentMode ? null : await auth.api.getSession({ headers });
 
   if (!session && !developmentMode) {
@@ -35,10 +35,9 @@ export async function submitQuizController(
   }
 
   try {
-    const userId = session?.user.id ?? "development-user";
+    const userId = session?.user.id ?? await ensureDevelopmentUser();
     const result = await submitQuiz(payload, userId);
-    if (session) {
-      await prisma.vocationalDiagnosis.upsert({
+    await prisma.vocationalDiagnosis.upsert({
         where: { userId },
         create: {
           userId,
@@ -49,8 +48,7 @@ export async function submitQuizController(
           areaPrincipal: result.areaPrincipal,
           tecnologiasSugeridas: result.tecnologiasSugeridas,
         },
-      });
-    }
+    });
     return reply.send(result);
   } catch (error) {
     if (error instanceof AiGatewayTimeoutError) {

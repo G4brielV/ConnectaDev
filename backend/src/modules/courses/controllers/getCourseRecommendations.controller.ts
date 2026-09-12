@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { auth } from "../../../lib/auth";
+import { auth, ensureDevelopmentUser } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { getCourseRecommendations } from "../services/getCourseRecommendations.service";
 
@@ -14,11 +14,12 @@ export async function getCourseRecommendationsController(
   }
 
   const session = await auth.api.getSession({ headers });
-  if (!session) {
+  if (!session && process.env.NODE_ENV === "production") {
     throw new AppError("É necessário estar autenticado para acessar os cursos.", 401);
   }
 
+  const userId = session?.user.id ?? await ensureDevelopmentUser();
   return reply.status(200).send(
-    await getCourseRecommendations(session.user.id),
+    await getCourseRecommendations(userId),
   );
 }
