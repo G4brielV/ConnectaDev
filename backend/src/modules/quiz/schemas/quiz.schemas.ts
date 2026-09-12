@@ -7,13 +7,11 @@ export interface QuizOption {
 
 export interface QuizQuestion {
   id: string;
+  statement: string;
   type: QuizQuestionType;
-  prompt: string;
+  sequence: number;
+  isActive: boolean;
   options?: QuizOption[];
-}
-
-export interface QuizQuestionsResponse {
-  questions: QuizQuestion[];
 }
 
 export interface QuizSubmitRequest {

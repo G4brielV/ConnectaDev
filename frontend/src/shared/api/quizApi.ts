@@ -11,11 +11,18 @@ export interface QuizQuestion {
   id: string;
   type: QuizQuestionType;
   prompt: string;
+  sequence: number;
+  isActive: boolean;
   options?: QuizOption[];
 }
 
-interface QuizQuestionsResponse {
-  questions: QuizQuestion[];
+interface QuizQuestionRecord {
+  id: string;
+  statement: string;
+  type: QuizQuestionType;
+  sequence: number;
+  isActive: boolean;
+  options?: QuizOption[];
 }
 
 export interface QuizSubmitPayload {
@@ -32,7 +39,7 @@ export interface QuizAnalysisResult {
 export async function fetchQuizQuestions(
   token: string,
 ): Promise<QuizQuestion[]> {
-  const response = await fetch(`${API_URL}/api/quiz/questions`, {
+  const response = await fetch(`${API_URL}/quiz/questions`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -47,8 +54,15 @@ export async function fetchQuizQuestions(
     );
   }
 
-  const payload = (await response.json()) as QuizQuestionsResponse;
-  return payload.questions;
+  const payload = (await response.json()) as QuizQuestionRecord[];
+  return payload.map((question) => ({
+    id: question.id,
+    type: question.type,
+    prompt: question.statement,
+    sequence: question.sequence,
+    isActive: question.isActive,
+    options: question.options,
+  }));
 }
 
 export async function submitQuiz(

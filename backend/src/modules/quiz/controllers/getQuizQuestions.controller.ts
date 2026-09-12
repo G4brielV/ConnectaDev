@@ -16,12 +16,11 @@ export async function getQuizQuestionsController(
     }
   }
 
-  const developmentMode = process.env.NODE_ENV === "development";
-  const session = developmentMode ? null : await auth.api.getSession({ headers });
+  const session = await auth.api.getSession({ headers });
 
-  if (!session && !developmentMode) {
+  if (!session) {
     throw new AppError("É necessário estar autenticado para acessar o quiz.", 401);
   }
 
-  return reply.send(getQuizQuestions());
+  return reply.status(200).send(await getQuizQuestions());
 }
