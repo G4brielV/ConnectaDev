@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   ActivityIndicator,
   Animated,
@@ -21,9 +23,15 @@ import {
   submitQuiz,
 } from "../shared/api/quizApi";
 import { useAuth } from "../entities/session";
+import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { getQuizCatalogState } from "./quizState";
 
 export function QuizScreen() {
+  const quizLoadErrorMessage =
+    "Não foi possível carregar as perguntas no momento. Verifique sua conexão.";
   const { isAuthenticated, isLoading: isAuthLoading, token } = useAuth();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Quiz">>();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -31,6 +39,7 @@ export function QuizScreen() {
   const [analysisResult, setAnalysisResult] = useState<QuizAnalysisResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [answerValidationMessage, setAnswerValidationMessage] = useState<string | null>(null);
   const textInputRef = useRef<TextInput | null>(null);
@@ -60,13 +69,9 @@ export function QuizScreen() {
           setQuestions(loadedQuestions);
           setIsLoading(false);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Não foi possível carregar o questionário.",
-          );
+          setErrorMessage(quizLoadErrorMessage);
           setIsLoading(false);
         }
       }
@@ -80,7 +85,7 @@ export function QuizScreen() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isAuthLoading, token]);
+  }, [isAuthenticated, isAuthLoading, quizLoadErrorMessage, retryAttempt, token]);
 
   useEffect(() => {
     if (previousQuestionIndex.current === currentIndex) {
@@ -108,6 +113,10 @@ export function QuizScreen() {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
+        if (isLoading || isSubmitting) {
+          return true;
+        }
+
         if (isComplete) {
           setIsComplete(false);
           setCurrentIndex(Math.max(0, questions.length - 1));
@@ -124,7 +133,7 @@ export function QuizScreen() {
     );
 
     return () => subscription.remove();
-  }, [currentIndex, isComplete, questions.length]);
+  }, [currentIndex, isComplete, isLoading, isSubmitting, questions.length]);
 
   if (isLoading) {
     return (
@@ -137,7 +146,39 @@ export function QuizScreen() {
   if (errorMessage) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{errorMessage}</Text>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setErrorMessage(null);
+              setRetryAttempt((attempt) => attempt + 1);
+            }}
+            style={styles.retryButton}
+          >
+            <Text style={styles.nextText}>Tentar Novamente</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (getQuizCatalogState(questions) === "empty") {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>
+            O quiz vocacional está passando por atualizações. Volte em breve!
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Voltar para a tela inicial"
+            onPress={() => navigation.navigate("Home")}
+            style={styles.retryButton}
+          >
+            <Text style={styles.nextText}>Voltar para a Home</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -169,10 +210,15 @@ export function QuizScreen() {
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answer = answers[question.id] ?? "";
+  const isMultipleChoice = question.type === "MULTIPLE_CHOICE";
+  const isOpenText = question.type === "OPEN_TEXT";
+  const hasOptions = isMultipleChoice && (question.options?.length ?? 0) > 0;
+  const minLength = question.validation?.minLength ?? (isOpenText ? 20 : 0);
+  const maxLength = question.validation?.maxLength ?? (isOpenText ? 500 : 0);
   const canAdvance =
-    question.type === "open"
-      ? answer.trim().length >= 20 && answer.trim().length <= 500
-      : answer.length > 0;
+    isOpenText
+      ? answer.trim().length >= minLength && answer.trim().length <= maxLength
+      : hasOptions && answer.length > 0;
 
   function selectAnswer(value: string): void {
     setAnswerValidationMessage(null);
@@ -183,16 +229,20 @@ export function QuizScreen() {
   }
 
   async function goToNextQuestion(): Promise<void> {
+    if (isLoading || isSubmitting) {
+      return;
+    }
+
     Keyboard.dismiss();
     let submissionAnswers = answers;
 
-    if (question.type === "open") {
+    if (isOpenText) {
       const sanitizedAnswer = answer.trim();
-      if (sanitizedAnswer.length < 20 || sanitizedAnswer.length > 500) {
+      if (sanitizedAnswer.length < minLength || sanitizedAnswer.length > maxLength) {
         setAnswerValidationMessage(
-          sanitizedAnswer.length < 20
-            ? `Escreva pelo menos 20 caracteres para detalhar sua resposta`
-            : "A resposta não pode ultrapassar 500 caracteres.",
+          sanitizedAnswer.length < minLength
+            ? `Escreva pelo menos ${minLength} caracteres para detalhar sua resposta`
+            : `A resposta não pode ultrapassar ${maxLength} caracteres.`,
         );
         textInputRef.current?.focus();
         return;
@@ -209,7 +259,7 @@ export function QuizScreen() {
     }
 
     if (!canAdvance) {
-      if (question.type === "multiple-choice") {
+      if (isMultipleChoice) {
         setAnswerValidationMessage("Selecione uma opção para continuar");
       }
       return;
@@ -330,7 +380,7 @@ export function QuizScreen() {
           style={styles.questionScroll}
         >
           <Text style={styles.question}>{question.prompt}</Text>
-          {question.options?.map((option) => (
+          {hasOptions && question.options?.map((option) => (
             <Pressable
               key={option.id}
               accessibilityRole="radio"
@@ -342,11 +392,11 @@ export function QuizScreen() {
               <Text style={styles.optionText}>{option.label}</Text>
             </Pressable>
           ))}
-          {question.type === "open" && (
+          {isOpenText && (
             <TextInput
               accessibilityLabel="Resposta aberta"
               multiline
-              maxLength={500}
+              maxLength={maxLength}
               onChangeText={selectAnswer}
               placeholder="Escreva sua resposta..."
               placeholderTextColor="#60717A"
@@ -354,28 +404,28 @@ export function QuizScreen() {
               style={[
                 styles.textInput,
                 answerValidationMessage && styles.warningInput,
-                answer.length >= 500 && styles.maxLengthInput,
+                answer.length >= maxLength && styles.maxLengthInput,
               ]}
               value={answer}
             />
           )}
-          {question.type === "open" && answerValidationMessage && (
+          {isOpenText && answerValidationMessage && (
             <Text accessibilityRole="alert" style={styles.openValidationText}>
               {answerValidationMessage}
             </Text>
           )}
-          {question.type === "open" && (
+          {isOpenText && (
             <Text
-              accessibilityLabel={`${answer.length} de 500 caracteres`}
-              style={[styles.characterCount, answer.length >= 500 && styles.maxLengthText]}
+              accessibilityLabel={`${answer.length} de ${maxLength} caracteres`}
+              style={[styles.characterCount, answer.length >= maxLength && styles.maxLengthText]}
             >
-              {answer.length}/500
+              {answer.length}/{maxLength}
             </Text>
           )}
         </ScrollView>
       </Animated.View>
       <View style={styles.actions}>
-        {answerValidationMessage && question.type !== "open" && (
+        {answerValidationMessage && !isOpenText && (
           <Text accessibilityRole="alert" style={styles.validationText}>
             {answerValidationMessage}
           </Text>
@@ -386,7 +436,7 @@ export function QuizScreen() {
           disabled={isSubmitting}
           style={[
             styles.nextButton,
-            question.type === "multiple-choice" && styles.multipleChoiceNextButton,
+            isMultipleChoice && styles.multipleChoiceNextButton,
             !canAdvance && styles.disabledButton,
           ]}
           onPress={goToNextQuestion}
@@ -587,6 +637,21 @@ const styles = StyleSheet.create({
     color: "#031634",
     fontSize: 16,
     textAlign: "center",
+  },
+  errorCard: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  retryButton: {
+    backgroundColor: "#036564",
+    borderRadius: 8,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
   },
   textInput: {
     borderColor: "#036564",

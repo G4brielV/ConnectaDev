@@ -1,6 +1,6 @@
 import { API_URL } from "../config/api";
 
-export type QuizQuestionType = "open" | "multiple-choice";
+export type QuizQuestionType = "MULTIPLE_CHOICE" | "OPEN_TEXT";
 
 export interface QuizOption {
   id: string;
@@ -11,11 +11,25 @@ export interface QuizQuestion {
   id: string;
   type: QuizQuestionType;
   prompt: string;
+  sequence: number;
+  isActive: boolean;
   options?: QuizOption[];
+  validation?: QuizValidation;
 }
 
-interface QuizQuestionsResponse {
-  questions: QuizQuestion[];
+export interface QuizValidation {
+  minLength?: number;
+  maxLength?: number;
+}
+
+interface QuizQuestionRecord {
+  id: string;
+  statement: string;
+  type: QuizQuestionType | "multiple-choice" | "open";
+  sequence: number;
+  isActive: boolean;
+  options?: QuizOption[];
+  validation?: QuizValidation;
 }
 
 export interface QuizSubmitPayload {
@@ -32,12 +46,15 @@ export interface QuizAnalysisResult {
 export async function fetchQuizQuestions(
   token: string,
 ): Promise<QuizQuestion[]> {
-  const response = await fetch(`${API_URL}/api/quiz/questions`, {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const response = await fetch(`${API_URL}/quiz/questions`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     throw new Error(
@@ -47,8 +64,21 @@ export async function fetchQuizQuestions(
     );
   }
 
-  const payload = (await response.json()) as QuizQuestionsResponse;
-  return payload.questions;
+  const payload = (await response.json()) as QuizQuestionRecord[];
+  return payload.map((question) => ({
+    id: question.id,
+    type:
+      question.type === "multiple-choice"
+        ? "MULTIPLE_CHOICE"
+        : question.type === "open"
+          ? "OPEN_TEXT"
+          : question.type,
+    prompt: question.statement,
+    sequence: question.sequence,
+    isActive: question.isActive,
+    options: question.options,
+    validation: question.validation,
+  }));
 }
 
 export async function submitQuiz(

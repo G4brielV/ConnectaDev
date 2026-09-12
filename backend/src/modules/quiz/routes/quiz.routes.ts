@@ -3,6 +3,7 @@ import { getQuizQuestionsController } from "../controllers/getQuizQuestions.cont
 import { submitQuizController } from "../controllers/submitQuiz.controller";
 
 export async function quizRoutes(fastify: FastifyInstance) {
+  fastify.get("/quiz/questions", getQuizQuestionsController);
   fastify.get("/api/quiz/questions", getQuizQuestionsController);
   fastify.post("/quiz/submit", submitQuizController);
 }
