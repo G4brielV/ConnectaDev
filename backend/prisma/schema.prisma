@@ -18,6 +18,7 @@ model User {
   accounts      Account[]
   
   profile       UserProfile?
+  diagnosis     VocationalDiagnosis?
 
   @@map("user")
 }
@@ -111,4 +112,33 @@ model QuizQuestion {
 
   @@index([isActive, sequence])
   @@map("quiz_questions")
+}
+
+model VocationalDiagnosis {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  areaPrincipal        String   @map("area_principal")
+  tecnologiasSugeridas Json     @map("tecnologias_sugeridas")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("vocational_diagnoses")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  thumbnail   String
+  title       String
+  provider    String
+  level       String
+  tags        Json
+  areas       Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("courses")
 }

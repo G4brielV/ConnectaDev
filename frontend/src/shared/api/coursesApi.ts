@@ -1,0 +1,36 @@
+import { API_URL } from "../config/api";
+
+export interface CourseRecommendation {
+  id: string;
+  thumbnail: string;
+  title: string;
+  provider: string;
+  level: string;
+  tags: string[];
+}
+
+export interface CourseRecommendationsResponse {
+  areaPrincipal: string;
+  courses: CourseRecommendation[];
+}
+
+export async function fetchCourseRecommendations(
+  token: string,
+): Promise<CourseRecommendationsResponse> {
+  const response = await fetch(`${API_URL}/api/courses/recommendations`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `******`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      response.status === 401
+        ? "Sua sessão não é válida. Faça login para continuar."
+        : "Não foi possível carregar os cursos recomendados.",
+    );
+  }
+
+  return (await response.json()) as CourseRecommendationsResponse;
+}

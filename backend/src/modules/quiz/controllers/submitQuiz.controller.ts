@@ -7,6 +7,7 @@ import {
   AiGatewayRequestError,
   submitQuiz,
 } from "../services/submitQuiz.service";
+import { prisma } from "../../../lib/auth";
 
 export async function submitQuizController(
   request: FastifyRequest<{ Body: QuizSubmitRequest }>,
@@ -35,7 +36,22 @@ export async function submitQuizController(
 
   try {
     const userId = session?.user.id ?? "development-user";
-    return reply.send(await submitQuiz(payload, userId));
+    const result = await submitQuiz(payload, userId);
+    if (session) {
+      await prisma.vocationalDiagnosis.upsert({
+        where: { userId },
+        create: {
+          userId,
+          areaPrincipal: result.areaPrincipal,
+          tecnologiasSugeridas: result.tecnologiasSugeridas,
+        },
+        update: {
+          areaPrincipal: result.areaPrincipal,
+          tecnologiasSugeridas: result.tecnologiasSugeridas,
+        },
+      });
+    }
+    return reply.send(result);
   } catch (error) {
     if (error instanceof AiGatewayTimeoutError) {
       throw new AppError(error.message, 504);

@@ -42,6 +42,11 @@ export function HomePage() {
           onPress={() => navigation.navigate('Quiz')}
           style={styles.quizButton}
         />
+        <Button
+          title="Cursos recomendados"
+          onPress={() => navigation.navigate('Courses')}
+          style={styles.quizButton}
+        />
 
         <Button
           title="Sair da Conta"
