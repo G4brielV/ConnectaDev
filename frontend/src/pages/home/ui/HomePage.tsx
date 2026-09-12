@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useAuth } from '@/entities/session';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
-import { Button } from '@/shared/ui/Button/Button';
 import { LogoutConfirmationModal } from '@/features/auth';
 
 export function HomePage() {
@@ -25,35 +24,46 @@ export function HomePage() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.welcomeCard}>
-          <Text style={styles.badge}>Autenticado</Text>
-          <Text style={styles.greeting}>Bem-vindo ao ConnectaDev! 🚀</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Pressable accessibilityRole="button" onPress={() => setIsLogoutModalVisible(true)}>
+            <Text style={styles.logo}>CONNECTA<Text style={styles.logoStrong}>DEV</Text></Text>
+          </Pressable>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>◯</Text>
+          </View>
+        </View>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE ✨</Text>
+          <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
           <Text style={styles.emailText}>
-            {user?.email ? `Conectado como: ${user.email}` : 'Sessão ativa com token JWT'}
+            {user?.email ? `Olá, ${user.email}` : 'Seu próximo passo na tecnologia começa aqui.'}
           </Text>
           <Text style={styles.infoText}>
-            Navegação resetada com sucesso. Você não consegue retornar para o login pressionando "Voltar".
+            Faça o Quiz Vocacional para receber recomendações alinhadas aos seus interesses.
           </Text>
+          <View style={styles.chips}>
+            <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
+            <Text style={styles.chip}>💼 Vagas locais</Text>
+            <Text style={styles.chip}>🏆 Seu perfil</Text>
+          </View>
         </View>
-
-        <Button
-          title="Ir para o quiz"
-          onPress={() => navigation.navigate('Quiz')}
-          style={styles.quizButton}
-        />
-        <Button
-          title="Cursos recomendados"
-          onPress={() => navigation.navigate('Courses')}
-          style={styles.quizButton}
-        />
-
-        <Button
-          title="Sair da Conta"
-          variant="outline"
-          onPress={() => setIsLogoutModalVisible(true)}
-          style={styles.logoutButton}
-        />
+        <View style={styles.footer}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Quiz')}
+            style={styles.quizButton}
+          >
+            <Text style={styles.quizButtonText}>Começar o Quiz Agora 🚀</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setIsLogoutModalVisible(true)}
+            style={styles.logoutButton}
+          >
+            <Text style={styles.logoutText}>Sair da conta</Text>
+          </Pressable>
+        </View>
 
         <LogoutConfirmationModal
           visible={isLogoutModalVisible}
@@ -61,7 +71,7 @@ export function HomePage() {
           onCancel={() => setIsLogoutModalVisible(false)}
           isLoading={isLoggingOut}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -71,43 +81,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'space-between',
-  },
-  welcomeCard: {
+  container: { flexGrow: 1, padding: 24, justifyContent: 'space-between' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  logo: { color: '#033649', fontSize: 18, letterSpacing: 1 },
+  logoStrong: { fontWeight: '800', color: '#036564' },
+  avatar: { backgroundColor: '#033649', borderRadius: 20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#FFFFFF', fontSize: 20 },
+  heroCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
-    marginTop: 24,
+    marginTop: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
-  badge: {
+  heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#DEF7EC',
-    color: '#03543F',
+    backgroundColor: '#E3F2F2',
+    color: '#036564',
     fontSize: 12,
     fontWeight: '700',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 999,
     marginBottom: 12,
     textTransform: 'uppercase',
   },
   greeting: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: '#031634',
     marginBottom: 8,
   },
   emailText: {
     fontSize: 15,
-    color: '#0284C7',
+    color: '#036564',
     fontWeight: '500',
     marginBottom: 12,
   },
@@ -116,11 +127,11 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 18,
   },
-  logoutButton: {
-    marginBottom: 16,
-    borderColor: '#EF4444',
-  },
-  quizButton: {
-    marginBottom: 12,
-  },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 },
+  chip: { backgroundColor: '#F2EEE5', borderRadius: 999, color: '#033649', fontSize: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  footer: { gap: 12, marginTop: 32 },
+  quizButton: { alignItems: 'center', backgroundColor: '#036564', borderRadius: 12, paddingVertical: 16 },
+  quizButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  logoutButton: { alignItems: 'center', paddingVertical: 12 },
+  logoutText: { color: '#60717A', fontSize: 14 },
 });
