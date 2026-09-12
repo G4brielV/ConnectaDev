@@ -23,6 +23,8 @@ import {
 import { useAuth } from "../entities/session";
 
 export function QuizScreen() {
+  const quizLoadErrorMessage =
+    "Não foi possível carregar as perguntas no momento. Verifique sua conexão.";
   const { isAuthenticated, isLoading: isAuthLoading, token } = useAuth();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,6 +33,7 @@ export function QuizScreen() {
   const [analysisResult, setAnalysisResult] = useState<QuizAnalysisResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [answerValidationMessage, setAnswerValidationMessage] = useState<string | null>(null);
   const textInputRef = useRef<TextInput | null>(null);
@@ -60,13 +63,9 @@ export function QuizScreen() {
           setQuestions(loadedQuestions);
           setIsLoading(false);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Não foi possível carregar o questionário.",
-          );
+          setErrorMessage(quizLoadErrorMessage);
           setIsLoading(false);
         }
       }
@@ -80,7 +79,7 @@ export function QuizScreen() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isAuthLoading, token]);
+  }, [isAuthenticated, isAuthLoading, quizLoadErrorMessage, retryAttempt, token]);
 
   useEffect(() => {
     if (previousQuestionIndex.current === currentIndex) {
@@ -141,7 +140,19 @@ export function QuizScreen() {
   if (errorMessage) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{errorMessage}</Text>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setErrorMessage(null);
+              setRetryAttempt((attempt) => attempt + 1);
+            }}
+            style={styles.retryButton}
+          >
+            <Text style={styles.nextText}>Tentar Novamente</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -600,6 +611,21 @@ const styles = StyleSheet.create({
     color: "#031634",
     fontSize: 16,
     textAlign: "center",
+  },
+  errorCard: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  retryButton: {
+    backgroundColor: "#036564",
+    borderRadius: 8,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
   },
   textInput: {
     borderColor: "#036564",

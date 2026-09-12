@@ -46,12 +46,15 @@ export interface QuizAnalysisResult {
 export async function fetchQuizQuestions(
   token: string,
 ): Promise<QuizQuestion[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   const response = await fetch(`${API_URL}/quiz/questions`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     throw new Error(
