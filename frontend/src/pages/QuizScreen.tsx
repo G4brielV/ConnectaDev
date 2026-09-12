@@ -24,6 +24,7 @@ import {
 } from "../shared/api/quizApi";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { getQuizCatalogState } from "./quizState";
 
 export function QuizScreen() {
   const quizLoadErrorMessage =
@@ -162,7 +163,7 @@ export function QuizScreen() {
     );
   }
 
-  if (questions.length === 0) {
+  if (getQuizCatalogState(questions) === "empty") {
     return (
       <View style={styles.centered}>
         <View style={styles.errorCard}>

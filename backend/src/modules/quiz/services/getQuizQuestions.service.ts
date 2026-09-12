@@ -1,4 +1,5 @@
 import { prisma } from "../../../lib/auth";
+import type { PrismaClient } from "@prisma/client";
 import {
   QuizOption,
   QuizQuestion,
@@ -52,8 +53,10 @@ function parseValidation(value: unknown): QuizValidation | undefined {
     : undefined;
 }
 
-export async function getQuizQuestions(): Promise<QuizQuestion[]> {
-  const questions = await prisma.quizQuestion.findMany({
+export async function getQuizQuestions(
+  repository: Pick<PrismaClient["quizQuestion"], "findMany"> = prisma.quizQuestion,
+): Promise<QuizQuestion[]> {
+  const questions = await repository.findMany({
     where: { isActive: true },
     orderBy: { sequence: "asc" },
     select: {

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "test": "prisma generate && tsc --noEmit",
+    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push"
