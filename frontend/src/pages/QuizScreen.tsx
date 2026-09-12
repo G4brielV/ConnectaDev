@@ -37,6 +37,7 @@ export function QuizScreen() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<QuizAnalysisResult | null>(null);
+  const [isResultSaved, setIsResultSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -297,31 +298,123 @@ export function QuizScreen() {
   }
 
   if (isComplete) {
+    const skills = [
+      { label: "Criatividade Visual & UX", value: 92, icon: "✦" },
+      { label: "Lógica de Programação", value: 96, icon: "⌘" },
+      { label: "Foco em Soluções Reais", value: 95, icon: "✓" },
+    ];
+
     return (
       <View style={styles.resultScreen}>
-        <View style={styles.resultCard}>
-          <Text style={styles.eyebrow}>QUIZ VOCACIONAL</Text>
-          <Text style={styles.completedTitle}>ANÁLISE DO PERFIL</Text>
+        <View style={styles.resultHeader}>
+          <Pressable
+            accessibilityLabel="Fechar resultado"
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("Home")}
+            style={styles.resultClose}
+          >
+            <Text style={styles.resultCloseText}>×</Text>
+          </Pressable>
+          <View style={styles.resultBrand}>
+            <Text style={styles.resultLogo}>CONNECTADEV</Text>
+            <Text style={styles.resultHeaderTitle}>Quiz Result{"\n"}Summary</Text>
+          </View>
+          <View style={styles.resultAvatar}>
+            <Text style={styles.resultAvatarText}>◯</Text>
+          </View>
+        </View>
+        <View style={styles.resultJourneyTrack}>
+          <View style={styles.resultJourneyValue} />
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.resultScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {analysisResult ? (
-            <ScrollView
-              contentContainerStyle={styles.resultContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.resultLabel}>ÁREA PRINCIPAL</Text>
-              <Text style={styles.resultPrimaryArea}>{analysisResult.areaPrincipal}</Text>
-              <Text style={styles.resultLabel}>POR QUE ESSA ÁREA?</Text>
-              <Text style={styles.resultText}>{analysisResult.justificativa}</Text>
-              <Text style={styles.resultLabel}>TECNOLOGIAS SUGERIDAS</Text>
-              <Text style={styles.resultText}>
-                {analysisResult.tecnologiasSugeridas.join(" • ")}
-              </Text>
-            </ScrollView>
+            <>
+              <View style={styles.resultHero}>
+                <Text style={styles.resultBadge}>🏆 QUIZ CONCLUÍDO • +200 XP</Text>
+                <Text style={styles.resultTitle}>{analysisResult.areaPrincipal}!</Text>
+                <Text style={styles.resultSubtitle}>
+                  Seu perfil foi analisado e já temos próximos passos para você.
+                </Text>
+              </View>
+              <View style={styles.matchCard}>
+                <View style={styles.matchHeader}>
+                  <View style={styles.matchTitleBlock}>
+                    <Text style={styles.resultLabel}>TRILHA RECOMENDADA</Text>
+                    <Text style={styles.matchTitle}>Trilha {analysisResult.areaPrincipal}</Text>
+                    <Text style={styles.matchSubtitle}>Porto Digital Ready • 12 Semanas</Text>
+                  </View>
+                  <View style={styles.matchCircle}>
+                    <Text style={styles.matchPercent}>94%</Text>
+                    <Text style={styles.matchText}>MATCH</Text>
+                  </View>
+                </View>
+                {skills.map((skill) => (
+                  <View key={skill.label} style={styles.skillRow}>
+                    <View style={styles.skillTopline}>
+                      <Text style={styles.skillName}>{skill.icon} {skill.label}</Text>
+                      <Text style={styles.skillPercent}>{skill.value}%</Text>
+                    </View>
+                    <View style={styles.skillTrack}>
+                      <View style={[styles.skillValue, { width: `${skill.value}%` }]} />
+                    </View>
+                  </View>
+                ))}
+                <View style={styles.demandFooter}>
+                  <Text style={styles.demandIcon}>▣</Text>
+                  <Text style={styles.demandText}>Alinhada à demanda do Porto Digital & Região.</Text>
+                </View>
+              </View>
+              <View style={styles.strengthCard}>
+                <Text style={styles.strengthTitle}>✓ Pontos fortes identificados</Text>
+                <Text style={styles.resultText}>{analysisResult.justificativa}</Text>
+                <View style={styles.tagGroup}>
+                  {analysisResult.tecnologiasSugeridas.map((technology) => (
+                    <Text key={technology} style={styles.resultTag}>✦ {technology}</Text>
+                  ))}
+                </View>
+              </View>
+            </>
           ) : (
             <Text style={styles.errorText}>
               Não foi possível carregar a análise do seu perfil.
             </Text>
           )}
-        </View>
+          <View style={styles.resultActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate("Courses")}
+              style={styles.resultPrimaryButton}
+            >
+              <Text style={styles.resultPrimaryButtonText}>Ver Trilha & Oportunidades  →</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setIsResultSaved(true)}
+              style={styles.resultSecondaryButton}
+            >
+              <Text style={styles.resultSecondaryButtonText}>
+                {isResultSaved
+                  ? "✓  Resultado salvo nesta sessão"
+                  : "🔖  Salvar Resultado no Meu Perfil"}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setAnswers({});
+                setCurrentIndex(0);
+                setAnalysisResult(null);
+                setIsResultSaved(false);
+                setIsComplete(false);
+              }}
+            >
+              <Text style={styles.resultGhostButton}>Refazer Quiz Vocacional</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -700,9 +793,56 @@ const styles = StyleSheet.create({
   resultScreen: {
     backgroundColor: "#F9F8F5",
     flex: 1,
-    justifyContent: "center",
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 48,
   },
+  resultHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingBottom: 14,
+  },
+  resultClose: { padding: 8, width: 48 },
+  resultCloseText: { color: "#033649", fontSize: 30, lineHeight: 30 },
+  resultBrand: { alignItems: "center", flexDirection: "row", gap: 8 },
+  resultLogo: { color: "#036564", fontSize: 14, fontWeight: "800", letterSpacing: 1 },
+  resultHeaderTitle: { color: "#60717A", fontSize: 12, lineHeight: 15 },
+  resultAvatar: {
+    alignItems: "center",
+    backgroundColor: "#031634",
+    borderRadius: 18,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  resultAvatarText: { color: "#FFFFFF", fontSize: 18 },
+  resultJourneyTrack: {
+    backgroundColor: "#E8DDCB",
+    height: 4,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  resultJourneyValue: { backgroundColor: "#033649", height: "100%", width: "60%" },
+  resultScrollContent: { paddingBottom: 24 },
+  resultHero: { alignItems: "center", padding: 20 },
+  resultBadge: {
+    backgroundColor: "#F2E7C9",
+    borderRadius: 999,
+    color: "#8B6A20",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  resultTitle: {
+    color: "#033649",
+    fontSize: 28,
+    fontWeight: "800",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  resultSubtitle: { color: "#60717A", fontSize: 14, marginTop: 8, textAlign: "center" },
   resultCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#E8DDCB",
@@ -737,4 +877,59 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: "center",
   },
+  matchCard: {
+    backgroundColor: "#F2F8F7",
+    borderColor: "#D9E8E5",
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+  },
+  matchHeader: { flexDirection: "row", justifyContent: "space-between" },
+  matchTitleBlock: { flex: 1, paddingRight: 12 },
+  matchTitle: { color: "#033649", fontSize: 19, fontWeight: "800", marginTop: 6 },
+  matchSubtitle: { color: "#60717A", fontSize: 13, marginTop: 5 },
+  matchCircle: {
+    alignItems: "center",
+    borderColor: "#036564",
+    borderRadius: 42,
+    borderWidth: 7,
+    height: 84,
+    justifyContent: "center",
+    width: 84,
+  },
+  matchPercent: { color: "#033649", fontSize: 18, fontWeight: "800" },
+  matchText: { color: "#036564", fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  skillRow: { marginTop: 18 },
+  skillTopline: { flexDirection: "row", justifyContent: "space-between" },
+  skillName: { color: "#033649", flex: 1, fontSize: 13 },
+  skillPercent: { color: "#036564", fontSize: 13, fontWeight: "800" },
+  skillTrack: { backgroundColor: "#DCE9E7", borderRadius: 999, height: 7, marginTop: 7, overflow: "hidden" },
+  skillValue: { backgroundColor: "#036564", borderRadius: 999, height: "100%" },
+  demandFooter: {
+    alignItems: "center",
+    backgroundColor: "#F5F7F8",
+    borderRadius: 10,
+    flexDirection: "row",
+    marginTop: 18,
+    padding: 12,
+  },
+  demandIcon: { color: "#036564", fontSize: 20, marginRight: 8 },
+  demandText: { color: "#60717A", flex: 1, fontSize: 12 },
+  strengthCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 14,
+    padding: 18,
+  },
+  strengthTitle: { color: "#198754", fontSize: 16, fontWeight: "800" },
+  tagGroup: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 },
+  resultTag: { backgroundColor: "#E5F1F7", borderRadius: 999, color: "#033649", fontSize: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  resultActions: { gap: 10, marginTop: 18 },
+  resultPrimaryButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 12, paddingVertical: 16 },
+  resultPrimaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  resultSecondaryButton: { alignItems: "center", paddingVertical: 12 },
+  resultSecondaryButtonText: { color: "#033649", fontSize: 14, fontWeight: "700" },
+  resultGhostButton: { color: "#60717A", fontSize: 13, paddingVertical: 8, textAlign: "center" },
 });
