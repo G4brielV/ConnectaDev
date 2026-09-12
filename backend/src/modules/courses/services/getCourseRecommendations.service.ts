@@ -19,7 +19,7 @@ export async function getCourseRecommendations(
   });
 
   if (!diagnosis) {
-    return { areaPrincipal: "", courses: [] };
+    return { hasDiagnosis: false, areaPrincipal: "", courses: [] };
   }
 
   const technologies = asStringArray(diagnosis.tecnologiasSugeridas).map((tag) =>
@@ -63,5 +63,9 @@ export async function getCourseRecommendations(
     .sort((left, right) => right.score - left.score)
     .map(({ course }) => course as CourseRecommendation);
 
-  return { areaPrincipal: diagnosis.areaPrincipal, courses: recommendations };
+  return {
+    hasDiagnosis: true,
+    areaPrincipal: diagnosis.areaPrincipal,
+    courses: recommendations,
+  };
 }

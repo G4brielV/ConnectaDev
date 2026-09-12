@@ -3,17 +3,24 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchCourseRecommendations, CourseRecommendation } from "../shared/api/coursesApi";
 import { useAuth } from "../entities/session";
+import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
 export function CoursesScreen() {
   const { token } = useAuth();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Courses">>();
   const [courses, setCourses] = useState<CourseRecommendation[]>([]);
   const [areaPrincipal, setAreaPrincipal] = useState("");
+  const [hasDiagnosis, setHasDiagnosis] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -21,6 +28,7 @@ export function CoursesScreen() {
     if (!token) return;
     fetchCourseRecommendations(token)
       .then((response) => {
+        setHasDiagnosis(response.hasDiagnosis);
         setAreaPrincipal(response.areaPrincipal);
         setCourses(response.courses);
       })
@@ -40,6 +48,25 @@ export function CoursesScreen() {
 
   if (errorMessage) {
     return <Text style={styles.centered}>{errorMessage}</Text>;
+  }
+
+  if (!hasDiagnosis) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.emptyStateCard}>
+          <Text style={styles.emptyStateTitle}>
+            Descubra seu perfil na tecnologia para receber indicações personalizadas
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("Quiz")}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Fazer Teste Vocacional</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -74,4 +101,32 @@ const styles = StyleSheet.create({
   meta: { color: "#60717A", paddingHorizontal: 16 },
   tags: { color: "#036564", fontSize: 12, padding: 16, paddingBottom: 0 },
   empty: { color: "#60717A", textAlign: "center" },
+  emptyStateCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E8DDCB",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+    width: "100%",
+  },
+  emptyStateTitle: {
+    color: "#033649",
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 26,
+    textAlign: "center",
+  },
+  primaryButton: {
+    alignSelf: "center",
+    backgroundColor: "#036564",
+    borderRadius: 8,
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
 });

@@ -10,6 +10,7 @@ export interface CourseRecommendation {
 }
 
 export interface CourseRecommendationsResponse {
+  hasDiagnosis: boolean;
   areaPrincipal: string;
   courses: CourseRecommendation[];
 }
