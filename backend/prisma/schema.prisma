@@ -133,6 +133,7 @@ model Course {
   title       String
   provider    String
   level       String
+  externalUrl String   @map("external_url")
   tags        Json
   areas       Json
   isActive    Boolean  @default(true) @map("is_active")

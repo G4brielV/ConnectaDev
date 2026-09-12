@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -23,6 +24,14 @@ export function CoursesScreen() {
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function openCourse(externalUrl: string): Promise<void> {
+    try {
+      await Linking.openURL(externalUrl);
+    } catch {
+      setErrorMessage("Não foi possível abrir o conteúdo do curso.");
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -78,12 +87,19 @@ export function CoursesScreen() {
         data={courses}
         keyExtractor={(course) => course.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Pressable
+            accessibilityLabel={`Abrir curso ${item.title}`}
+            accessibilityRole="button"
+            onPress={() => {
+              void openCourse(item.external_url);
+            }}
+            style={styles.card}
+          >
             <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.meta}>{item.provider} • {item.level}</Text>
             <Text style={styles.tags}>{item.tags.join(" • ")}</Text>
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Nenhum curso recomendado disponível.</Text>}
       />

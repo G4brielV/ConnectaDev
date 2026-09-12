@@ -4,6 +4,7 @@ export interface CourseRecommendation {
   title: string;
   provider: string;
   level: string;
+  external_url: string;
   tags: string[];
 }
 
