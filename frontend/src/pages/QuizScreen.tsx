@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   ActivityIndicator,
   Animated,
@@ -21,11 +23,14 @@ import {
   submitQuiz,
 } from "../shared/api/quizApi";
 import { useAuth } from "../entities/session";
+import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
 export function QuizScreen() {
   const quizLoadErrorMessage =
     "Não foi possível carregar as perguntas no momento. Verifique sua conexão.";
   const { isAuthenticated, isLoading: isAuthLoading, token } = useAuth();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Quiz">>();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -151,6 +156,26 @@ export function QuizScreen() {
             style={styles.retryButton}
           >
             <Text style={styles.nextText}>Tentar Novamente</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>
+            O quiz vocacional está passando por atualizações. Volte em breve!
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Voltar para a tela inicial"
+            onPress={() => navigation.navigate("Home")}
+            style={styles.retryButton}
+          >
+            <Text style={styles.nextText}>Voltar para a Home</Text>
           </Pressable>
         </View>
       </View>
