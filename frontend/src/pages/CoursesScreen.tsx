@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -35,6 +35,8 @@ export function CoursesScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [savingCourseId, setSavingCourseId] = useState<string | null>(null);
+  const loadErrorMessage =
+    "Não foi possível carregar suas recomendações no momento";
 
   async function openCourse(externalUrl: string): Promise<void> {
     try {
@@ -65,30 +67,50 @@ export function CoursesScreen() {
     }
   }
 
-  useEffect(() => {
-    if (!token) return;
-    fetchCourseRecommendations(token)
-      .then((response) => {
-        setHasDiagnosis(response.hasDiagnosis);
-        setAreaPrincipal(response.areaPrincipal);
-        setCourses(response.courses);
-      })
-      .catch((error: unknown) => {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar os cursos recomendados.",
-        );
-      })
-      .finally(() => setIsLoading(false));
+  const loadRecommendations = useCallback(async (): Promise<void> => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetchCourseRecommendations(token);
+      setHasDiagnosis(response.hasDiagnosis);
+      setAreaPrincipal(response.areaPrincipal);
+      setCourses(response.courses);
+    } catch {
+      setErrorMessage(loadErrorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    void loadRecommendations();
+  }, [loadRecommendations]);
 
   if (isLoading) {
     return <ActivityIndicator style={styles.centered} color="#036564" />;
   }
 
   if (errorMessage) {
-    return <Text style={styles.centered}>{errorMessage}</Text>;
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{errorMessage}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            void loadRecommendations();
+          }}
+          style={styles.primaryButton}
+        >
+          <Text style={styles.primaryButtonText}>Tentar Novamente</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   if (!hasDiagnosis) {
@@ -181,6 +203,7 @@ const styles = StyleSheet.create({
   bookmarkIcon: { fontSize: 24, opacity: 0.45 },
   bookmarkIconActive: { opacity: 1 },
   empty: { color: "#60717A", textAlign: "center" },
+  errorText: { color: "#8B1E1E", textAlign: "center", fontSize: 16 },
   emptyStateCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#E8DDCB",
