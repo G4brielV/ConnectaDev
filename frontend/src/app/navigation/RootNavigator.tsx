@@ -7,12 +7,14 @@ import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
+import { CoursesScreen } from '@/pages/CoursesScreen';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: undefined;
   Quiz: undefined;
+  Courses: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -37,6 +39,7 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Home" component={HomePage} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
+            <Stack.Screen name="Courses" component={CoursesScreen} />
           </>
         ) : (
           <>

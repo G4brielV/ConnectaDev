@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { authRoutes } from "./routes/auth.routes";
 import { errorHandler } from "./shared/middlewares/errorHandler";
 import { quizRoutes } from "./modules/quiz/routes/quiz.routes";
+import { courseRoutes } from "./modules/courses/routes/course.routes";
 
 const app = fastify({ logger: true });
 
@@ -21,6 +22,7 @@ app.setErrorHandler(errorHandler);
 // Register routes
 app.register(authRoutes);
 app.register(quizRoutes);
+app.register(courseRoutes);
 
 // Health check
 app.get("/health", async () => {
