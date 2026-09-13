@@ -54,6 +54,9 @@ export function LoginPage() {
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Text style={styles.footerLink}>Cadastre-se</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('RecoveryPassword')}>
+              <Text style={styles.footerLink}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
