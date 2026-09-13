@@ -7,12 +7,14 @@ import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
+import RecoveryPasswordPage from '@/pages/recoverPassword/ui/RecoveryPasswordPage';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: undefined;
   Quiz: undefined;
+  RecoveryPassword: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +44,7 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
+            <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordPage}/>
           </>
         )}
       </Stack.Navigator>
