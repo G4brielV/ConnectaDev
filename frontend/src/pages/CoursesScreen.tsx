@@ -242,8 +242,11 @@ export function CoursesScreen() {
             <Pressable
               accessibilityLabel={`Avaliar curso ${item.title}`}
               accessibilityRole="button"
-              onPress={() => setRatingCourse(item)}
-              style={styles.ratingButton}
+              disabled={isRating}
+              onPress={() => {
+                if (!isRating) setRatingCourse(item);
+              }}
+              style={[styles.ratingButton, isRating && styles.disabledButton]}
             >
               <Text style={styles.ratingButtonText}>★ Avaliar Curso</Text>
             </Pressable>
@@ -296,7 +299,9 @@ export function CoursesScreen() {
         initialMatchedProfile={ratingCourse?.userRating?.matchedProfile}
         isEditing={Boolean(ratingCourse?.userRating)}
         isSubmitting={isRating}
-        onClose={() => setRatingCourse(null)}
+        onClose={() => {
+          if (!isRating) setRatingCourse(null);
+        }}
         onSubmit={(rating, comment, matchedProfile) => {
           void submitRating(rating, comment, matchedProfile);
         }}
@@ -473,6 +478,9 @@ const styles = StyleSheet.create({
     marginLeft: 14,
     marginBottom: 10,
     paddingVertical: 4,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   ratingButtonText: {
     color: "#B46B00",

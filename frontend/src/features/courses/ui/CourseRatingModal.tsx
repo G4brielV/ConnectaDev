@@ -37,6 +37,7 @@ export function CourseRatingModal({
   const [comment, setComment] = useState(initialComment || "");
   const [matchedProfile, setMatchedProfile] = useState<boolean | null>(initialMatchedProfile);
   const [ratingError, setRatingError] = useState(false);
+  const [profileError, setProfileError] = useState(false);
 
   function handleSubmit(): void {
     if (!rating) {
@@ -44,7 +45,10 @@ export function CourseRatingModal({
       return;
     }
 
-    if (matchedProfile === null) return;
+    if (matchedProfile === null) {
+      setProfileError(true);
+      return;
+    }
 
     onSubmit(rating, comment.trim(), matchedProfile);
   }
@@ -55,6 +59,7 @@ export function CourseRatingModal({
       setComment(initialComment || "");
       setMatchedProfile(initialMatchedProfile);
       setRatingError(false);
+      setProfileError(false);
     }
   }, [initialComment, initialMatchedProfile, initialRating, visible]);
 
@@ -89,22 +94,33 @@ export function CourseRatingModal({
           <Text style={styles.label}>
             Este curso fez sentido com a sua área recomendada no teste?
           </Text>
-          <View style={styles.profileOptions}>
+          <View style={[styles.profileOptions, profileError && styles.profileOptionsError]}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => setMatchedProfile(true)}
+              onPress={() => {
+                setMatchedProfile(true);
+                setProfileError(false);
+              }}
               style={[styles.profileOption, matchedProfile === true && styles.profileOptionSelected]}
             >
               <Text style={styles.profileOptionText}>Sim, totalmente</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() => setMatchedProfile(false)}
+              onPress={() => {
+                setMatchedProfile(false);
+                setProfileError(false);
+              }}
               style={[styles.profileOption, matchedProfile === false && styles.profileOptionSelected]}
             >
               <Text style={styles.profileOptionText}>Não fez sentido</Text>
             </Pressable>
           </View>
+          {profileError && (
+            <Text style={styles.profileError}>
+              Selecione uma opção antes de enviar
+            </Text>
+          )}
           <TextInput
             accessibilityLabel="Comentário da avaliação"
             multiline
@@ -156,9 +172,11 @@ const styles = StyleSheet.create({
   starActive: { color: "#F4B942" },
   ratingError: { color: "#B13A24", fontSize: 12, marginTop: 4 },
   profileOptions: { flexDirection: "row", gap: 8, marginTop: 8 },
+  profileOptionsError: { borderColor: "#D95D39", borderRadius: 8, borderWidth: 1, padding: 2 },
   profileOption: { borderColor: "#D7E0E3", borderRadius: 8, borderWidth: 1, flex: 1, padding: 10 },
   profileOptionSelected: { backgroundColor: "#E5F1F7", borderColor: "#036564" },
   profileOptionText: { color: "#033649", fontSize: 12, fontWeight: "700", textAlign: "center" },
+  profileError: { color: "#B13A24", fontSize: 12, marginTop: 4 },
   input: { borderColor: "#D7E0E3", borderRadius: 8, borderWidth: 1, color: "#031634", height: 100, marginTop: 16, padding: 12, textAlignVertical: "top" },
   commentCounter: { color: "#60717A", fontSize: 12, marginTop: 4, textAlign: "right" },
   commentCounterWarning: { color: "#B13A24", fontWeight: "700" },
