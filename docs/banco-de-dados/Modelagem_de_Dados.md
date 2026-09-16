@@ -77,15 +77,18 @@ e `current_level`. A tabela `xp_events` funciona como o histórico de cada
 concessão de XP e permite novas origens além das lições, como desafios, streaks
 ou participação no fórum.
 
-Cada evento possui `source`, `reference_id` e `amount`. A restrição única em
-`user_id`, `source` e `reference_id` torna a concessão idempotente. Por exemplo,
-o XP da lição `lesson-123` usa `source = TRAIL_LESSON` e
-`reference_id = lesson-123`; uma repetição da requisição não cria outro evento.
+Cada evento possui `source`, `reference_id`, `amount` e `created_at`. A mesma
+combinação de `user_id`, `source` e `reference_id` pode aparecer mais de uma vez,
+pois cada registro representa um novo incremento de XP e é diferenciado pela
+data de criação. O XP da lição `lesson-123` usa `source = TRAIL_LESSON` e
+`reference_id = lesson-123` em todos os incrementos.
 
 O serviço deve inserir o evento e atualizar `user_gamification` na mesma
-transação. Se a combinação já existir, o serviço retorna o resultado anterior
-sem somar XP novamente. `user_trail_progress` continua responsável apenas por
-acertos, tentativas e conclusão da lição.
+transação. A prevenção de excesso é feita comparando o XP proporcional alvo com
+`user_trail_progress.xp_awarded`: apenas a diferença positiva é inserida e
+somada ao saldo. Quando o usuário atinge o XP máximo da lição, novas tentativas
+não criam evento nem concedem XP. `user_trail_progress` continua responsável
+por acertos, tentativas e conclusão da lição.
 
 ---
 

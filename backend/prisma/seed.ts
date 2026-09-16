@@ -364,6 +364,45 @@ const courses = [
 },
 ] as const;
 
+const trails = [
+  {
+    title: "Fundamentos de Desenvolvimento Web",
+    description: "Aprenda os conceitos iniciais para construir páginas web.",
+    area: "Desenvolvimento de Software",
+    lessons: [
+      {
+        title: "Primeiros conceitos da Web",
+        sequence: 1,
+        xpReward: 50,
+        questions: [
+          {
+            statement: "Qual tecnologia define a estrutura de uma página web?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 1,
+            options: [
+              { id: "A", label: "HTML" },
+              { id: "B", label: "SQL" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual tecnologia é usada principalmente para estilizar uma página?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 2,
+            options: [
+              { id: "A", label: "CSS" },
+              { id: "B", label: "PostgreSQL" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+        ],
+      },
+    ],
+  },
+] as const;
+
 async function main(): Promise<void> {
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
@@ -418,8 +457,35 @@ async function main(): Promise<void> {
     }
   }
 
+  for (const trail of trails) {
+    const existingTrail = await prisma.trail.findFirst({
+      where: { title: trail.title },
+      select: { id: true },
+    });
+
+    if (existingTrail) continue;
+
+    await prisma.trail.create({
+      data: {
+        title: trail.title,
+        description: trail.description,
+        area: trail.area,
+        isActive: true,
+        lessons: {
+          create: trail.lessons.map((lesson) => ({
+            title: lesson.title,
+            sequence: lesson.sequence,
+            xpReward: lesson.xpReward,
+            isActive: true,
+            questions: { create: lesson.questions },
+          })),
+        },
+      },
+    });
+  }
+
   console.log(
-    `Seeded ${questions.length} quiz questions and ${courses.length} courses.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses and ${trails.length} trails.`,
   );
 }
 
