@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   bookmarkCourse,
@@ -22,9 +22,12 @@ import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { Toast } from "../shared/ui/Toast";
 import { CourseRatingModal } from "../features/courses/ui/CourseRatingModal";
+import { useGamification } from "../entities/gamification";
+import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 export function CoursesScreen() {
   const { token } = useAuth();
+  const { refresh } = useGamification();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Courses">>();
   const [courses, setCourses] = useState<CourseRecommendation[]>([]);
@@ -42,6 +45,12 @@ export function CoursesScreen() {
   const [isRating, setIsRating] = useState(false);
   const loadErrorMessage =
     "Não foi possível carregar suas recomendações no momento";
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   async function openCourse(externalUrl: string): Promise<void> {
     try {
@@ -177,6 +186,7 @@ export function CoursesScreen() {
 
   return (
     <View style={styles.container}>
+      <XpProgressBar />
       {/* Topo Fixo e Compacto */}
       <View style={styles.header}>
         <Pressable
