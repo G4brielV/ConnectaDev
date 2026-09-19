@@ -243,6 +243,10 @@ async function requestQuestions(
             parts: [{ text: prompt }],
           },
         ],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+        },
       }),
       signal: controller.signal,
     });
