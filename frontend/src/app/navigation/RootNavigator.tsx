@@ -8,13 +8,19 @@ import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
 import { CoursesScreen } from '@/pages/CoursesScreen';
+import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
+import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
+import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
+import { MainTabNavigator } from './MainTabNavigator';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
-  Home: undefined;
+  Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
   Quiz: undefined;
   Courses: undefined;
+  KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
+  ReviewResult: { result: ReviewSubmitResponse; topicId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -37,9 +43,15 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
-            <Stack.Screen name="Home" component={HomePage} />
+            <Stack.Screen name="Home" component={MainTabNavigator} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
             <Stack.Screen name="Courses" component={CoursesScreen} />
+            <Stack.Screen
+              name="KnowledgeReview"
+              component={KnowledgeReviewScreen}
+              options={{ gestureEnabled: false }}
+            />
+            <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
           </>
         ) : (
           <>

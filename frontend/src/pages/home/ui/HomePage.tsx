@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useAuth } from '@/entities/session';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { LogoutConfirmationModal } from '@/features/auth';
+import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
 
 export function HomePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [summary, setSummary] = useState<GamificationSummary | null>(null);
+
+  // Refresh XP/streak whenever Home regains focus (e.g. after finishing a review)
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      fetchGamificationSummary(token)
+        .then(setSummary)
+        .catch(() => {
+          // Keep previous values if unable to load progress
+        });
+    }, [token]),
+  );
 
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
@@ -45,7 +59,9 @@ export function HomePage() {
           <View style={styles.chips}>
             <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
             <Text style={styles.chip}>💼 Vagas locais</Text>
-            <Text style={styles.chip}>🏆 Seu perfil</Text>
+            <Text style={styles.chip}>
+              {summary ? `🏆 ${summary.xp} XP · 🔥 ${summary.currentStreak}` : '🏆 Seu perfil'}
+            </Text>
           </View>
         </View>
         <View style={styles.footer}>

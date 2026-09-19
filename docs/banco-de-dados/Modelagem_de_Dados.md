@@ -30,9 +30,12 @@ As tabelas de negócio atualmente implementadas são:
 - `vocational_diagnoses`
 - `courses`
 - `user_course_bookmarks`
+- `topics`
+- `knowledge_review_questions`
+- `knowledge_review_sessions`
+- `user_gamification`
 
-Não fazem parte do schema atual tabelas de trilhas, desafios, fórum,
-gamificação, eventos, vagas ou infraestrutura pública.
+Não fazem parte do schema atual tabelas de desafios de código, fórum, eventos, vagas ou infraestrutura pública.
 
 ---
 
@@ -46,6 +49,10 @@ erDiagram
     user ||--o| vocational_diagnoses : "possui"
     user ||--o{ user_course_bookmarks : "salva"
     courses ||--o{ user_course_bookmarks : "é salvo"
+    user ||--o| user_gamification : "possui"
+    user ||--o{ knowledge_review_sessions : "realiza"
+    topics ||--o{ knowledge_review_questions : "contém"
+    topics ||--o{ knowledge_review_sessions : "é avaliado"
 ```
 
 `quiz_questions`, `verification` e `jwks` são tabelas independentes no schema
@@ -306,6 +313,44 @@ Restrições e índices:
 2. O backend valida a existência do curso.
 3. `user_course_bookmarks` é criado com `upsert`.
 4. Repetir a operação para a mesma combinação não cria duplicata.
+
+### 7.5. Início de Sessão de Revisão
+
+1. O usuário autenticado envia `GET /api/reviews/:topicId/questions`.
+2. O backend valida a existência do tópico ativo em `topics`. Tópicos dinâmicos são
+   gerados por IA (Gemini, com fallback local) no primeiro acesso e ficam em cache:
+   - `course-topic-<courseId>`: 5 perguntas sobre o curso (título, nível, tags).
+   - `area-topic-<slug>`: 5 perguntas sobre os fundamentos de uma área do catálogo
+     vocacional (ex.: `area-topic-ciberseguranca`), usando as `tecnologias_sugeridas`
+     do diagnóstico do usuário como contexto. O cache é por área, não por usuário.
+3. Uma sessão em `knowledge_review_sessions` é criada com `status = 'IN_PROGRESS'`.
+4. As perguntas ativas em `knowledge_review_questions` são recuperadas em ordem crescente de `sequence`.
+5. Retorna `sessionId`, `topicId`, `topicTitle`, `alreadyCompleted` (se o usuário já
+   concluiu esse tópico antes) e a lista ordenada de perguntas com opções e justificativas.
+
+> Tradeoff aceito: `correctOptionId` e `explanation` são enviados ao cliente junto com as
+> perguntas para permitir feedback imediato ao confirmar cada resposta. A pontuação é
+> sempre recalculada no servidor, mas o gabarito é visível a quem inspecionar a rede.
+
+### 7.6. Submissão de Revisão e Gamificação
+
+1. O usuário autenticado submete `POST /api/reviews/:sessionId/submit` com o histórico de respostas.
+2. O backend valida a posse da sessão (404 se não pertencer ao usuário) e rejeita com
+   `409` sessões já finalizadas (`status = 'COMPLETED'`).
+3. Calcula o aproveitamento (`score / totalQuestions`) e o percentual de acerto.
+4. XP: +10 por acerto **apenas na primeira conclusão do tópico** pelo usuário. Se já existe
+   outra sessão `COMPLETED` do mesmo `user_id` + `topic_id`, a tentativa é "modo treino"
+   (`xp_earned = 0`, `isFirstCompletion = false`).
+5. Atualiza `user_gamification` (mesmo com 0 XP, para contar a atividade do dia): soma o XP e
+   recalcula o `current_streak` / `longest_streak` conforme a última data de atividade (`last_activity_date`).
+6. Atualiza `knowledge_review_sessions` com `status = 'COMPLETED'`, `score`, `xp_earned` e o histórico de respostas.
+7. Retorna o resultado com o aproveitamento, XP ganho, `isFirstCompletion`, streak atual e lista de correções.
+
+### 7.7. Consulta de Gamificação
+
+1. `GET /api/gamification/me` retorna `xp`, `current_streak`, `longest_streak`,
+   `last_activity_date` e `completedReviews` (contagem de sessões `COMPLETED` do usuário).
+2. Usuários sem registro em `user_gamification` recebem zeros.
 
 ---
 

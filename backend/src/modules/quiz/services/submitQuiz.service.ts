@@ -2,19 +2,12 @@ import {
   QuizSubmitRequest,
 } from "../schemas/quiz.schemas";
 import { z } from "zod";
+import { SUPPORTED_AREAS } from "../constants/areas";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const AI_REQUEST_TIMEOUT_MS = 30_000;
 
-const SUPPORTED_AREAS = [
-  "Desenvolvimento de Software",
-  "Dados e Inteligência Artificial",
-  "Design e Experiência do Usuário",
-  "Infraestrutura e Redes",
-  "Cibersegurança",
-  "Gestão de Produtos de Tecnologia",
-] as const;
 const UNSUPPORTED_CAREER_TRACK = "UNSUPPORTED_CAREER_TRACK";
 
 class MalformedAiResponseError extends Error {
