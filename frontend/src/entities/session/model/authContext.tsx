@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User, LoginCredentials, RegisterCredentials } from './types';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
-import { loginRequest, registerRequest, logoutRequest, recoveryPasswordRequest } from '@/features/auth/api/authService';
+import { loginRequest, registerRequest, logoutRequest, recoveryPasswordRequest, resetPasswordRequest } from '@/features/auth/api/authService';
 import { registerSessionExpiredCallback } from '@/shared/api/apiClient';
 import { configureAuthToken } from '@/shared/lib/authSession';
 
@@ -14,6 +14,7 @@ interface AuthContextData {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   recoveryPassword: (email:string) => Promise<string>
+  resetPassword: (token:string,newPassword:string) => Promise<string>
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -94,13 +95,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const recoveryPassword = async (email: string): Promise<string> => {
-    setIsLoading(true);
-    try {
-      const message = await recoveryPasswordRequest(email);
-      return message;
-    } finally {
-      setIsLoading(false);
-    }
+    return await recoveryPasswordRequest(email);
+  };
+  const resetPassword = async (token: string,newPassword:String): Promise<string> => {
+    return await resetPasswordRequest(token,newPassword);
   };
 
   const contextValue = useMemo<AuthContextData>(
@@ -112,7 +110,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       register,
       logout,
-      recoveryPassword 
+      recoveryPassword,
+      resetPassword
     }),
     [user, token, isLoading]
   );
