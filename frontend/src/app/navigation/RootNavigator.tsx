@@ -8,12 +8,14 @@ import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
 import RecoveryPasswordPage from '@/pages/recoverPassword/ui/RecoveryPasswordPage';
+import { CoursesScreen } from '@/pages/CoursesScreen';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: undefined;
   Quiz: undefined;
+  Courses: undefined;
   RecoveryPassword: undefined;
 };
 
@@ -39,6 +41,7 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Home" component={HomePage} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
+            <Stack.Screen name="Courses" component={CoursesScreen} />
           </>
         ) : (
           <>
