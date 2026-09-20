@@ -172,3 +172,24 @@ export async function recoveryPasswordRequest(email:string): Promise<string> {
       throw new Error(errorMessage);
     }
 }
+
+export async function resetPasswordRequest(token: string,newPassword:String): Promise<string> {
+    try {
+      const response = await apiClient.post<{ message: string }>("/auth/reset-password", { token, newPassword });
+      return response.data.message || "Senha alterada com sucesso";
+    } catch (error) {
+      console.warn('Falha na comunicação de recoveryPassword com o backend:', error);
+
+      // 3. Mantém a sua verificação personalizada de erro
+      if (error instanceof AuthError) {
+        throw error;
+      }
+
+      // 4. Trata o erro do Axios para extrair a mensagem do backend
+      const axiosError = error as AxiosError<{ message?: string; error?: string }>;
+      const errorMessage = axiosError.response?.data?.message || axiosError.response?.data?.error || "Erro desconhecido ao recuperar senha.";
+
+      // 5. Lança o erro para ser capturado pela tela (UI) que chamou a função
+      throw new Error(errorMessage);
+    }
+}
