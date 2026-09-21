@@ -6,19 +6,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Feather } from '@expo/vector-icons';
 import { LoginForm } from '@/features/auth';
+import { Logo } from '@/shared/ui/Logo';
+import { colors, fonts, radius, shadow } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
 
+// Layout da tela "Login - ConnectaDev" do Stitch
 export function LoginPage() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
+  const insets = useSafeAreaInsets();
   const initialEmail = route.params?.initialEmail;
   const successMessage = route.params?.successMessage;
 
@@ -28,32 +34,52 @@ export function LoginPage() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) + 16 },
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.logoTitle}>ConnectaDev</Text>
+          <View style={styles.regionPill}>
+            <View style={styles.regionDot} />
+            <Text style={styles.regionText}>PORTO DIGITAL • CONECTA</Text>
+          </View>
+          <Logo size={48} showWordmark={false} />
+          <Text style={styles.title}>Seu portal de entrada para o ecossistema tech</Text>
           <Text style={styles.subtitle}>
-            Acesse sua conta para se conectar com o ecossistema tech de Pernambuco
+            Acelere sua trajetória profissional com oportunidades reais em Pernambuco.
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Login</Text>
-
           {successMessage ? (
             <View style={styles.successBanner}>
+              <Feather name="check-circle" size={16} color={colors.success} />
               <Text style={styles.successBannerText}>{successMessage}</Text>
             </View>
           ) : null}
 
           <LoginForm initialEmail={initialEmail} />
+        </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Não tem uma conta? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Cadastre-se</Text>
-            </TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Ainda não faz parte?{' '}
+            <Text
+              style={styles.footerLink}
+              onPress={() => navigation.navigate('Register')}
+              accessibilityRole="link"
+            >
+              Cadastre-se gratuitamente
+            </Text>
+          </Text>
+          <View style={styles.locationPill}>
+            <Feather name="map-pin" size={14} color={colors.accent} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              Feito para o Recife & RMR • Porto Digital Ready
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -64,74 +90,109 @@ export function LoginPage() {
 const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.canvas,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    paddingHorizontal: 8,
+    paddingBottom: 24,
+    gap: 12,
   },
-  logoTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#0284C7',
-    letterSpacing: -0.5,
+  regionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.light,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  regionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
+  regionText: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.textPrimary,
+  },
+  title: {
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted,
     textAlign: 'center',
-    marginTop: 8,
-    maxWidth: 280,
-    lineHeight: 20,
+    maxWidth: 270,
+    marginTop: -8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.light,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 20,
+    ...shadow.card,
   },
   successBanner: {
-    backgroundColor: '#DEF7EC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#E8F3EE',
     borderWidth: 1,
-    borderColor: '#31C48D',
-    borderRadius: 8,
+    borderColor: colors.success,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
   successBannerText: {
-    color: '#03543F',
+    flex: 1,
+    fontFamily: fonts.sans.medium,
     fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '500',
+    color: colors.success,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    marginTop: 32,
     alignItems: 'center',
-    marginTop: 20,
+    gap: 12,
   },
   footerText: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   footerLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0284C7',
+    fontFamily: fonts.sans.bold,
+    color: colors.primary,
+  },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  locationText: {
+    fontFamily: fonts.mono.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
 });
