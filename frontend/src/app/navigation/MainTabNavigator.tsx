@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import { HomePage } from '@/pages/home';
 import { ReviewHubScreen } from '@/pages/ReviewHubScreen';
 import { ForumScreen } from '@/pages/ForumScreen';
 import { JobsScreen } from '@/pages/JobsScreen';
+import { colors, fonts } from '@/shared/config/theme';
 import type { RootStackParamList } from './RootNavigator';
 
 export type MainTabType = 'home' | 'review' | 'forum' | 'jobs';
@@ -33,14 +35,14 @@ export const useMainTab = () => useContext(TabContext);
 interface TabItem {
   id: MainTabType;
   label: string;
-  icon: string;
+  icon: keyof typeof Feather.glyphMap;
 }
 
 const TABS: TabItem[] = [
-  { id: 'home', label: 'Início', icon: '🏠' },
-  { id: 'review', label: 'Revisão', icon: '📝' },
-  { id: 'forum', label: 'Fórum', icon: '💬' },
-  { id: 'jobs', label: 'Vagas', icon: '💼' },
+  { id: 'home', label: 'Início', icon: 'home' },
+  { id: 'review', label: 'Revisão', icon: 'edit-3' },
+  { id: 'forum', label: 'Fórum', icon: 'message-circle' },
+  { id: 'jobs', label: 'Vagas', icon: 'briefcase' },
 ];
 
 export function MainTabNavigator() {
@@ -86,7 +88,12 @@ export function MainTabNavigator() {
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={tab.label}
               >
-                <Text style={[styles.icon, isSelected && styles.iconActive]}>{tab.icon}</Text>
+                <Feather
+                  name={tab.icon}
+                  size={22}
+                  color={isSelected ? colors.primary : colors.textMuted}
+                  style={styles.icon}
+                />
                 <Text style={[styles.tabLabel, isSelected ? styles.tabLabelActive : styles.tabLabelInactive]}>
                   {tab.label}
                 </Text>
@@ -102,7 +109,7 @@ export function MainTabNavigator() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.canvas,
   },
   screenContainer: {
     flex: 1,
@@ -118,12 +125,12 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#E2E8F0',
+    backgroundColor: colors.surface,
+    borderTopColor: colors.light,
     borderTopWidth: 1,
     paddingTop: 8,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: colors.dark,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -135,23 +142,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   icon: {
-    fontSize: 20,
     marginBottom: 4,
-    opacity: 0.8,
-  },
-  iconActive: {
-    opacity: 1,
-    transform: [{ scale: 1.05 }],
   },
   tabLabel: {
     fontSize: 11,
-    fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#036564',
-    fontWeight: '700',
+    color: colors.primary,
+    fontFamily: fonts.sans.bold,
   },
   tabLabelInactive: {
-    color: '#94A3B8',
+    color: colors.textMuted,
+    fontFamily: fonts.sans.semiBold,
   },
 });
