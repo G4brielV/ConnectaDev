@@ -1,59 +1,9 @@
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { keyValueStorage } from './keyValueStorage';
 
 const ACCESS_TOKEN_KEY = 'connectadev_access_token';
 const REFRESH_TOKEN_KEY = 'connectadev_refresh_token';
 
-const memoryStorage: Record<string, string> = {};
-
-async function setItem(key: string, value: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(key, value);
-        return;
-      }
-    } catch {
-      // Fallback para memória caso localStorage não esteja disponível
-    }
-    memoryStorage[key] = value;
-    return;
-  }
-
-  await SecureStore.setItemAsync(key, value);
-}
-
-async function getItem(key: string): Promise<string | null> {
-  if (Platform.OS === 'web') {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage.getItem(key);
-      }
-    } catch {
-      // Fallback para memória
-    }
-    return memoryStorage[key] || null;
-  }
-
-  return await SecureStore.getItemAsync(key);
-}
-
-async function deleteItem(key: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(key);
-        return;
-      }
-    } catch {
-      // Fallback para memória
-    }
-    delete memoryStorage[key];
-    return;
-  }
-
-  await SecureStore.deleteItemAsync(key);
-}
+const { setItem, getItem, deleteItem } = keyValueStorage;
 
 export const tokenStorage = {
   getAccessToken: () => getItem(ACCESS_TOKEN_KEY),

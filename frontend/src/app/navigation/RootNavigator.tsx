@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '@/entities/session';
+import { OnboardingPage } from '@/pages/onboarding';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
@@ -11,9 +12,12 @@ import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
+import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
+import { colors } from '@/shared/config/theme';
 import { MainTabNavigator } from './MainTabNavigator';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
   Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
@@ -27,11 +31,21 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  // null = ainda carregando a flag; onboarding só aparece na primeira abertura.
+  // Relido a cada troca de autenticação para não reaparecer após logout.
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
 
-  if (isLoading) {
+  useEffect(() => {
+    onboardingStorage
+      .hasSeen()
+      .then(setHasSeenOnboarding)
+      .catch(() => setHasSeenOnboarding(true));
+  }, [isAuthenticated]);
+
+  if (isLoading || hasSeenOnboarding === null) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0284C7" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -55,6 +69,7 @@ export function RootNavigator() {
           </>
         ) : (
           <>
+            {!hasSeenOnboarding && <Stack.Screen name="Onboarding" component={OnboardingPage} />}
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
           </>
@@ -67,7 +82,7 @@ export function RootNavigator() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.canvas,
     justifyContent: 'center',
     alignItems: 'center',
   },
