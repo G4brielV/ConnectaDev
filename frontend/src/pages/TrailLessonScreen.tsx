@@ -7,6 +7,8 @@ import { useGamification } from "../entities/gamification";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { fetchTrailLesson, TrailLesson } from "../shared/api/trailsApi";
 import { scoreLesson, ScoreLessonResult } from "../shared/api/gamificationApi";
+import { isRetryableScoreError } from "../shared/api/pendingLessonScoresSync";
+import { savePendingLessonScore } from "../shared/lib/storage/pendingLessonScores";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TrailLesson">;
 
@@ -21,6 +23,7 @@ export function TrailLessonScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingSyncMessage, setPendingSyncMessage] = useState<string | null>(null);
   const resultAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,12 +49,20 @@ export function TrailLessonScreen() {
     if (!token || !lesson || isSubmitting) return;
     setIsSubmitting(true);
     setErrorMessage(null);
+    setPendingSyncMessage(null);
     try {
       const score = await scoreLesson(token, lesson.id, answers);
       setResult(score);
       applySummary({ totalXp: score.totalXp, currentLevel: score.currentLevel });
     } catch (error: unknown) {
-      setErrorMessage(error instanceof Error ? error.message : "Não foi possível registrar sua pontuação.");
+      if (isRetryableScoreError(error)) {
+        await savePendingLessonScore({ lessonId: lesson.id, answers });
+        setPendingSyncMessage(
+          "Respostas gravadas! Houve uma oscilação na rede e sua pontuação será sincronizada assim que a conexão restabelecer",
+        );
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : "Não foi possível registrar sua pontuação.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -60,6 +71,25 @@ export function TrailLessonScreen() {
   if (isLoading) return <ActivityIndicator style={styles.centered} color="#036564" />;
   if (errorMessage && !lesson) return <View style={styles.centered}><Text style={styles.error}>{errorMessage}</Text></View>;
   if (!lesson) return null;
+
+  if (pendingSyncMessage) {
+    return (
+      <View style={styles.resultScreen}>
+        <View style={styles.pendingCard}>
+          <Text style={styles.pendingIcon}>☁</Text>
+          <Text style={styles.pendingTitle}>Respostas salvas</Text>
+          <Text style={styles.pendingText}>{pendingSyncMessage}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.replace("Trails")}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Voltar para trilhas</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   if (result) {
     return (
@@ -153,6 +183,10 @@ const styles = StyleSheet.create({
   primaryButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, padding: 15 },
   primaryButtonText: { color: "#FFFFFF", fontWeight: "800" },
   error: { color: "#B13A24", fontSize: 14 },
+  pendingCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 16, gap: 16, maxWidth: 380, padding: 24, width: "100%" },
+  pendingIcon: { color: "#036564", fontSize: 48 },
+  pendingTitle: { color: "#031634", fontSize: 24, fontWeight: "800", textAlign: "center" },
+  pendingText: { color: "#60717A", fontSize: 15, lineHeight: 22, textAlign: "center" },
   resultScreen: { alignItems: "center", backgroundColor: "#031634", flex: 1, gap: 16, justifyContent: "center", padding: 24 },
   resultContent: { alignItems: "center", gap: 16, maxWidth: 360, width: "100%" },
   celebration: { fontSize: 54 },

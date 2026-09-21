@@ -56,6 +56,10 @@ export async function scoreLesson(
     (question) => typeof answers[question.id] === "string" && answers[question.id].trim().length > 0,
   );
 
+  console.log(
+    `[gamification] Pontuação recebida: user=${userId}, lesson=${lessonId}, correct=${correctCount}/${totalQuestions}, completed=${completed}`,
+  );
+
   return prisma.$transaction(async (transaction) => {
     const previousProgress = await transaction.userTrailProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId } },
@@ -87,6 +91,9 @@ export async function scoreLesson(
       ? calculateTargetXp(lesson.xpReward, correctCount, totalQuestions)
       : progress.xpAwarded;
     const earnedXp = Math.max(0, targetXp - progress.xpAwarded);
+    console.log(
+      `[gamification] XP calculado: user=${userId}, lesson=${lessonId}, target=${targetXp}, alreadyAwarded=${progress.xpAwarded}, earned=${earnedXp}`,
+    );
     if (earnedXp === 0) {
       const gamification = await transaction.userGamification.findUnique({
         where: { userId },
@@ -116,6 +123,9 @@ export async function scoreLesson(
         amount: earnedXp,
       },
     });
+    console.log(
+      `[gamification] Evento XP criado: user=${userId}, source=${TRAIL_LESSON_SOURCE}, reference=${lessonId}, amount=${earnedXp}`,
+    );
 
     const previousGamification = await transaction.userGamification.findUnique({
       where: { userId },
@@ -131,11 +141,17 @@ export async function scoreLesson(
       create: { userId, totalXp, currentLevel },
       update: { totalXp, currentLevel },
     });
+    console.log(
+      `[gamification] Saldo atualizado: user=${userId}, totalXp=${totalXp}, level=${currentLevel}`,
+    );
 
     await transaction.userTrailProgress.update({
       where: { id: progress.id },
       data: { xpAwarded: targetXp },
     });
+    console.log(
+      `[gamification] Progresso atualizado: user=${userId}, lesson=${lessonId}, xpAwarded=${targetXp}`,
+    );
 
     return {
       correctCount,

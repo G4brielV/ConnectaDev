@@ -15,6 +15,16 @@ export interface ScoreLessonResult extends GamificationSummary {
   completed: boolean;
 }
 
+export class ScoreLessonError extends Error {
+  readonly status: number | null;
+
+  constructor(message: string, status: number | null = null) {
+    super(message);
+    this.name = "ScoreLessonError";
+    this.status = status;
+  }
+}
+
 export async function fetchGamificationSummary(
   token: string,
 ): Promise<GamificationSummary> {
@@ -48,7 +58,10 @@ export async function scoreLesson(
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível registrar sua pontuação.");
+    throw new ScoreLessonError(
+      "Não foi possível registrar sua pontuação.",
+      response.status,
+    );
   }
 
   return (await response.json()) as ScoreLessonResult;
