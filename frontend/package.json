@@ -33,7 +33,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsc --noEmit",
-    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts src/app/navigation/quizOnboarding.test.ts src/pages/knowledgeReviewState.test.ts src/shared/api/reviewApi.test.ts src/shared/api/gamificationApi.test.ts src/shared/lib/areaTopic.test.ts"
+    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts src/app/navigation/quizOnboarding.test.ts src/pages/quiz-result/quizResultState.test.ts src/pages/knowledgeReviewState.test.ts src/shared/api/reviewApi.test.ts src/shared/api/gamificationApi.test.ts src/shared/lib/areaTopic.test.ts"
   },
   "private": true
 }

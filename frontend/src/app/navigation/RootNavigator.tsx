@@ -9,10 +9,12 @@ import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizIntroPage } from '@/pages/quiz-intro';
 import { QuizScreen } from '@/pages/QuizScreen';
+import { QuizResultPage } from '@/pages/quiz-result';
 import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
+import type { QuizAnalysisResult } from '@/shared/api/quizApi';
 import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
 import { colors } from '@/shared/config/theme';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -25,6 +27,7 @@ export type RootStackParamList = {
   Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
   QuizIntro: undefined;
   Quiz: undefined;
+  QuizResult: { result: QuizAnalysisResult };
   Courses: undefined;
   KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
@@ -95,6 +98,7 @@ export function RootNavigator() {
             <Stack.Screen name="Home" component={MainTabNavigator} />
             <Stack.Screen name="QuizIntro" component={QuizIntroPage} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
+            <Stack.Screen name="QuizResult" component={QuizResultPage} options={{ gestureEnabled: false }} />
             <Stack.Screen name="Courses" component={CoursesScreen} />
             <Stack.Screen
               name="KnowledgeReview"
