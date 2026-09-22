@@ -6,6 +6,7 @@ import { useAuth } from '@/entities/session';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { QuizScreen } from '@/pages/QuizScreen';
+import RecoveryPasswordPage from '@/pages/recoverPassword/ui/RecoveryPasswordPage';
 import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
   Quiz: undefined;
   Courses: undefined;
+  RecoveryPassword: undefined;
   KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
   Trails: undefined;
@@ -62,6 +64,7 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
+            <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordPage}/>
           </>
         )}
       </Stack.Navigator>

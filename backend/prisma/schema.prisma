@@ -9,13 +9,14 @@ datasource db {
 model User {
   id            String    @id
   name          String
-  email         String
+  email         String    @unique
   emailVerified Boolean
   image         String?
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  passwordResetTokens PasswordResetToken[]
   
   profile         UserProfile?
   diagnosis       VocationalDiagnosis?
@@ -152,20 +153,6 @@ model Course {
   @@map("courses")
 }
 
-model UserCourseBookmark {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  courseId  String   @map("course_id")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@index([userId])
-  @@map("user_course_bookmarks")
-}
-
 model Topic {
   id          String   @id @default(uuid())
   title       String
@@ -232,8 +219,17 @@ model CourseRating {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
-  @@index([courseId])
+  @@index([userId])
   @@map("course_ratings")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Trail {
@@ -331,4 +327,18 @@ model UserTrailProgress {
   @@unique([userId, lessonId])
   @@index([userId])
   @@map("user_trail_progress")
+}
+
+model UserCourseBookmark {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@map("user_course_bookmarks")
 }

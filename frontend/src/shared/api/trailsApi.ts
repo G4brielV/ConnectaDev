@@ -34,6 +34,7 @@ export async function fetchTrailRecommendations(
   token: string,
 ): Promise<TrailRecommendation[]> {
   const response = await fetch(`${API_URL}/api/trails/recommendations`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -52,6 +53,7 @@ export async function fetchTrailLesson(
   lessonId: string,
 ): Promise<TrailLesson> {
   const response = await fetch(`${API_URL}/api/trails/lessons/${lessonId}`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
