@@ -8,6 +8,8 @@ import { RegisterPage } from '@/pages/register';
 import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
 import { CoursesScreen } from '@/pages/CoursesScreen';
+import { TrailsScreen } from '@/pages/TrailsScreen';
+import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
@@ -15,6 +17,8 @@ export type RootStackParamList = {
   Home: undefined;
   Quiz: undefined;
   Courses: undefined;
+  Trails: undefined;
+  TrailLesson: { lessonId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -40,6 +44,8 @@ export function RootNavigator() {
             <Stack.Screen name="Home" component={HomePage} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
             <Stack.Screen name="Courses" component={CoursesScreen} />
+            <Stack.Screen name="Trails" component={TrailsScreen} />
+            <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
           </>
         ) : (
           <>

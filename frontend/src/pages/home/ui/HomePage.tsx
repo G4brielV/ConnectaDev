@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useAuth } from '@/entities/session';
+import { useGamification } from '@/entities/gamification';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { LogoutConfirmationModal } from '@/features/auth';
+import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
 
 export function HomePage() {
   const { user, logout } = useAuth();
+  const { refresh } = useGamification();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
@@ -33,6 +43,7 @@ export function HomePage() {
             <Text style={styles.avatarText}>◯</Text>
           </View>
         </View>
+        <XpProgressBar />
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE ✨</Text>
           <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
@@ -55,6 +66,20 @@ export function HomePage() {
             style={styles.quizButton}
           >
             <Text style={styles.quizButtonText}>Começar o Quiz Agora 🚀</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Courses')}
+            style={styles.coursesButton}
+          >
+            <Text style={styles.coursesButtonText}>Meus cursos</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Trails')}
+            style={styles.trailsButton}
+          >
+            <Text style={styles.trailsButtonText}>Trilhas</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -132,6 +157,10 @@ const styles = StyleSheet.create({
   footer: { gap: 12, marginTop: 32 },
   quizButton: { alignItems: 'center', backgroundColor: '#036564', borderRadius: 12, paddingVertical: 16 },
   quizButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  coursesButton: { alignItems: 'center', borderColor: '#036564', borderRadius: 12, borderWidth: 1, paddingVertical: 14 },
+  coursesButtonText: { color: '#036564', fontSize: 15, fontWeight: '700' },
+  trailsButton: { alignItems: 'center', backgroundColor: '#CDB380', borderRadius: 12, paddingVertical: 14 },
+  trailsButtonText: { color: '#031634', fontSize: 15, fontWeight: '800' },
   logoutButton: { alignItems: 'center', paddingVertical: 12 },
   logoutText: { color: '#60717A', fontSize: 14 },
 });

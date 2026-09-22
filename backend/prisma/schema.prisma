@@ -19,7 +19,11 @@ model User {
   
   profile       UserProfile?
   diagnosis     VocationalDiagnosis?
+  gamification  UserGamification?
+  trailProgress UserTrailProgress[]
+  xpEvents      XpEvent[]
   courseBookmarks UserCourseBookmark[]
+  courseRatings CourseRating[]
 
   @@map("user")
 }
@@ -141,6 +145,7 @@ model Course {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   bookmarks   UserCourseBookmark[]
+  ratings     CourseRating[]
 
   @@index([isActive])
   @@map("courses")
@@ -158,4 +163,114 @@ model UserCourseBookmark {
   @@unique([userId, courseId])
   @@index([userId])
   @@map("user_course_bookmarks")
+}
+
+model CourseRating {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  rating    Int
+  comment   String?
+  matchedProfile Boolean? @map("matched_profile")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("course_ratings")
+}
+
+model Trail {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  area        String?
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  lessons     TrailLesson[]
+
+  @@index([isActive])
+  @@map("trails")
+}
+
+model TrailLesson {
+  id            String               @id @default(uuid())
+  trailId       String               @map("trail_id")
+  title         String
+  sequence      Int
+  xpReward      Int                  @map("xp_reward")
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  trail         Trail                @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  questions     TrailQuestion[]
+  userProgress  UserTrailProgress[]
+
+  @@unique([trailId, sequence])
+  @@index([trailId, isActive])
+  @@map("trail_lessons")
+}
+
+model TrailQuestion {
+  id            String      @id @default(uuid())
+  lessonId      String      @map("lesson_id")
+  statement     String
+  type          String
+  sequence      Int
+  options       Json?
+  validation    Json?
+  correctAnswer String      @map("correct_answer")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  lesson        TrailLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, sequence])
+  @@index([lessonId, isActive])
+  @@map("trail_questions")
+}
+
+model UserGamification {
+  userId       String   @id @map("user_id")
+  totalXp      Int      @default(0) @map("total_xp")
+  currentLevel Int      @default(1) @map("current_level")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_gamification")
+}
+
+model XpEvent {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  source      String
+  referenceId String   @map("reference_id")
+  amount      Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, source, referenceId, createdAt])
+  @@map("xp_events")
+}
+
+model UserTrailProgress {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  lessonId      String      @map("lesson_id")
+  attempts      Int         @default(0)
+  bestCorrect   Int         @default(0) @map("best_correct")
+  totalQuestions Int        @default(0) @map("total_questions")
+  xpAwarded     Int         @default(0) @map("xp_awarded")
+  completedAt   DateTime?   @map("completed_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        TrailLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("user_trail_progress")
 }

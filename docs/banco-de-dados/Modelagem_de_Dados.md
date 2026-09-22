@@ -30,9 +30,15 @@ As tabelas de negócio atualmente implementadas são:
 - `vocational_diagnoses`
 - `courses`
 - `user_course_bookmarks`
+- `trails`
+- `trail_lessons`
+- `trail_questions`
+- `user_gamification`
+- `xp_events`
+- `user_trail_progress`
 
-Não fazem parte do schema atual tabelas de trilhas, desafios, fórum,
-gamificação, eventos, vagas ou infraestrutura pública.
+Não fazem parte do schema atual tabelas de desafios, fórum, eventos, vagas ou
+infraestrutura pública.
 
 ---
 
@@ -44,6 +50,12 @@ erDiagram
     user ||--o{ account : "possui"
     user ||--o| user_profiles : "possui"
     user ||--o| vocational_diagnoses : "possui"
+    user ||--o| user_gamification : "possui"
+    user ||--o{ xp_events : "recebe"
+    user ||--o{ user_trail_progress : "acompanha"
+    trails ||--o{ trail_lessons : "contém"
+    trail_lessons ||--o{ trail_questions : "possui"
+    trail_lessons ||--o{ user_trail_progress : "é concluída"
     user ||--o{ user_course_bookmarks : "salva"
     courses ||--o{ user_course_bookmarks : "é salvo"
 ```
@@ -52,6 +64,31 @@ erDiagram
 atual. O diagnóstico é associado ao usuário por uma relação 1:1, e os favoritos
 formam uma relação N:N entre `user` e `courses`, materializada por
 `user_course_bookmarks`.
+
+As perguntas de trilha ficam em `trail_questions`, seguindo a mesma estrutura
+de `quiz_questions`, mas com `correct_answer` para a correção no backend. Essa
+coluna nunca deve ser enviada ao frontend; a API deve retornar apenas o enunciado
+e as opções.
+
+### Registro de XP
+
+`user_gamification` continua sendo o saldo agregado usado pelo HUD: `total_xp`
+e `current_level`. A tabela `xp_events` funciona como o histórico de cada
+concessão de XP e permite novas origens além das lições, como desafios, streaks
+ou participação no fórum.
+
+Cada evento possui `source`, `reference_id`, `amount` e `created_at`. A mesma
+combinação de `user_id`, `source` e `reference_id` pode aparecer mais de uma vez,
+pois cada registro representa um novo incremento de XP e é diferenciado pela
+data de criação. O XP da lição `lesson-123` usa `source = TRAIL_LESSON` e
+`reference_id = lesson-123` em todos os incrementos.
+
+O serviço deve inserir o evento e atualizar `user_gamification` na mesma
+transação. A prevenção de excesso é feita comparando o XP proporcional alvo com
+`user_trail_progress.xp_awarded`: apenas a diferença positiva é inserida e
+somada ao saldo. Quando o usuário atinge o XP máximo da lição, novas tentativas
+não criam evento nem concedem XP. `user_trail_progress` continua responsável
+por acertos, tentativas e conclusão da lição.
 
 ---
 
