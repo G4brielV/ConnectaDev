@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TextInputProps,
   StyleSheet,
+  Platform,
+  TextStyle,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, radius } from '@/shared/config/theme';
@@ -27,8 +29,12 @@ export function Input({
   rightAccessory,
   labelAccessory,
   style,
+  onFocus,
+  onBlur,
   ...props
 }: InputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
       {(label || labelAccessory) && (
@@ -46,10 +52,19 @@ export function Input({
             styles.input,
             leftIcon ? styles.inputWithLeftIcon : null,
             rightAccessory ? styles.inputWithRightAccessory : null,
+            isFocused ? styles.inputFocused : null,
             error ? styles.inputError : null,
             style,
           ]}
           placeholderTextColor={colors.textMuted}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
           {...props}
         />
         {rightAccessory && <View style={styles.rightAccessory}>{rightAccessory}</View>}
@@ -100,6 +115,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans.regular,
     color: colors.textPrimary,
     backgroundColor: colors.surface,
+    // Remove o anel de foco padrão do navegador; o foco é indicado pela borda.
+    // 'none' é válido no react-native-web, mas não está na tipagem do RN.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null),
+  },
+  inputFocused: {
+    borderColor: colors.primary,
   },
   inputWithLeftIcon: {
     paddingLeft: 44,
