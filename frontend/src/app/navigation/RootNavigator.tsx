@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,6 +16,7 @@ import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
 import { colors } from '@/shared/config/theme';
 import { MainTabNavigator } from './MainTabNavigator';
+import { checkQuizOnboarding, resolveInitialNavigationState } from './quizOnboarding';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -32,7 +33,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, token } = useAuth();
   // null = ainda carregando a flag; onboarding só aparece na primeira abertura.
   // Relido a cada troca de autenticação para não reaparecer após logout.
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
@@ -44,7 +45,35 @@ export function RootNavigator() {
       .catch(() => setHasSeenOnboarding(true));
   }, [isAuthenticated]);
 
-  if (isLoading || hasSeenOnboarding === null) {
+  // null = ainda consultando; true = usuário sem diagnóstico → abre na intro do quiz.
+  // Consultado uma vez por sessão autenticada (não refaz se o token for renovado).
+  const [needsQuizOnboarding, setNeedsQuizOnboarding] = useState<boolean | null>(null);
+  const hasCheckedQuiz = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      hasCheckedQuiz.current = false;
+      setNeedsQuizOnboarding(null);
+      return;
+    }
+    if (hasCheckedQuiz.current) {
+      return;
+    }
+    hasCheckedQuiz.current = true;
+
+    let isActive = true;
+    checkQuizOnboarding(token).then((needsQuiz) => {
+      if (isActive) setNeedsQuizOnboarding(needsQuiz);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, token]);
+
+  const isCheckingQuiz = isAuthenticated && needsQuizOnboarding === null;
+
+  if (isLoading || hasSeenOnboarding === null || isCheckingQuiz) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -54,8 +83,12 @@ export function RootNavigator() {
 
   // TT-50 & TT-56: Ao alternar o estado de autenticação, o React Navigation desmonta a pilha anterior
   // executando o reset completo de navegação e direcionando diretamente para a HomeScreen
+  // key força remontagem do container ao trocar de sessão, para o initialState valer a cada login
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      key={isAuthenticated ? 'app' : 'auth'}
+      initialState={resolveInitialNavigationState(isAuthenticated, needsQuizOnboarding)}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>

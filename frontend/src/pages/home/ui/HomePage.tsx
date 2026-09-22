@@ -67,7 +67,7 @@ export function HomePage() {
         <View style={styles.footer}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate('QuizIntro')}
+            onPress={() => navigation.navigate('Quiz')}
             style={styles.quizButton}
           >
             <Text style={styles.quizButtonText}>Começar o Quiz Agora 🚀</Text>

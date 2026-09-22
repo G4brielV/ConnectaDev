@@ -122,7 +122,7 @@ export function CoursesScreen() {
           </Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate("QuizIntro")}
+            onPress={() => navigation.navigate("Quiz")}
             style={styles.primaryButton}
           >
             <Text style={styles.primaryButtonText}>Fazer Teste Vocacional</Text>

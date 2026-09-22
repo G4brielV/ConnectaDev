@@ -189,7 +189,7 @@ export function ReviewHubScreen() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              onPress={() => navigation.navigate("QuizIntro")}
+              onPress={() => navigation.navigate("Quiz")}
               style={styles.quizLinkButton}
             >
               <Text style={styles.quizLinkText}>Começar o Quiz Agora 🚀</Text>

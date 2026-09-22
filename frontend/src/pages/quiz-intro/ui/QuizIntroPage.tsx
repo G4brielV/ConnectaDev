@@ -51,15 +51,16 @@ export function QuizIntroPage() {
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
 
-  // replace: ao voltar do quiz o usuário retorna à tela de origem, não à introdução
+  // replace: ao terminar o quiz o usuário cai na Home (base da pilha), não na introdução
   const startQuiz = () => navigation.replace('Quiz');
+  const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'));
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
-            onPress={() => navigation.goBack()}
+            onPress={goBack}
             style={styles.iconButton}
             accessibilityRole="button"
             accessibilityLabel="Voltar"
