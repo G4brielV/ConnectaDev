@@ -23,6 +23,7 @@ import {
   submitQuiz,
 } from "../shared/api/quizApi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { getQuizCatalogState } from "./quizState";
@@ -230,6 +231,20 @@ function QuizScreenContent() {
     }));
   }
 
+  // Respostas ficam em `answers` por id, então voltar preserva o que já foi respondido
+  function goToPreviousQuestion(): void {
+    setAnswerValidationMessage(null);
+    if (currentIndex > 0) {
+      setCurrentIndex((index) => index - 1);
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("Home");
+    }
+  }
+
   async function goToNextQuestion(): Promise<void> {
     if (isLoading || isSubmitting) {
       return;
@@ -427,18 +442,18 @@ function QuizScreenContent() {
       style={styles.container}
     >
       <View style={styles.header}>
-        {currentIndex > 0 ? (
-          <Pressable
-            accessibilityLabel="Voltar para a pergunta anterior"
-            accessibilityRole="button"
-            onPress={() => setCurrentIndex((index) => index - 1)}
-            style={styles.headerBackButton}
-          >
-            <Text style={styles.headerBackText}>‹ Voltar</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.headerBackPlaceholder} />
-        )}
+        <Pressable
+          accessibilityLabel={
+            currentIndex > 0 ? "Voltar para a pergunta anterior" : "Sair do quiz"
+          }
+          accessibilityRole="button"
+          disabled={isSubmitting}
+          hitSlop={8}
+          onPress={goToPreviousQuestion}
+          style={styles.headerBackButton}
+        >
+          <Feather color="#031634" name="arrow-left" size={20} />
+        </Pressable>
         <Text style={styles.eyebrow}>QUIZ VOCACIONAL</Text>
         <View style={styles.headerBackPlaceholder} />
       </View>
@@ -617,8 +632,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   headerBackButton: {
-    minWidth: 84,
-    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    elevation: 3,
+    height: 40,
+    justifyContent: "center",
+    shadowColor: "#031634",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    width: 40,
   },
   multipleChoiceNextButton: {
     transform: [{ translateY: -6 }],
@@ -631,12 +655,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBackPlaceholder: {
-    minWidth: 84,
-  },
-  headerBackText: {
-    color: "#036564",
-    fontSize: 14,
-    fontWeight: "600",
+    width: 40,
   },
   progressHeader: {
     flexDirection: "row",
