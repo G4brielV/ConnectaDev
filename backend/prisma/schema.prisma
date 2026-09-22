@@ -220,7 +220,7 @@ model CourseRating {
 
   @@unique([userId, courseId])
   @@index([userId])
-  @@map("user_course_bookmarks")  // ATENÇÃO: mapeamento original (provavelmente errado)
+  @@map("course_ratings")
 }
 
 model PasswordResetToken {
@@ -340,5 +340,5 @@ model UserCourseBookmark {
 
   @@unique([userId, courseId])
   @@index([userId])
-  @@map("course_ratings") 
+  @@map("user_course_bookmarks")
 }
