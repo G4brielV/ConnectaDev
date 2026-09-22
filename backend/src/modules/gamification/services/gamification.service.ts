@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { calculateLevel } from "../constants/xpLevel";
 
 export interface UpdateGamificationParams {
   userId: string;
@@ -7,7 +8,8 @@ export interface UpdateGamificationParams {
 }
 
 export interface GamificationResult {
-  xp: number;
+  totalXp: number;
+  currentLevel: number;
   xpEarned: number;
   currentStreak: number;
   longestStreak: number;
@@ -86,7 +88,7 @@ export async function awardGamificationPoints(
 
   const existingStreak = currentGamification?.currentStreak ?? 0;
   const existingLongest = currentGamification?.longestStreak ?? 0;
-  const existingXp = currentGamification?.xp ?? 0;
+  const existingXp = currentGamification?.totalXp ?? 0;
   const lastActivity = currentGamification?.lastActivityDate ?? null;
 
   const { newCurrentStreak, newLongestStreak, streakIncremented } = calculateNewStreak(
@@ -97,18 +99,21 @@ export async function awardGamificationPoints(
   );
 
   const updatedXp = existingXp + xpEarned;
+  const updatedLevel = calculateLevel(updatedXp);
 
   const saved = await prisma.userGamification.upsert({
     where: { userId },
     update: {
-      xp: updatedXp,
+      totalXp: updatedXp,
+      currentLevel: updatedLevel,
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       lastActivityDate: activityDate,
     },
     create: {
       userId,
-      xp: updatedXp,
+      totalXp: updatedXp,
+      currentLevel: updatedLevel,
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
       lastActivityDate: activityDate,
@@ -116,7 +121,8 @@ export async function awardGamificationPoints(
   });
 
   return {
-    xp: saved.xp,
+    totalXp: saved.totalXp,
+    currentLevel: saved.currentLevel,
     xpEarned,
     currentStreak: saved.currentStreak,
     longestStreak: saved.longestStreak,

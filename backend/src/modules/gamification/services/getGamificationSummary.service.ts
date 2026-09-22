@@ -1,7 +1,10 @@
 import { prisma } from "../../../lib/auth";
+import { LEVEL_NAME } from "../constants/xpLevel";
 
 export interface GamificationSummary {
-  xp: number;
+  totalXp: number;
+  currentLevel: number;
+  levelName: string;
   currentStreak: number;
   longestStreak: number;
   lastActivityDate: string | null;
@@ -10,7 +13,8 @@ export interface GamificationSummary {
 
 export interface GamificationSummaryRepository {
   findGamification: (userId: string) => Promise<{
-    xp: number;
+    totalXp: number;
+    currentLevel: number;
     currentStreak: number;
     longestStreak: number;
     lastActivityDate: Date | null;
@@ -22,7 +26,13 @@ const defaultRepository: GamificationSummaryRepository = {
   findGamification: async (userId) => {
     return prisma.userGamification.findUnique({
       where: { userId },
-      select: { xp: true, currentStreak: true, longestStreak: true, lastActivityDate: true },
+      select: {
+        totalXp: true,
+        currentLevel: true,
+        currentStreak: true,
+        longestStreak: true,
+        lastActivityDate: true,
+      },
     });
   },
   countCompletedReviews: async (userId) => {
@@ -42,7 +52,9 @@ export async function getGamificationSummaryService(
   ]);
 
   return {
-    xp: gamification?.xp ?? 0,
+    totalXp: gamification?.totalXp ?? 0,
+    currentLevel: gamification?.currentLevel ?? 1,
+    levelName: LEVEL_NAME,
     currentStreak: gamification?.currentStreak ?? 0,
     longestStreak: gamification?.longestStreak ?? 0,
     lastActivityDate: gamification?.lastActivityDate?.toISOString() ?? null,

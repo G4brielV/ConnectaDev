@@ -14,7 +14,9 @@ test("fetchGamificationSummary returns the user's XP and streak on success", asy
     receivedAuth = (init?.headers as Record<string, string>)?.Authorization ?? null;
     return new Response(
       JSON.stringify({
-        xp: 120,
+        totalXp: 120,
+        currentLevel: 2,
+        levelName: "Iniciante Tech",
         currentStreak: 3,
         longestStreak: 7,
         lastActivityDate: "2026-09-17T10:00:00.000Z",
@@ -26,7 +28,8 @@ test("fetchGamificationSummary returns the user's XP and streak on success", asy
 
   const summary = await fetchGamificationSummary("mock-token");
   assert.equal(receivedAuth, "Bearer mock-token");
-  assert.equal(summary.xp, 120);
+  assert.equal(summary.totalXp, 120);
+  assert.equal(summary.currentLevel, 2);
   assert.equal(summary.currentStreak, 3);
   assert.equal(summary.completedReviews, 4);
 });

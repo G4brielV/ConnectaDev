@@ -437,7 +437,7 @@ export async function submitReviewService(
     percentage,
     xpEarned,
     isFirstCompletion,
-    totalXp: gamificationResult.xp,
+    totalXp: gamificationResult.totalXp,
     currentStreak: gamificationResult.currentStreak,
     longestStreak: gamificationResult.longestStreak,
     streakIncremented: gamificationResult.streakIncremented,

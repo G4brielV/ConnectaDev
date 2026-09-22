@@ -5,11 +5,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '@/entities/session';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
-import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
 import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
+import { TrailsScreen } from '@/pages/TrailsScreen';
+import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import { MainTabNavigator } from './MainTabNavigator';
 
@@ -21,6 +22,8 @@ export type RootStackParamList = {
   Courses: undefined;
   KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
+  Trails: undefined;
+  TrailLesson: { lessonId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,6 +55,8 @@ export function RootNavigator() {
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
+            <Stack.Screen name="Trails" component={TrailsScreen} />
+            <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
           </>
         ) : (
           <>

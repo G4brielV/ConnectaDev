@@ -86,7 +86,7 @@ export function ReviewHubScreen() {
             <Text style={styles.statIcon}>🏆</Text>
             <View>
               <Text style={styles.statLabel}>XP total</Text>
-              <Text style={styles.statValue}>{summary ? `${summary.xp} XP` : "—"}</Text>
+              <Text style={styles.statValue}>{summary ? `${summary.totalXp} XP` : "—"}</Text>
             </View>
           </View>
         </View>
