@@ -6,7 +6,6 @@ import {
   getTrailsController,
 } from "../controllers/getTrails.controller";
 
-
 export async function gamificationRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get("/api/gamification/me", getGamificationController);
   fastify.post(

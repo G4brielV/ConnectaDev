@@ -247,6 +247,20 @@ export function CoursesScreen() {
                   <Text style={styles.ratingStatus}>★ Avaliado por você: {item.userRating.rating}/5</Text>
                 )}
                 <Text style={styles.ctaText}>Começar Curso Grátis  →</Text>
+                <Pressable
+                  accessibilityLabel={`Fazer revisão com IA do curso ${item.title}`}
+                  accessibilityRole="button"
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    navigation.navigate("KnowledgeReview", {
+                      topicId: `course-topic-${item.id}`,
+                      topicTitle: `Revisão: ${item.title}`,
+                    });
+                  }}
+                  style={styles.aiReviewButton}
+                >
+                  <Text style={styles.aiReviewButtonText}>Fazer Revisão com IA (até +50 XP) 🧠</Text>
+                </Pressable>
               </View>
             </Pressable>
             <Pressable
@@ -482,6 +496,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 11,
     textAlign: "center",
+  },
+  aiReviewButton: {
+    backgroundColor: "#F0FDFA",
+    borderColor: "#036564",
+    borderWidth: 1.5,
+    borderRadius: 10,
+    marginTop: 8,
+    padding: 10,
+    alignItems: "center",
+  },
+  aiReviewButtonText: {
+    color: "#036564",
+    fontSize: 13,
+    fontWeight: "700",
   },
   ratingButton: {
     alignSelf: "flex-start",

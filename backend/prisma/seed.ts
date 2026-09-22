@@ -628,6 +628,106 @@ async function main(): Promise<void> {
     }
   }
 
+  const defaultTopic = {
+    id: "topic-fundamentos-prog-01",
+    title: "Fundamentos de Programação e Lógica",
+    description: "Revisão dos conceitos de variáveis, estruturas de decisão, laços e funções.",
+    sequence: 1,
+    isActive: true,
+  };
+
+  await prisma.topic.upsert({
+    where: { id: defaultTopic.id },
+    update: defaultTopic,
+    create: defaultTopic,
+  });
+
+  const reviewQuestions = [
+    {
+      id: "rev-q1",
+      topicId: defaultTopic.id,
+      statement: "Qual a função principal de uma variável em uma linguagem de programação?",
+      sequence: 1,
+      options: [
+        { id: "A", label: "Executar um bloco de instruções repetidamente." },
+        { id: "B", label: "Armazenar dados temporariamente na memória durante a execução do programa." },
+        { id: "C", label: "Garantir que o código seja compilado mais rápido." },
+        { id: "D", label: "Conectar o programa a um banco de dados externo." },
+      ],
+      correctOptionId: "B",
+      explanation: "Variáveis são espaços alocados na memória do computador identificados por um nome, utilizados para guardar dados manipulados durante a execução.",
+      isActive: true,
+    },
+    {
+      id: "rev-q2",
+      topicId: defaultTopic.id,
+      statement: "Qual estrutura é recomendada quando precisamos executar um bloco de código enquanto uma condição for verdadeira?",
+      sequence: 2,
+      options: [
+        { id: "A", label: "Laço de repetição (como while ou for)." },
+        { id: "B", label: "Estrutura condicional if/else isolada." },
+        { id: "C", label: "Declaração de constantes." },
+        { id: "D", label: "Importação de módulos." },
+      ],
+      correctOptionId: "A",
+      explanation: "Estruturas de repetição (laços como while ou for) permitem iterar e reexecutar instruções até que uma condição de parada seja atingida.",
+      isActive: true,
+    },
+    {
+      id: "rev-q3",
+      topicId: defaultTopic.id,
+      statement: "Em lógica de programação, o que caracteriza uma função pura?",
+      sequence: 3,
+      options: [
+        { id: "A", label: "Uma função que nunca aceita argumentos de entrada." },
+        { id: "B", label: "Uma função que sempre imprime valores no terminal diretamente." },
+        { id: "C", label: "Uma função que para os mesmos argumentos sempre retorna o mesmo resultado e não gera efeitos colaterais." },
+        { id: "D", label: "Uma função que pode alterar livremente variáveis globais do sistema." },
+      ],
+      correctOptionId: "C",
+      explanation: "Funções puras possuem determinismo: dependem exclusivamente de seus parâmetros de entrada e não causam efeitos colaterais no ambiente externo.",
+      isActive: true,
+    },
+    {
+      id: "rev-q4",
+      topicId: defaultTopic.id,
+      statement: "O que acontece quando tentamos acessar um índice inexistente em um array na maioria das linguagens modernas?",
+      sequence: 4,
+      options: [
+        { id: "A", label: "O computador reinicia imediatamente." },
+        { id: "B", label: "Retorna undefined ou lança uma exceção de índice fora dos limites (IndexOutOfBounds)." },
+        { id: "C", label: "O array expande seu tamanho automaticamente preenchendo com zeros." },
+        { id: "D", label: "O valor do primeiro elemento é duplicado silenciosamente." },
+      ],
+      correctOptionId: "B",
+      explanation: "Tentar acessar uma posição fora do intervalo válido de um array resulta em erro de execução (IndexOutOfBoundsException) ou no valor undefined (como no JavaScript).",
+      isActive: true,
+    },
+    {
+      id: "rev-q5",
+      topicId: defaultTopic.id,
+      statement: "Qual operador lógico resulta em 'verdadeiro' apenas se AMBAS as condições comparadas forem verdadeiras?",
+      sequence: 5,
+      options: [
+        { id: "A", label: "Operador OU (OR / ||)" },
+        { id: "B", label: "Operador NÃO (NOT / !)" },
+        { id: "C", label: "Operador E (AND / &&)" },
+        { id: "D", label: "Operador de Atribuição (=)" },
+      ],
+      correctOptionId: "C",
+      explanation: "A conjunção lógica AND (&&) exige a veracidade de todas as proposições envolvidas para retornar verdadeiro.",
+      isActive: true,
+    },
+  ];
+
+  for (const q of reviewQuestions) {
+    await prisma.knowledgeReviewQuestion.upsert({
+      where: { id: q.id },
+      update: q,
+      create: q,
+    });
+  }
+
   for (const trail of trails) {
     const existingTrail = await prisma.trail.findFirst({
       where: { title: trail.title },
@@ -689,7 +789,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Seeded ${questions.length} quiz questions, ${courses.length} courses and ${trails.length} trails.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} trails, and ${reviewQuestions.length} review questions.`,
   );
 }
 

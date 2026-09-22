@@ -1,8 +1,7 @@
 import { prisma } from "../../../lib/auth";
+import { calculateLevel, LEVEL_NAME } from "../constants/xpLevel";
 
 const TRAIL_LESSON_SOURCE = "TRAIL_LESSON";
-const XP_PER_LEVEL = 100;
-const LEVEL_NAME = "Iniciante Tech";
 
 function calculateTargetXp(
   xpReward: number,
@@ -134,7 +133,7 @@ export async function scoreLesson(
     const previousLevel = previousGamification?.currentLevel ?? 1;
     const previousTotalXp = previousGamification?.totalXp ?? 0;
     const totalXp = previousTotalXp + earnedXp;
-    const currentLevel = Math.floor(totalXp / XP_PER_LEVEL) + 1;
+    const currentLevel = calculateLevel(totalXp);
 
     await transaction.userGamification.upsert({
       where: { userId },

@@ -17,13 +17,14 @@ model User {
   sessions      Session[]
   accounts      Account[]
   
-  profile       UserProfile?
-  diagnosis     VocationalDiagnosis?
-  gamification  UserGamification?
-  trailProgress UserTrailProgress[]
-  xpEvents      XpEvent[]
+  profile         UserProfile?
+  diagnosis       VocationalDiagnosis?
   courseBookmarks UserCourseBookmark[]
-  courseRatings CourseRating[]
+  gamification    UserGamification?
+  reviewSessions  KnowledgeReviewSession[]
+  trailProgress   UserTrailProgress[]
+  xpEvents        XpEvent[]
+  courseRatings   CourseRating[]
 
   @@map("user")
 }
@@ -165,6 +166,58 @@ model UserCourseBookmark {
   @@map("user_course_bookmarks")
 }
 
+model Topic {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  sequence    Int      @default(1)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  questions      KnowledgeReviewQuestion[]
+  reviewSessions KnowledgeReviewSession[]
+
+  @@map("topics")
+}
+
+model KnowledgeReviewQuestion {
+  id              String   @id @default(uuid())
+  topicId         String   @map("topic_id")
+  statement       String
+  sequence        Int      @default(1)
+  options         Json
+  correctOptionId String   @map("correct_option_id")
+  explanation     String
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, isActive, sequence])
+  @@map("knowledge_review_questions")
+}
+
+model KnowledgeReviewSession {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  topicId        String    @map("topic_id")
+  status         String    @default("IN_PROGRESS")
+  score          Int?
+  totalQuestions Int       @map("total_questions")
+  xpEarned       Int?      @map("xp_earned")
+  answers        Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId, topicId])
+  @@map("knowledge_review_sessions")
+}
+
 model CourseRating {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
@@ -235,11 +288,16 @@ model TrailQuestion {
 }
 
 model UserGamification {
-  userId       String   @id @map("user_id")
-  totalXp      Int      @default(0) @map("total_xp")
-  currentLevel Int      @default(1) @map("current_level")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String    @id @map("user_id")
+  totalXp          Int       @default(0) @map("total_xp")
+  currentLevel     Int       @default(1) @map("current_level")
+  currentStreak    Int       @default(0) @map("current_streak")
+  longestStreak    Int       @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_gamification")
 }

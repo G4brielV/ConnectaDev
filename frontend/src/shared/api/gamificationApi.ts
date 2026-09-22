@@ -4,9 +4,16 @@ export interface GamificationSummary {
   totalXp: number;
   currentLevel: number;
   levelName?: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: string | null;
+  completedReviews: number;
 }
 
-export interface ScoreLessonResult extends GamificationSummary {
+export interface ScoreLessonResult {
+  totalXp: number;
+  currentLevel: number;
+  levelName?: string;
   correctCount: number;
   totalQuestions: number;
   xpEarned: number;
@@ -36,7 +43,11 @@ export async function fetchGamificationSummary(
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível carregar seu progresso de XP.");
+    throw new Error(
+      response.status === 401
+        ? "Sua sessão não é válida. Faça login para continuar."
+        : "Não foi possível carregar seu progresso.",
+    );
   }
 
   return (await response.json()) as GamificationSummary;

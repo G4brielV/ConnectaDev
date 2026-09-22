@@ -1,25 +1,33 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useAuth } from '@/entities/session';
-import { useGamification } from '@/entities/gamification';
-import { useNavigation } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { LogoutConfirmationModal } from '@/features/auth';
+import { useGamification } from '@/entities/gamification';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
+import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
 
 export function HomePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { refresh } = useGamification();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [summary, setSummary] = useState<GamificationSummary | null>(null);
 
+  // Refresh XP/streak whenever Home regains focus (e.g. after finishing a review)
   useFocusEffect(
     useCallback(() => {
       void refresh();
-    }, [refresh]),
+      if (!token) return;
+      fetchGamificationSummary(token)
+        .then(setSummary)
+        .catch(() => {
+          // Keep previous values if unable to load progress
+        });
+    }, [refresh, token]),
   );
 
   const handleConfirmLogout = async () => {
@@ -56,7 +64,9 @@ export function HomePage() {
           <View style={styles.chips}>
             <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
             <Text style={styles.chip}>💼 Vagas locais</Text>
-            <Text style={styles.chip}>🏆 Seu perfil</Text>
+            <Text style={styles.chip}>
+              {summary ? `🔥 Ofensiva: ${summary.currentStreak}` : '🏆 Seu perfil'}
+            </Text>
           </View>
         </View>
         <View style={styles.footer}>

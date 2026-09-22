@@ -5,18 +5,23 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '@/entities/session';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
-import { HomePage } from '@/pages/home';
 import { QuizScreen } from '@/pages/QuizScreen';
 import { CoursesScreen } from '@/pages/CoursesScreen';
+import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
+import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import { TrailsScreen } from '@/pages/TrailsScreen';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
+import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
+import { MainTabNavigator } from './MainTabNavigator';
 
 export type RootStackParamList = {
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
-  Home: undefined;
+  Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
   Quiz: undefined;
   Courses: undefined;
+  KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
+  ReviewResult: { result: ReviewSubmitResponse; topicId: string };
   Trails: undefined;
   TrailLesson: { lessonId: string };
 };
@@ -41,9 +46,15 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
-            <Stack.Screen name="Home" component={HomePage} />
+            <Stack.Screen name="Home" component={MainTabNavigator} />
             <Stack.Screen name="Quiz" component={QuizScreen} />
             <Stack.Screen name="Courses" component={CoursesScreen} />
+            <Stack.Screen
+              name="KnowledgeReview"
+              component={KnowledgeReviewScreen}
+              options={{ gestureEnabled: false }}
+            />
+            <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
             <Stack.Screen name="Trails" component={TrailsScreen} />
             <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
           </>
