@@ -1,5 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { auth, prisma } from "../lib/auth";
+import { Resend } from "resend";
+import { hashPassword } from "better-auth/crypto";
+import { createHash, randomInt } from "crypto";
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.all("/api/auth/*", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -191,4 +194,235 @@ export async function authRoutes(fastify: FastifyInstance) {
       success: true,
     });
   });
+
+  // authRoutes.ts (dentro da função authRoutes)
+fastify.post("/auth/forgot-password", async (request: FastifyRequest, reply: FastifyReply) => {
+  const { email } = (request.body || {}) as { email?: string };
+
+  if (!email) {
+    return reply.status(400).send({ message: "E‑mail é obrigatório" });
+  }
+
+  const sanitizedEmail = String(email).trim().toLowerCase();
+
+  // Verifica se o usuário existe
+  const user = await prisma.user.findUnique({
+    where: { email: sanitizedEmail },
+  });
+
+  if (!user) {
+    // Por segurança, não revelamos se o e‑mail existe ou não
+    return reply.status(200).send({
+      message: "Se este e‑mail estiver cadastrado, você receberá um link de recuperação.",
+    });
+  }
+
+  // 1. Gera um código numérico de 6 dígitos aleatório (ex: "849204")
+  const rawCode = randomInt(100000, 1000000).toString();
+
+  // 2. Cria um hash SHA-256 do código para salvar no banco com segurança
+  const codeHash = createHash("sha256").update(rawCode).digest("hex");
+
+  // 3. Define expiração curta (10 minutos)
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  // 4. Salva no banco (remove códigos anteriores do mesmo usuário)
+  await prisma.passwordResetToken.deleteMany({
+    where: { userId: user.id },
+  });
+
+  await prisma.passwordResetToken.create({
+    data: {
+      // Eu vou verificar o codeHash depois
+      token: codeHash, // Salva o hash (NUNCA o código em texto limpo) 
+      userId: user.id,
+      expiresAt,
+    },
+  });
+  // Envia o e‑mail via Resend
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  try {
+    await resend.emails.send({
+      from: "Suporte <onboarding@resend.dev>", // Altere para seu domínio verificado quando estiver em produção
+      to: user.email,
+      subject: `${rawCode} é o seu código de recuperação de senha`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Recuperação de Senha</title>
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f6f8; padding: 40px 10px;">
+              <tr>
+                <td align="center">
+                  <!-- Card Principal -->
+                  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 480px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 40px 32px;">
+                    
+                    <!-- Cabeçalho / Título -->
+                    <tr>
+                      <td align="center" style="padding-bottom: 24px;">
+                        <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1a1a1a;">
+                          Recuperação de Senha
+                        </h1>
+                      </td>
+                    </tr>
+
+                    <!-- Mensagem de Saudação -->
+                    <tr>
+                      <td style="padding-bottom: 16px; font-size: 15px; line-height: 24px; color: #4a5568; text-align: center;">
+                        Olá, <strong style="color: #1a1a1a;">${user.name || "usuário"}</strong>!
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td style="padding-bottom: 24px; font-size: 15px; line-height: 24px; color: #4a5568; text-align: center;">
+                        Recebemos uma solicitação para redefinir a senha da sua conta. Use o código abaixo para continuar no aplicativo:
+                      </td>
+                    </tr>
+
+                    <!-- Bloco do Código -->
+                    <tr>
+                      <td align="center" style="padding: 16px 0 28px 0;">
+                        <div style="background-color: #f0f4ff; border: 1px dashed #6366f1; border-radius: 8px; padding: 16px 24px; display: inline-block;">
+                          <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4f46e5;">
+                            ${rawCode}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Aviso de Expiração -->
+                    <tr>
+                      <td style="padding-bottom: 24px; font-size: 13px; line-height: 20px; color: #718096; text-align: center;">
+                        ⏳ Este código é válido por <strong>10 minutos</strong> e só pode ser usado uma vez.
+                      </td>
+                    </tr>
+
+                    <!-- Divisor -->
+                    <tr>
+                      <td style="border-top: 1px solid #edf2f7; padding-top: 24px;">
+                        <p style="margin: 0; font-size: 12px; line-height: 18px; color: #a0aec0; text-align: center;">
+                          Se você não solicitou a redefinição de senha, por favor ignore este e-mail. Sua conta continua segura.
+                        </p>
+                      </td>
+                    </tr>
+
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+    });
+  } catch (error) {
+    request.log.error({ err: error }, "Falha ao enviar e‑mail de recuperação");
+    return reply.status(500).send({ message: "Erro ao enviar e‑mail. Tente novamente." });
+  }
+
+  return reply.status(200).send({
+    message: "Se este e‑mail estiver cadastrado, você receberá um link de recuperação.",
+  });
+});
+
+fastify.post("/auth/reset-password", async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { token, newPassword } = (request.body || {}) as {
+      token?: string;
+      newPassword?: string;
+    };
+
+    if (!token || !newPassword) {
+      return reply.status(400).send({ message: "Token e nova senha são obrigatórios" });
+    }
+    const inputHash = createHash("sha256").update(token).digest("hex");
+    // Busca o token no banco
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token:inputHash },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      return reply.status(400).send({ message: "Token inválido ou expirado" });
+    }
+
+    // Verifica expiração
+    if (resetToken.expiresAt < new Date()) {
+      await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+      return reply.status(400).send({ message: "Código expirado. Solicite um novo código no aplicativo." });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    const resultUpdateToken = await prisma.account.updateMany({
+        where: {
+          userId: resetToken.userId,
+          providerId: "credential",
+        },
+        data: {
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+      });
+    if (resultUpdateToken.count === 0) {
+      return reply.status(400).send({ 
+        message: "Usuário não possui credencial de senha cadastrada." 
+      });
+    }
+
+    // Remove o token usado
+    await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+
+    // Opcional: revoga todas as sessões ativas do usuário (segurança)
+    await prisma.session.deleteMany({
+      where: { userId: resetToken.userId },
+    });
+
+    return reply.status(200).send({
+      message: "Senha redefinida com sucesso!",
+    });
+  } catch (error) {
+      return reply.status(500).send({ message: "Erro ao redefinir a senha." });
+  }
+});
+
+// fastify.post("/auth/reset-password", async (request: FastifyRequest, reply: FastifyReply) => {
+//   const { token, newPassword } = (request.body || {}) as {
+//     token?: string;
+//     newPassword?: string;
+//   };
+
+//   if (!token || !newPassword) {
+//     return reply.status(400).send({ message: "Token e nova senha são obrigatórios" });
+//   }
+
+//   try {
+//     // O Better Auth faz toda a validação do token, expiração,
+//     // hash seguro da senha e atualização da tabela 'Account' automaticamente.
+//     await auth.api.resetPassword({
+//       body: {
+//         newPassword: newPassword,
+//         token: token,
+//       },
+//     });
+
+//     // Se você ativou o "revokeSessionsOnPasswordReset: true" no config do Better Auth, 
+//     // a exclusão abaixo também se torna opcional. Mas se quiser garantir manualmente:
+//     // Nota: Como não buscamos o resetToken manualmente antes, você precisará buscar o userId 
+//     // se quiser deletar sessões por id aqui, ou deixar o Better Auth cuidar disso no config.
+
+//     return reply.status(200).send({
+//       message: "Senha redefinida com sucesso!",
+//     });
+//   } catch (error: any) {
+//     // Captura erros nativos do Better Auth (ex: token inválido, expirado, etc.)
+//     return reply.status(400).send({ 
+//       message: error.message || "Não foi possível redefinir a senha. Verifique o link utilizado." 
+//     });
+//   }
+// });
 }
