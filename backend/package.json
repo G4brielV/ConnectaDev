@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "test": "prisma generate && tsc --noEmit",
-    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts",
+    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push",
@@ -35,9 +35,5 @@
     "prisma": "^7.10.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
-  },
-  "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.28.2",
-    "@typescript/typescript-darwin-x64": "^7.0.2"
   }
 }

@@ -9,25 +9,19 @@ import {
   Text,
   View,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   bookmarkCourse,
   fetchCourseRecommendations,
-  rateCourse,
-  updateCourseRating,
   CourseRecommendation,
 } from "../shared/api/coursesApi";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { Toast } from "../shared/ui/Toast";
-import { CourseRatingModal } from "../features/courses/ui/CourseRatingModal";
-import { useGamification } from "../entities/gamification";
-import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 export function CoursesScreen() {
   const { token } = useAuth();
-  const { refresh } = useGamification();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Courses">>();
   const [courses, setCourses] = useState<CourseRecommendation[]>([]);
@@ -41,16 +35,8 @@ export function CoursesScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [savingCourseId, setSavingCourseId] = useState<string | null>(null);
-  const [ratingCourse, setRatingCourse] = useState<CourseRecommendation | null>(null);
-  const [isRating, setIsRating] = useState(false);
   const loadErrorMessage =
     "Não foi possível carregar suas recomendações no momento";
-
-  useFocusEffect(
-    useCallback(() => {
-      void refresh();
-    }, [refresh]),
-  );
 
   async function openCourse(externalUrl: string): Promise<void> {
     try {
@@ -78,44 +64,6 @@ export function CoursesScreen() {
       setToastVisible(true);
     } finally {
       setSavingCourseId(null);
-    }
-  }
-
-  async function submitRating(
-    rating: number,
-    comment: string,
-    matchedProfile: boolean,
-  ): Promise<void> {
-    if (!token || !ratingCourse) return;
-
-    setIsRating(true);
-    try {
-      const isEditing = Boolean(ratingCourse.userRating);
-      const saveRating = isEditing ? updateCourseRating : rateCourse;
-      const savedRating = await saveRating(token, ratingCourse.id, {
-        rating,
-        comment,
-        matchedProfile,
-      });
-      setCourses((current) =>
-        current.map((course) =>
-          course.id === ratingCourse.id ? { ...course, userRating: savedRating } : course,
-        ),
-      );
-      setRatingCourse(null);
-      setToastMessage(
-        isEditing
-          ? "Sua avaliação foi atualizada com sucesso!"
-          : "Obrigado pelo seu feedback! Ele ajuda a calibrar suas recomendações",
-      );
-      setToastVisible(true);
-    } catch (error: unknown) {
-      setToastMessage(
-        "Não foi possível registrar sua avaliação agora. Verifique sua conexão e tente novamente",
-      );
-      setToastVisible(true);
-    } finally {
-      setIsRating(false);
     }
   }
 
@@ -186,7 +134,6 @@ export function CoursesScreen() {
 
   return (
     <View style={styles.container}>
-      <XpProgressBar />
       {/* Topo Fixo e Compacto */}
       <View style={styles.header}>
         <Pressable
@@ -243,36 +190,8 @@ export function CoursesScreen() {
                   <Text style={styles.metaChip}>🎓 Curso gratuito</Text>
                 </View>
                 <Text style={styles.tags}>{item.tags.join(" • ")}</Text>
-                {item.userRating && (
-                  <Text style={styles.ratingStatus}>★ Avaliado por você: {item.userRating.rating}/5</Text>
-                )}
                 <Text style={styles.ctaText}>Começar Curso Grátis  →</Text>
-                <Pressable
-                  accessibilityLabel={`Fazer revisão com IA do curso ${item.title}`}
-                  accessibilityRole="button"
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    navigation.navigate("KnowledgeReview", {
-                      topicId: `course-topic-${item.id}`,
-                      topicTitle: `Revisão: ${item.title}`,
-                    });
-                  }}
-                  style={styles.aiReviewButton}
-                >
-                  <Text style={styles.aiReviewButtonText}>Fazer Revisão com IA (até +50 XP) 🧠</Text>
-                </Pressable>
               </View>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={`Avaliar curso ${item.title}`}
-              accessibilityRole="button"
-              disabled={isRating}
-              onPress={() => {
-                if (!isRating) setRatingCourse(item);
-              }}
-              style={[styles.ratingButton, isRating && styles.disabledButton]}
-            >
-              <Text style={styles.ratingButtonText}>★ Avaliar Curso</Text>
             </Pressable>
             <Pressable
               accessibilityLabel={
@@ -306,29 +225,9 @@ export function CoursesScreen() {
         visible={toastVisible}
         message={toastMessage}
         type={
-          toastMessage === "Curso salvo nos seus favoritos!" ||
-          toastMessage === "Sua avaliação foi atualizada com sucesso!" ||
-          toastMessage ===
-            "Obrigado pelo seu feedback! Ele ajuda a calibrar suas recomendações"
-            ? "success"
-            : "error"
+          toastMessage === "Curso salvo nos seus favoritos!" ? "success" : "error"
         }
         onDismiss={() => setToastVisible(false)}
-      />
-      <CourseRatingModal
-        visible={ratingCourse !== null}
-        courseTitle={ratingCourse?.title || ""}
-        initialRating={ratingCourse?.userRating?.rating}
-        initialComment={ratingCourse?.userRating?.comment}
-        initialMatchedProfile={ratingCourse?.userRating?.matchedProfile}
-        isEditing={Boolean(ratingCourse?.userRating)}
-        isSubmitting={isRating}
-        onClose={() => {
-          if (!isRating) setRatingCourse(null);
-        }}
-        onSubmit={(rating, comment, matchedProfile) => {
-          void submitRating(rating, comment, matchedProfile);
-        }}
       />
     </View>
   );
@@ -496,40 +395,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 11,
     textAlign: "center",
-  },
-  aiReviewButton: {
-    backgroundColor: "#F0FDFA",
-    borderColor: "#036564",
-    borderWidth: 1.5,
-    borderRadius: 10,
-    marginTop: 8,
-    padding: 10,
-    alignItems: "center",
-  },
-  aiReviewButtonText: {
-    color: "#036564",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  ratingButton: {
-    alignSelf: "flex-start",
-    marginLeft: 14,
-    marginBottom: 10,
-    paddingVertical: 4,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  ratingButtonText: {
-    color: "#B46B00",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  ratingStatus: {
-    color: "#B46B00",
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 8,
   },
   bookmarkButton: {
     padding: 8,

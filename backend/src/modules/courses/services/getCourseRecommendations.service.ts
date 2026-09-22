@@ -36,11 +36,6 @@ export async function getCourseRecommendations(
       externalUrl: true,
       tags: true,
       areas: true,
-      ratings: {
-        where: { userId },
-        select: { rating: true, comment: true, matchedProfile: true },
-        take: 1,
-      },
     },
   });
 
@@ -63,7 +58,6 @@ export async function getCourseRecommendations(
           level: course.level,
           external_url: course.externalUrl,
           tags,
-          userRating: course.ratings[0] ?? null,
         },
         score: (areaMatch ? 100 : 0) + technologyMatches,
         areaMatch,

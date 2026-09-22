@@ -30,19 +30,9 @@ As tabelas de negócio atualmente implementadas são:
 - `vocational_diagnoses`
 - `courses`
 - `user_course_bookmarks`
-- `topics`
-- `knowledge_review_questions`
-- `knowledge_review_sessions`
-- `course_ratings`
-- `trails`
-- `trail_lessons`
-- `trail_questions`
-- `user_gamification`
-- `xp_events`
-- `user_trail_progress`
 
-Não fazem parte do schema atual tabelas de desafios de código, fórum, eventos, vagas ou
-infraestrutura pública.
+Não fazem parte do schema atual tabelas de trilhas, desafios, fórum,
+gamificação, eventos, vagas ou infraestrutura pública.
 
 ---
 
@@ -54,53 +44,14 @@ erDiagram
     user ||--o{ account : "possui"
     user ||--o| user_profiles : "possui"
     user ||--o| vocational_diagnoses : "possui"
-    user ||--o| user_gamification : "possui"
-    user ||--o{ xp_events : "recebe"
-    user ||--o{ user_trail_progress : "acompanha"
-    trails ||--o{ trail_lessons : "contém"
-    trail_lessons ||--o{ trail_questions : "possui"
-    trail_lessons ||--o{ user_trail_progress : "é concluída"
     user ||--o{ user_course_bookmarks : "salva"
     courses ||--o{ user_course_bookmarks : "é salvo"
-    user ||--o{ course_ratings : "avalia"
-    courses ||--o{ course_ratings : "é avaliado"
-    user ||--o{ knowledge_review_sessions : "realiza"
-    topics ||--o{ knowledge_review_questions : "contém"
-    topics ||--o{ knowledge_review_sessions : "é avaliado"
 ```
 
 `quiz_questions`, `verification` e `jwks` são tabelas independentes no schema
 atual. O diagnóstico é associado ao usuário por uma relação 1:1, e os favoritos
 formam uma relação N:N entre `user` e `courses`, materializada por
 `user_course_bookmarks`.
-
-As perguntas de trilha ficam em `trail_questions`, seguindo a mesma estrutura
-de `quiz_questions`, mas com `correct_answer` para a correção no backend. Essa
-coluna nunca deve ser enviada ao frontend; a API deve retornar apenas o enunciado
-e as opções.
-
-### Registro de XP
-
-`user_gamification` é o saldo agregado único do usuário. O HUD consome `total_xp`
-e `current_level`; a revisão de conhecimento grava na mesma linha o
-`current_streak`, o `longest_streak` e o `last_activity_date`. Não existe um
-segundo contador de XP: trilhas e revisões somam no mesmo `total_xp`, e o nível é
-sempre derivado dele por `floor(total_xp / 100) + 1`. A tabela `xp_events`
-funciona como o histórico de cada concessão de XP e permite novas origens além
-das lições, como desafios, streaks ou participação no fórum.
-
-Cada evento possui `source`, `reference_id`, `amount` e `created_at`. A mesma
-combinação de `user_id`, `source` e `reference_id` pode aparecer mais de uma vez,
-pois cada registro representa um novo incremento de XP e é diferenciado pela
-data de criação. O XP da lição `lesson-123` usa `source = TRAIL_LESSON` e
-`reference_id = lesson-123` em todos os incrementos.
-
-O serviço deve inserir o evento e atualizar `user_gamification` na mesma
-transação. A prevenção de excesso é feita comparando o XP proporcional alvo com
-`user_trail_progress.xp_awarded`: apenas a diferença positiva é inserida e
-somada ao saldo. Quando o usuário atinge o XP máximo da lição, novas tentativas
-não criam evento nem concedem XP. `user_trail_progress` continua responsável
-por acertos, tentativas e conclusão da lição.
 
 ---
 
@@ -355,46 +306,6 @@ Restrições e índices:
 2. O backend valida a existência do curso.
 3. `user_course_bookmarks` é criado com `upsert`.
 4. Repetir a operação para a mesma combinação não cria duplicata.
-
-### 7.5. Início de Sessão de Revisão
-
-1. O usuário autenticado envia `GET /api/reviews/:topicId/questions`.
-2. O backend valida a existência do tópico ativo em `topics`. Tópicos dinâmicos são
-   gerados por IA (Gemini, com fallback local) no primeiro acesso e ficam em cache:
-   - `course-topic-<courseId>`: 5 perguntas sobre o curso (título, nível, tags).
-   - `area-topic-<slug>`: 5 perguntas sobre os fundamentos de uma área do catálogo
-     vocacional (ex.: `area-topic-ciberseguranca`), usando as `tecnologias_sugeridas`
-     do diagnóstico do usuário como contexto. O cache é por área, não por usuário.
-3. Uma sessão em `knowledge_review_sessions` é criada com `status = 'IN_PROGRESS'`.
-4. As perguntas ativas em `knowledge_review_questions` são recuperadas em ordem crescente de `sequence`.
-5. Retorna `sessionId`, `topicId`, `topicTitle`, `alreadyCompleted` (se o usuário já
-   concluiu esse tópico antes) e a lista ordenada de perguntas com opções e justificativas.
-
-> Tradeoff aceito: `correctOptionId` e `explanation` são enviados ao cliente junto com as
-> perguntas para permitir feedback imediato ao confirmar cada resposta. A pontuação é
-> sempre recalculada no servidor, mas o gabarito é visível a quem inspecionar a rede.
-
-### 7.6. Submissão de Revisão e Gamificação
-
-1. O usuário autenticado submete `POST /api/reviews/:sessionId/submit` com o histórico de respostas.
-2. O backend valida a posse da sessão (404 se não pertencer ao usuário) e rejeita com
-   `409` sessões já finalizadas (`status = 'COMPLETED'`).
-3. Calcula o aproveitamento (`score / totalQuestions`) e o percentual de acerto.
-4. XP: +10 por acerto **apenas na primeira conclusão do tópico** pelo usuário. Se já existe
-   outra sessão `COMPLETED` do mesmo `user_id` + `topic_id`, a tentativa é "modo treino"
-   (`xp_earned = 0`, `isFirstCompletion = false`).
-5. Atualiza `user_gamification` (mesmo com 0 XP, para contar a atividade do dia): soma o XP em
-   `total_xp`, recalcula o `current_level` a partir dele e atualiza o `current_streak` /
-   `longest_streak` conforme a última data de atividade (`last_activity_date`).
-6. Atualiza `knowledge_review_sessions` com `status = 'COMPLETED'`, `score`, `xp_earned` e o histórico de respostas.
-7. Retorna o resultado com o aproveitamento, XP ganho, `isFirstCompletion`, streak atual e lista de correções.
-
-### 7.7. Consulta de Gamificação
-
-1. `GET /api/gamification/me` é o endpoint único de gamificação e retorna `totalXp`,
-   `currentLevel`, `levelName`, `currentStreak`, `longestStreak`, `lastActivityDate` e
-   `completedReviews` (contagem de sessões `COMPLETED` do usuário).
-2. Usuários sem registro em `user_gamification` recebem zeros, com `currentLevel = 1`.
 
 ---
 

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "@react-native-community/netinfo": "^12.0.1",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
     "axios": "^1.8.1",
@@ -29,7 +28,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsc --noEmit",
-    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts src/pages/knowledgeReviewState.test.ts src/shared/api/reviewApi.test.ts src/shared/api/gamificationApi.test.ts src/shared/lib/areaTopic.test.ts"
+    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts"
   },
   "private": true
 }
