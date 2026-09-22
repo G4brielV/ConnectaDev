@@ -8,7 +8,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -21,7 +21,6 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 // Layout da tela "Cadastro Onboarding - ConnectaDev" do Stitch
 export function RegisterPage() {
   const navigation = useNavigation<NavigationProp>();
-  const insets = useSafeAreaInsets();
 
   const handleNavigateToLogin = (initialEmail?: string, successMessage?: string) => {
     navigation.navigate('Login', initialEmail ? { initialEmail, successMessage } : undefined);
@@ -36,81 +35,85 @@ export function RegisterPage() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) + 16 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={handleBack}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar para a tela anterior"
-          >
-            <Feather name="arrow-left" size={20} color={colors.textPrimary} />
-          </Pressable>
-          <View style={styles.stepPill}>
-            <View style={styles.stepDot} />
-            <Text style={styles.stepText}>PERFIL INICIAL</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={handleBack}
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar para a tela anterior"
+            >
+              <Feather name="arrow-left" size={20} color={colors.textPrimary} />
+            </Pressable>
+            <View style={styles.stepPill}>
+              <View style={styles.stepDot} />
+              <Text style={styles.stepText}>PERFIL INICIAL</Text>
+            </View>
+            <View style={styles.topBarSpacer} />
           </View>
-          <View style={styles.topBarSpacer} />
-        </View>
 
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Criar Perfil Dev</Text>
-          <View style={styles.peTag}>
-            <Text style={styles.peTagText}>PE</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>Criar Perfil Dev</Text>
+            <View style={styles.peTag}>
+              <Text style={styles.peTagText}>PE</Text>
+            </View>
           </View>
-        </View>
-        <Text style={styles.subtitle}>
-          Personalize sua jornada para vestibulares e vagas tech na RMR.
-        </Text>
-
-        <View style={styles.hubCard}>
-          <View style={styles.hubIcon}>
-            <Feather name="share-2" size={20} color={colors.secondary} />
-          </View>
-          <View style={styles.hubTexts}>
-            <Text style={styles.hubTitle} numberOfLines={1}>Hub Porto Digital & Polo TI</Text>
-            <Text style={styles.hubSubtitle} numberOfLines={1}>
-              Conectando você a mais de 350 tech empresas locais
-            </Text>
-          </View>
-        </View>
-
-        <RegisterForm onNavigateToLogin={handleNavigateToLogin} />
-
-        <Text style={styles.legal}>
-          Ao continuar, você concorda com as diretrizes e termos colaborativos do ecossistema{' '}
-          <Text style={styles.legalStrong}>ConnectaDev PE</Text>.
-        </Text>
-
-        <Pressable onPress={() => handleNavigateToLogin()} style={styles.loginLink} hitSlop={8}>
-          <Text style={styles.loginLinkText}>
-            Já tem uma conta? <Text style={styles.loginLinkStrong}>Entrar</Text>
+          <Text style={styles.subtitle}>
+            Personalize sua jornada para vestibulares e vagas tech na RMR.
           </Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          <View style={styles.hubCard}>
+            <View style={styles.hubIcon}>
+              <Feather name="share-2" size={20} color={colors.secondary} />
+            </View>
+            <View style={styles.hubTexts}>
+              <Text style={styles.hubTitle} numberOfLines={1}>Hub Porto Digital & Polo TI</Text>
+              <Text style={styles.hubSubtitle} numberOfLines={1}>
+                Conectando você a mais de 350 tech empresas locais
+              </Text>
+            </View>
+          </View>
+
+          <RegisterForm onNavigateToLogin={handleNavigateToLogin} />
+
+          <Text style={styles.legal}>
+            Ao continuar, você concorda com as diretrizes e termos colaborativos do ecossistema{' '}
+            <Text style={styles.legalStrong}>ConnectaDev PE</Text>.
+          </Text>
+
+          <Pressable onPress={() => handleNavigateToLogin()} style={styles.loginLink} hitSlop={8}>
+            <Text style={styles.loginLinkText}>
+              Já tem uma conta? <Text style={styles.loginLinkStrong}>Entrar</Text>
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.canvas,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   topBar: {
     flexDirection: 'row',

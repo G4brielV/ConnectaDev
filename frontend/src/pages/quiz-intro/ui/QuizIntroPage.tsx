@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -45,7 +45,6 @@ const STEPS = [
 
 export function QuizIntroPage() {
   const navigation = useNavigation<NavigationProp>();
-  const insets = useSafeAreaInsets();
   const [stepIndex, setStepIndex] = useState(0);
 
   const step = STEPS[stepIndex];
@@ -56,7 +55,7 @@ export function QuizIntroPage() {
   const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'));
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
@@ -76,7 +75,7 @@ export function QuizIntroPage() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         {stepIndex === 0 && (
@@ -140,7 +139,7 @@ export function QuizIntroPage() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -183,6 +182,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
+    paddingBottom: 16,
     alignItems: 'center',
   },
   topBadge: {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -53,7 +53,6 @@ const STEPS: OnboardingStep[] = [
 
 export function OnboardingPage() {
   const navigation = useNavigation<NavigationProp>();
-  const insets = useSafeAreaInsets();
   const [stepIndex, setStepIndex] = useState(0);
 
   const step = STEPS[stepIndex];
@@ -66,7 +65,7 @@ export function OnboardingPage() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Logo size={32} />
         <Pressable
@@ -80,7 +79,7 @@ export function OnboardingPage() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroWrapper}>
@@ -145,7 +144,7 @@ export function OnboardingPage() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -172,6 +171,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 16,
   },
   heroWrapper: {
     alignItems: 'center',

@@ -8,7 +8,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -24,77 +24,80 @@ type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
 export function LoginPage() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
-  const insets = useSafeAreaInsets();
   const initialEmail = route.params?.initialEmail;
   const successMessage = route.params?.successMessage;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) + 16 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <View style={styles.regionPill}>
-            <View style={styles.regionDot} />
-            <Text style={styles.regionText}>PORTO DIGITAL • CONECTA</Text>
-          </View>
-          <Logo size={48} showWordmark={false} />
-          <Text style={styles.title}>Seu portal de entrada para o ecossistema tech</Text>
-          <Text style={styles.subtitle}>
-            Acelere sua trajetória profissional com oportunidades reais em Pernambuco.
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          {successMessage ? (
-            <View style={styles.successBanner}>
-              <Feather name="check-circle" size={16} color={colors.success} />
-              <Text style={styles.successBannerText}>{successMessage}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <View style={styles.regionPill}>
+              <View style={styles.regionDot} />
+              <Text style={styles.regionText}>PORTO DIGITAL • CONECTA</Text>
             </View>
-          ) : null}
-
-          <LoginForm initialEmail={initialEmail} />
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Ainda não faz parte?{' '}
-            <Text
-              style={styles.footerLink}
-              onPress={() => navigation.navigate('Register')}
-              accessibilityRole="link"
-            >
-              Cadastre-se gratuitamente
-            </Text>
-          </Text>
-          <View style={styles.locationPill}>
-            <Feather name="map-pin" size={14} color={colors.accent} />
-            <Text style={styles.locationText} numberOfLines={1}>
-              Feito para o Recife & RMR • Porto Digital Ready
+            <Logo size={48} showWordmark={false} />
+            <Text style={styles.title}>Seu portal de entrada para o ecossistema tech</Text>
+            <Text style={styles.subtitle}>
+              Acelere sua trajetória profissional com oportunidades reais em Pernambuco.
             </Text>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          <View style={styles.card}>
+            {successMessage ? (
+              <View style={styles.successBanner}>
+                <Feather name="check-circle" size={16} color={colors.success} />
+                <Text style={styles.successBannerText}>{successMessage}</Text>
+              </View>
+            ) : null}
+
+            <LoginForm initialEmail={initialEmail} />
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Ainda não faz parte?{' '}
+              <Text
+                style={styles.footerLink}
+                onPress={() => navigation.navigate('Register')}
+                accessibilityRole="link"
+              >
+                Cadastre-se gratuitamente
+              </Text>
+            </Text>
+            <View style={styles.locationPill}>
+              <Feather name="map-pin" size={14} color={colors.accent} />
+              <Text style={styles.locationText} numberOfLines={1}>
+                Feito para o Recife & RMR • Porto Digital Ready
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.canvas,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   header: {
     alignItems: 'center',

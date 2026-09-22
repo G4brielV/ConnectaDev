@@ -22,11 +22,12 @@ import {
   QuizQuestion,
   submitQuiz,
 } from "../shared/api/quizApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { getQuizCatalogState } from "./quizState";
 
-export function QuizScreen() {
+function QuizScreenContent() {
   const quizLoadErrorMessage =
     "Não foi possível carregar as perguntas no momento. Verifique sua conexão.";
   const { isAuthenticated, isLoading: isAuthLoading, token } = useAuth();
@@ -545,7 +546,19 @@ export function QuizScreen() {
   );
 }
 
+export function QuizScreen() {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <QuizScreenContent />
+    </SafeAreaView>
+  );
+}
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9F8F5",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F9F8F5",

@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -20,7 +21,7 @@ import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { Toast } from "../shared/ui/Toast";
 
-export function CoursesScreen() {
+function CoursesScreenContent() {
   const { token } = useAuth();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Courses">>();
@@ -247,7 +248,19 @@ export function CoursesScreen() {
   );
 }
 
+export function CoursesScreen() {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <CoursesScreenContent />
+    </SafeAreaView>
+  );
+}
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9F8F5",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F9F8F5",
