@@ -18,9 +18,14 @@ model User {
   accounts      Account[]
   passwordResetTokens PasswordResetToken[]
   
-  profile       UserProfile?
-  diagnosis     VocationalDiagnosis?
+  profile         UserProfile?
+  diagnosis       VocationalDiagnosis?
   courseBookmarks UserCourseBookmark[]
+  gamification    UserGamification?
+  reviewSessions  KnowledgeReviewSession[]
+  trailProgress   UserTrailProgress[]
+  xpEvents        XpEvent[]
+  courseRatings   CourseRating[]
 
   @@map("user")
 }
@@ -142,6 +147,7 @@ model Course {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   bookmarks   UserCourseBookmark[]
+  ratings     CourseRating[]
 
   @@index([isActive])
   @@map("courses")
@@ -160,6 +166,242 @@ model UserCourseBookmark {
   @@index([userId])
   @@map("user_course_bookmarks")
 }
+
+<<<<<<< HEAD
+model QuizQuestion {
+  id         String   @id @default(uuid())
+  statement  String
+  type       String
+  sequence   Int
+  isActive   Boolean  @default(true) @map("is_active")
+  options    Json?
+  validation Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sequence])
+  @@map("quiz_questions")
+}
+
+model VocationalDiagnosis {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  areaPrincipal        String   @map("area_principal")
+  tecnologiasSugeridas Json     @map("tecnologias_sugeridas")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("vocational_diagnoses")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  thumbnail   String
+  title       String
+  provider    String
+  level       String
+  externalUrl String   @map("external_url")
+  tags        Json
+  areas       Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  bookmarks   UserCourseBookmark[]
+
+  @@index([isActive])
+  @@map("courses")
+}
+
+model UserCourseBookmark {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  createdAt DateTime @default(now()) @map("created_at")
+=======
+model Topic {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  sequence    Int      @default(1)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  questions      KnowledgeReviewQuestion[]
+  reviewSessions KnowledgeReviewSession[]
+
+  @@map("topics")
+}
+
+model KnowledgeReviewQuestion {
+  id              String   @id @default(uuid())
+  topicId         String   @map("topic_id")
+  statement       String
+  sequence        Int      @default(1)
+  options         Json
+  correctOptionId String   @map("correct_option_id")
+  explanation     String
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, isActive, sequence])
+  @@map("knowledge_review_questions")
+}
+
+model KnowledgeReviewSession {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  topicId        String    @map("topic_id")
+  status         String    @default("IN_PROGRESS")
+  score          Int?
+  totalQuestions Int       @map("total_questions")
+  xpEarned       Int?      @map("xp_earned")
+  answers        Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId, topicId])
+  @@map("knowledge_review_sessions")
+}
+
+model CourseRating {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  rating    Int
+  comment   String?
+  matchedProfile Boolean? @map("matched_profile")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+>>>>>>> 5efe74aee2fe472bf0eeca26b14449b862ea5af1
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+<<<<<<< HEAD
+  @@index([userId])
+  @@map("user_course_bookmarks")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+=======
+  @@index([courseId])
+  @@map("course_ratings")
+}
+
+model Trail {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  area        String?
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  lessons     TrailLesson[]
+
+  @@index([isActive])
+  @@map("trails")
+}
+
+model TrailLesson {
+  id            String               @id @default(uuid())
+  trailId       String               @map("trail_id")
+  title         String
+  sequence      Int
+  xpReward      Int                  @map("xp_reward")
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  trail         Trail                @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  questions     TrailQuestion[]
+  userProgress  UserTrailProgress[]
+
+  @@unique([trailId, sequence])
+  @@index([trailId, isActive])
+  @@map("trail_lessons")
+}
+
+model TrailQuestion {
+  id            String      @id @default(uuid())
+  lessonId      String      @map("lesson_id")
+  statement     String
+  type          String
+  sequence      Int
+  options       Json?
+  validation    Json?
+  correctAnswer String      @map("correct_answer")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  lesson        TrailLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, sequence])
+  @@index([lessonId, isActive])
+  @@map("trail_questions")
+}
+
+model UserGamification {
+  userId           String    @id @map("user_id")
+  totalXp          Int       @default(0) @map("total_xp")
+  currentLevel     Int       @default(1) @map("current_level")
+  currentStreak    Int       @default(0) @map("current_streak")
+  longestStreak    Int       @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_gamification")
+}
+
+model XpEvent {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  source      String
+  referenceId String   @map("reference_id")
+  amount      Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, source, referenceId, createdAt])
+  @@map("xp_events")
+}
+
+model UserTrailProgress {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  lessonId      String      @map("lesson_id")
+  attempts      Int         @default(0)
+  bestCorrect   Int         @default(0) @map("best_correct")
+  totalQuestions Int        @default(0) @map("total_questions")
+  xpAwarded     Int         @default(0) @map("xp_awarded")
+  completedAt   DateTime?   @map("completed_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        TrailLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("user_trail_progress")
+}
+>>>>>>> 5efe74aee2fe472bf0eeca26b14449b862ea5af1
 
 model QuizQuestion {
   id         String   @id @default(uuid())
