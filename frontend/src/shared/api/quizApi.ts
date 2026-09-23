@@ -49,6 +49,7 @@ export async function fetchQuizQuestions(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   const response = await fetch(`${API_URL}/quiz/questions`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -94,6 +95,7 @@ export async function fetchQuizDiagnosis(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   const response = await fetch(`${API_URL}/api/quiz/diagnosis`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -118,6 +120,7 @@ export async function submitQuiz(
 ): Promise<QuizAnalysisResult> {
   const response = await fetch(`${API_URL}/quiz/submit`, {
     method: "POST",
+    credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",

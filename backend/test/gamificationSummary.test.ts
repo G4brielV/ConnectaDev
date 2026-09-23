@@ -4,6 +4,7 @@ import {
   GamificationSummaryRepository,
   getGamificationSummaryService,
 } from "../src/modules/gamification/services/getGamificationSummary.service";
+import { LEVEL_NAME } from "../src/modules/gamification/constants/xpLevel";
 
 test("getGamificationSummaryService returns zeros for a user without gamification record", async () => {
   const repository: GamificationSummaryRepository = {
@@ -14,7 +15,9 @@ test("getGamificationSummaryService returns zeros for a user without gamificatio
   const summary = await getGamificationSummaryService("user-1", repository);
 
   assert.deepEqual(summary, {
-    xp: 0,
+    totalXp: 0,
+    currentLevel: 1,
+    levelName: LEVEL_NAME,
     currentStreak: 0,
     longestStreak: 0,
     lastActivityDate: null,
@@ -27,7 +30,8 @@ test("getGamificationSummaryService maps the stored record and completed review 
     findGamification: async (userId) => {
       assert.equal(userId, "user-1");
       return {
-        xp: 120,
+        totalXp: 120,
+        currentLevel: 2,
         currentStreak: 3,
         longestStreak: 7,
         lastActivityDate: new Date("2026-09-17T10:00:00Z"),
@@ -39,7 +43,9 @@ test("getGamificationSummaryService maps the stored record and completed review 
   const summary = await getGamificationSummaryService("user-1", repository);
 
   assert.deepEqual(summary, {
-    xp: 120,
+    totalXp: 120,
+    currentLevel: 2,
+    levelName: LEVEL_NAME,
     currentStreak: 3,
     longestStreak: 7,
     lastActivityDate: "2026-09-17T10:00:00.000Z",

@@ -59,6 +59,14 @@ export function LoginPage() {
             ) : null}
 
             <LoginForm initialEmail={initialEmail} />
+
+            <Text
+              style={styles.forgotLink}
+              onPress={() => navigation.navigate('RecoveryPassword')}
+              accessibilityRole="link"
+            >
+              Esqueceu a senha?
+            </Text>
           </View>
 
           <View style={styles.footer}>
@@ -168,6 +176,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans.medium,
     fontSize: 14,
     color: colors.success,
+  },
+  forgotLink: {
+    fontFamily: fonts.sans.medium,
+    fontSize: 12,
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: 16,
   },
   footer: {
     marginTop: 32,

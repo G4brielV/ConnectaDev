@@ -6,13 +6,15 @@ import { useAuth } from '@/entities/session';
 import { OnboardingPage } from '@/pages/onboarding';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
-import { HomePage } from '@/pages/home';
 import { QuizIntroPage } from '@/pages/quiz-intro';
 import { QuizScreen } from '@/pages/QuizScreen';
 import { QuizResultPage } from '@/pages/quiz-result';
+import RecoveryPasswordPage from '@/pages/recoverPassword/ui/RecoveryPasswordPage';
 import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
+import { TrailsScreen } from '@/pages/TrailsScreen';
+import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import type { QuizAnalysisResult } from '@/shared/api/quizApi';
 import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
@@ -29,8 +31,11 @@ export type RootStackParamList = {
   Quiz: undefined;
   QuizResult: { result: QuizAnalysisResult };
   Courses: undefined;
+  RecoveryPassword: undefined;
   KnowledgeReview: { topicId: string; topicTitle?: string } | undefined;
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
+  Trails: undefined;
+  TrailLesson: { lessonId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -106,12 +111,15 @@ export function RootNavigator() {
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
+            <Stack.Screen name="Trails" component={TrailsScreen} />
+            <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
           </>
         ) : (
           <>
             {!hasSeenOnboarding && <Stack.Screen name="Onboarding" component={OnboardingPage} />}
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
+            <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordPage}/>
           </>
         )}
       </Stack.Navigator>

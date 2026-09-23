@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono';
 import { AuthProvider } from '@/entities/session';
+import { GamificationProvider } from '@/entities/gamification';
 import { RootNavigator } from '@/app/navigation/RootNavigator';
 import { colors } from '@/shared/config/theme';
 
@@ -38,7 +39,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootNavigator />
+        <GamificationProvider>
+          <RootNavigator />
+        </GamificationProvider>
         <StatusBar style="auto" />
       </AuthProvider>
     </SafeAreaProvider>

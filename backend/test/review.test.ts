@@ -164,7 +164,8 @@ test("submitReviewService validates session ownership and computes score / XP", 
   };
 
   const mockGamification = async () => ({
-    xp: 140,
+    totalXp: 140,
+    currentLevel: 2,
     xpEarned: 40,
     currentStreak: 3,
     longestStreak: 5,
@@ -374,7 +375,14 @@ test("submitReviewService awards 0 XP on a retake but still registers streak act
 
   const mockGamification = async (_prisma: unknown, params: { userId: string; xpEarned: number }) => {
     gamificationCall = params;
-    return { xp: 50, xpEarned: params.xpEarned, currentStreak: 2, longestStreak: 2, streakIncremented: true };
+    return {
+      totalXp: 50,
+      currentLevel: 1,
+      xpEarned: params.xpEarned,
+      currentStreak: 2,
+      longestStreak: 2,
+      streakIncremented: true,
+    };
   };
 
   const result = await submitReviewService(

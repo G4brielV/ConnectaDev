@@ -364,6 +364,216 @@ const courses = [
 },
 ] as const;
 
+const trails = [
+  {
+    title: "Fundamentos de Desenvolvimento Web",
+    description: "Aprenda os conceitos iniciais para construir páginas web.",
+    area: "Desenvolvimento de Software",
+    lessons: [
+      {
+        title: "Primeiros conceitos da Web",
+        sequence: 1,
+        xpReward: 50,
+        questions: [
+          {
+            statement: "Qual tecnologia define a estrutura de uma página web?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 1,
+            options: [
+              { id: "A", label: "HTML" },
+              { id: "B", label: "SQL" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual tecnologia é usada principalmente para estilizar uma página?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 2,
+            options: [
+              { id: "A", label: "CSS" },
+              { id: "B", label: "PostgreSQL" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual linguagem adiciona interatividade às páginas web?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 3,
+            options: [
+              { id: "A", label: "JavaScript" },
+              { id: "B", label: "HTML" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual elemento HTML representa um título principal?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 4,
+            options: [
+              { id: "A", label: "<h1>" },
+              { id: "B", label: "<main-title>" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual tecnologia é executada normalmente no navegador?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 5,
+            options: [
+              { id: "A", label: "JavaScript" },
+              { id: "B", label: "PostgreSQL" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Fundamentos de Dados e IA",
+    description: "Conheça conceitos básicos de dados, modelos e inteligência artificial.",
+    area: "Dados e Inteligência Artificial",
+    lessons: [
+      {
+        title: "Primeiros passos com dados",
+        sequence: 1,
+        xpReward: 50,
+        questions: [
+          {
+            statement: "Qual linguagem é muito usada para análise de dados?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 1,
+            options: [
+              { id: "A", label: "Python" },
+              { id: "B", label: "HTML" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que uma tabela organiza?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 2,
+            options: [
+              { id: "A", label: "Linhas e colunas" },
+              { id: "B", label: "Somente imagens" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Qual comando SQL consulta dados?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 3,
+            options: [
+              { id: "A", label: "SELECT" },
+              { id: "B", label: "PAINT" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que é um conjunto de dados?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 4,
+            options: [
+              { id: "A", label: "Coleção organizada de informações" },
+              { id: "B", label: "Um cabo de rede" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que um modelo de IA aprende durante o treinamento?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 5,
+            options: [
+              { id: "A", label: "Padrões nos dados" },
+              { id: "B", label: "A senha do usuário" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Fundamentos de UI e UX",
+    description: "Aprenda princípios iniciais de interface e experiência do usuário.",
+    area: "Design e Experiência do Usuário",
+    lessons: [
+      {
+        title: "Conhecendo UI e UX",
+        sequence: 1,
+        xpReward: 50,
+        questions: [
+          {
+            statement: "O que UI representa?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 1,
+            options: [
+              { id: "A", label: "Interface do usuário" },
+              { id: "B", label: "Infraestrutura de servidores" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que UX busca melhorar?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 2,
+            options: [
+              { id: "A", label: "A experiência da pessoa usuária" },
+              { id: "B", label: "A velocidade da internet do bairro" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "Para que serve um protótipo?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 3,
+            options: [
+              { id: "A", label: "Testar uma ideia antes da versão final" },
+              { id: "B", label: "Substituir o banco de dados" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que é acessibilidade em um produto digital?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 4,
+            options: [
+              { id: "A", label: "Permitir que mais pessoas utilizem o produto" },
+              { id: "B", label: "Usar somente cores escuras" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+          {
+            statement: "O que uma pesquisa com usuários ajuda a descobrir?",
+            type: "MULTIPLE_CHOICE",
+            sequence: 5,
+            options: [
+              { id: "A", label: "Necessidades e dificuldades reais" },
+              { id: "B", label: "A senha do servidor" },
+            ],
+            validation: null,
+            correctAnswer: "A",
+          },
+        ],
+      },
+    ],
+  },
+] as const;
+
 async function main(): Promise<void> {
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
@@ -518,8 +728,68 @@ async function main(): Promise<void> {
     });
   }
 
+  for (const trail of trails) {
+    const existingTrail = await prisma.trail.findFirst({
+      where: { title: trail.title },
+      select: { id: true },
+    });
+
+    const trailRecord = existingTrail
+      ? await prisma.trail.update({
+          where: { id: existingTrail.id },
+          data: {
+            description: trail.description,
+            area: trail.area,
+            isActive: true,
+          },
+        })
+      : await prisma.trail.create({
+          data: {
+            title: trail.title,
+            description: trail.description,
+            area: trail.area,
+            isActive: true,
+          },
+        });
+
+    for (const lesson of trail.lessons) {
+      const existingLesson = await prisma.trailLesson.findFirst({
+        where: { trailId: trailRecord.id, sequence: lesson.sequence },
+        select: { id: true },
+      });
+
+      const lessonRecord = existingLesson
+        ? await prisma.trailLesson.update({
+            where: { id: existingLesson.id },
+            data: {
+              title: lesson.title,
+              xpReward: lesson.xpReward,
+              isActive: true,
+            },
+          })
+        : await prisma.trailLesson.create({
+            data: {
+              trailId: trailRecord.id,
+              title: lesson.title,
+              sequence: lesson.sequence,
+              xpReward: lesson.xpReward,
+              isActive: true,
+            },
+          });
+
+      await prisma.trailQuestion.deleteMany({ where: { lessonId: lessonRecord.id } });
+      await prisma.trailQuestion.createMany({
+        data: lesson.questions.map((question) => ({
+          lessonId: lessonRecord.id,
+          ...question,
+          isActive: true,
+        })),
+      });
+    }
+  }
+
   console.log(
-    `Seeded ${questions.length} quiz questions, ${courses.length} courses, and ${reviewQuestions.length} review questions.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} trails, and ${reviewQuestions.length} review questions.`,
   );
 }
 

@@ -27,6 +27,7 @@ test("pickFirstCourse returns the first course or an empty state", () => {
     level: "Iniciante",
     external_url: "https://example.com",
     tags: ["lógica"],
+    userRating: null,
   };
 
   assert.deepEqual(pickFirstCourse([course, { ...course, id: "c2" }]), { status: "ready", course });
