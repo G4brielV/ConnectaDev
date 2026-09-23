@@ -1,21 +1,25 @@
-import { RootStackParamList } from "@/app/navigation/RootNavigator";
-import { useAuth } from "@/entities/session";
-import { checkPasswordComplexity, PasswordRequirements, resetPasswordRequest } from "@/features/auth";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@/entities/session';
+import { checkPasswordComplexity, PasswordRequirements } from '@/features/auth';
+import { Input } from '@/shared/ui/Input/Input';
+import { Button } from '@/shared/ui/Button/Button';
+import { Logo } from '@/shared/ui/Logo';
+import { colors, fonts, radius, shadow } from '@/shared/config/theme';
+import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RecoveryPassword'>;
 
@@ -29,14 +33,18 @@ type FieldErrors = {
   secondPassword?: string;
 };
 
+// Layout alinhado às telas de Login/Cadastro do Stitch: fluxo em duas etapas com stepper
 export default function RecoveryPasswordPage() {
   const navigation = useNavigation<NavigationProp>();
-  const { recoveryPassword,resetPassword } = useAuth();
+  const { recoveryPassword, resetPassword } = useAuth();
 
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [secondPassword, setSecondPassword] = useState('');
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSecondPassword, setShowSecondPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -44,6 +52,19 @@ export default function RecoveryPasswordPage() {
 
   // false = etapa e-mail | true = etapa token + nova senha
   const [isTokenStep, setIsTokenStep] = useState(false);
+
+  const validateEmailStep = (): boolean => {
+    const newErrors: FieldErrors = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Informe o seu e-mail';
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      newErrors.email = 'Informe um e-mail válido';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const validateTokenStep = (): boolean => {
     const newErrors: FieldErrors = {};
@@ -66,42 +87,46 @@ export default function RecoveryPasswordPage() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-};
+  };
+
+  const passwordValidation = useMemo(() => checkPasswordComplexity(password), [password]);
 
   // ---------- Handlers ----------
-const handleSendInstructions = async () => {
-  console.log('[1] antes de chamar recoveryPassword');
-  setIsLoading(true);
-  try {
-    const message = await recoveryPassword(email.trim());
-    console.log('[2] retornou:', message);
-    Alert.alert('Sucesso', message);
-    setErrors({});
-    setIsTokenStep(true);
-    console.log('[3] setIsTokenStep(true) executado');
-  } catch (e) {
-    console.log('[4] caiu no catch:', e);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const handleSendInstructions = async () => {
+    setErrorMessage('');
+    if (!validateEmailStep()) return;
+
+    setIsLoading(true);
+    try {
+      const message = await recoveryPassword(email.trim());
+      Alert.alert('Verifique seu e-mail', message);
+      setErrors({});
+      setIsTokenStep(true);
+    } catch (error: unknown) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar as instruções. Tente novamente.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleResetPassword = async () => {
     setErrorMessage('');
     if (!validateTokenStep()) return;
-    if (!passwordValidation.isValid) return
+    if (!passwordValidation.isValid) return;
 
     setIsLoading(true);
     try {
       const message = await resetPassword(token.trim(), password);
-
-      Alert.alert('Sucesso', message || 'Senha alterada com sucesso.');
       navigation.navigate('Login', {
         successMessage: message || 'Senha alterada com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErrorMessage(
-        error?.message || 'Token inválido ou expirado. Tente novamente.'
+        error instanceof Error ? error.message : 'Token inválido ou expirado. Tente novamente.',
       );
     } finally {
       setIsLoading(false);
@@ -116,48 +141,101 @@ const handleSendInstructions = async () => {
     setErrorMessage('');
     setIsTokenStep(false);
   };
-  const passwordValidation = useMemo(
-      () => checkPasswordComplexity(password),
-      [password]
-  );
+
+  const handleBack = () => {
+    if (isTokenStep) {
+      handleResendToken();
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Login');
+    }
+  };
+
+  const isPasswordStepReady = passwordValidation.isValid;
 
   // ---------- UI ----------
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <Text style={styles.logoTitle}>ConnectaDev</Text>
-          <Text style={styles.subtitle}>
-            {isTokenStep
-              ? 'Insira o token e a nova senha'
-              : 'Insira o e-mail cadastrado para receber as instruções de redefinição de senha'}
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recuperar Senha</Text>
-
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{errorMessage}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={handleBack}
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isTokenStep ? 'Voltar para a etapa de e-mail' : 'Voltar para a tela anterior'
+              }
+              hitSlop={8}
+            >
+              <Feather name="arrow-left" size={20} color={colors.textPrimary} />
+            </Pressable>
+            <View style={styles.stepPill}>
+              <View style={styles.stepDot} />
+              <Text style={styles.stepPillText}>RECUPERAR ACESSO</Text>
             </View>
-          ) : null}
+            <View style={styles.topBarSpacer} />
+          </View>
 
-          {isTokenStep ? (
-            <>
-              {/* -------- Etapa: Token + Nova senha -------- */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Token</Text>
-                <TextInput
-                  style={[styles.input, errors.token && styles.inputError]}
-                  placeholder="Digite o token"
-                  placeholderTextColor="#9CA3AF"
+          <View style={styles.header}>
+            <Logo size={48} showWordmark={false} />
+            <Text style={styles.title}>Recuperar senha</Text>
+            <Text style={styles.subtitle}>
+              {isTokenStep
+                ? 'Enviamos um token para o seu e-mail. Use-o para definir a nova senha.'
+                : 'Informe o e-mail cadastrado e enviaremos as instruções de redefinição.'}
+            </Text>
+          </View>
+
+          <View style={styles.stepper} accessibilityLabel="Progresso da recuperação de senha">
+            <View style={styles.stepTrack}>
+              <View style={[styles.stepNode, styles.stepNodeActive]}>
+                {isTokenStep ? (
+                  <Feather name="check" size={13} color={colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.stepNodeText}>1</Text>
+                )}
+              </View>
+              <View style={[styles.stepLine, isTokenStep && styles.stepLineActive]} />
+              <View style={[styles.stepNode, isTokenStep && styles.stepNodeActive]}>
+                <Text style={[styles.stepNodeText, !isTokenStep && styles.stepNodeTextPending]}>
+                  2
+                </Text>
+              </View>
+            </View>
+            <View style={styles.stepLabels}>
+              <Text style={[styles.stepLabel, !isTokenStep && styles.stepLabelActive]}>E-mail</Text>
+              <Text style={[styles.stepLabel, isTokenStep && styles.stepLabelActive]}>
+                Nova senha
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            {errorMessage ? (
+              <View style={styles.errorBanner}>
+                <Feather name="alert-circle" size={16} color={colors.danger} />
+                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
+            {isTokenStep ? (
+              <>
+                {/* -------- Etapa 2: Token + Nova senha -------- */}
+                <Input
+                  label="Token"
+                  leftIcon="key"
+                  placeholder="Cole o token recebido"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={token}
@@ -167,17 +245,14 @@ const handleSendInstructions = async () => {
                     if (errorMessage) setErrorMessage('');
                   }}
                   editable={!isLoading}
+                  error={errors.token}
                 />
-                {errors.token ? <Text style={styles.errorText}>{errors.token}</Text> : null}
-              </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Nova senha</Text>
-                <TextInput
-                  style={[styles.input, errors.password && styles.inputError]}
+                <Input
+                  label="Nova senha"
+                  leftIcon="lock"
                   placeholder="Digite a nova senha"
-                  placeholderTextColor="#9CA3AF"
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={password}
@@ -189,24 +264,35 @@ const handleSendInstructions = async () => {
                     if (errorMessage) setErrorMessage('');
                   }}
                   editable={!isLoading}
+                  error={errors.password}
+                  rightAccessory={
+                    <Pressable
+                      onPress={() => setShowPassword((v) => !v)}
+                      hitSlop={8}
+                      style={styles.toggleButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      <Feather
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={20}
+                        color={colors.textMuted}
+                      />
+                    </Pressable>
+                  }
                 />
-                {errors.password ? (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                ) : null}
-              </View>
-              <PasswordRequirements
-                validation={passwordValidation}
-                passwordLength={password.length}
-                showWhenEmpty={false}
-              />
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Confirmar nova senha</Text>
-                <TextInput
-                  style={[styles.input, errors.secondPassword && styles.inputError]}
+                <PasswordRequirements
+                  validation={passwordValidation}
+                  passwordLength={password.length}
+                  showWhenEmpty={false}
+                />
+
+                <Input
+                  label="Confirmar nova senha"
+                  leftIcon="lock"
                   placeholder="Repita a nova senha"
-                  placeholderTextColor="#9CA3AF"
-                  secureTextEntry
+                  secureTextEntry={!showSecondPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={secondPassword}
@@ -217,56 +303,54 @@ const handleSendInstructions = async () => {
                     if (errorMessage) setErrorMessage('');
                   }}
                   editable={!isLoading}
+                  error={errors.secondPassword}
+                  rightAccessory={
+                    <Pressable
+                      onPress={() => setShowSecondPassword((v) => !v)}
+                      hitSlop={8}
+                      style={styles.toggleButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showSecondPassword ? 'Ocultar confirmação' : 'Mostrar confirmação'
+                      }
+                    >
+                      <Feather
+                        name={showSecondPassword ? 'eye-off' : 'eye'}
+                        size={20}
+                        color={colors.textMuted}
+                      />
+                    </Pressable>
+                  }
                 />
-                {errors.secondPassword ? (
-                  <Text style={styles.errorText}>{errors.secondPassword}</Text>
-                ) : null}
-              </View>
 
-              {isLoading ? (
-                // 1º Estado: Botão de Carregamento (Desabilitado)
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonDisabled]}
-                  disabled={true}
-                  activeOpacity={1}
-                >
-                  <ActivityIndicator color="#FFFFFF" />
-                </TouchableOpacity>
-              ) : !passwordValidation.isValid ? (
-                // 2º Estado: Botão de Erro (Fica vermelho e pode ter clique desabilitado se quiser)
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonDisabled]}
-                  disabled={true} // Mantém desabilitado até a senha ser válida
-                  activeOpacity={1}
-                >
-                  <Text style={styles.buttonTextError}>Digite uma senha válida</Text>
-                </TouchableOpacity>
-              ) : (
-                // 3º Estado: Botão Padrão/Ativo
-                <TouchableOpacity
-                  style={styles.button}
+                <Button
+                  title={isPasswordStepReady ? 'Alterar senha' : 'Digite uma senha válida'}
+                  rightIcon={isPasswordStepReady ? 'arrow-right' : undefined}
                   onPress={handleResetPassword}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonText}>Alterar senha</Text>
-                </TouchableOpacity>
-              )}
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Não recebeu o token? </Text>
-                <TouchableOpacity onPress={handleResendToken} disabled={isLoading}>
-                  <Text style={styles.footerLink}>Envie novamente</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              {/* -------- Etapa: E-mail -------- */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>E-mail</Text>
-                <TextInput
-                  style={[styles.input, errors.email && styles.inputError]}
+                  loading={isLoading}
+                  disabled={!isPasswordStepReady}
+                />
+
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>
+                    Não recebeu o token?{' '}
+                    <Text
+                      style={styles.footerLink}
+                      onPress={isLoading ? undefined : handleResendToken}
+                      accessibilityRole="link"
+                    >
+                      Enviar novamente
+                    </Text>
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* -------- Etapa 1: E-mail -------- */}
+                <Input
+                  label="E-mail"
+                  leftIcon="mail"
                   placeholder="seuemail@dominio.com"
-                  placeholderTextColor="#9CA3AF"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -277,158 +361,225 @@ const handleSendInstructions = async () => {
                     if (errorMessage) setErrorMessage('');
                   }}
                   editable={!isLoading}
+                  error={errors.email}
                 />
-                {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-              </View>
 
-              <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
-                onPress={handleSendInstructions}
-                disabled={isLoading}
-                activeOpacity={0.8}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.buttonText}>Enviar Instruções</Text>
-                )}
-              </TouchableOpacity>
+                <Button
+                  title="Enviar instruções"
+                  rightIcon="send"
+                  onPress={handleSendInstructions}
+                  loading={isLoading}
+                />
 
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Lembrou da senha? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                  <Text style={styles.footerLink}>Voltar para o Login</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>
+                    Lembrou da senha?{' '}
+                    <Text
+                      style={styles.footerLink}
+                      onPress={() => navigation.navigate('Login')}
+                      accessibilityRole="link"
+                    >
+                      Voltar para o login
+                    </Text>
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          <View style={styles.helperPill}>
+            <Feather name="shield" size={14} color={colors.accent} />
+            <Text style={styles.helperText} numberOfLines={2}>
+              O token expira em poucos minutos por segurança.
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.canvas,
+  },
   keyboardContainer: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
   },
   scrollContainer: {
     flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.light,
+  },
+  topBarSpacer: {
+    width: 40,
+  },
+  stepPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.light,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
+  stepPillText: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.textPrimary,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    gap: 10,
+    paddingBottom: 20,
   },
-  logoTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#0284C7',
-    letterSpacing: -0.5,
+  title: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 22,
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.sans.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textMuted,
     textAlign: 'center',
-    marginTop: 8,
-    maxWidth: 280,
-    lineHeight: 20,
+    maxWidth: 290,
+    marginTop: -4,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
+  stepper: {
+    paddingHorizontal: 4,
     marginBottom: 20,
   },
-  errorBanner: {
-    backgroundColor: '#FDE8E8',
+  stepTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepNode: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.light,
+  },
+  stepNodeActive: {
+    backgroundColor: colors.primary,
+  },
+  stepNodeText: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 12,
+    color: colors.textOnPrimary,
+  },
+  stepNodeTextPending: {
+    color: colors.textMuted,
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    marginHorizontal: 8,
+    backgroundColor: colors.light,
+  },
+  stepLineActive: {
+    backgroundColor: colors.primary,
+  },
+  stepLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  stepLabel: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  stepLabelActive: {
+    fontFamily: fonts.sans.semiBold,
+    color: colors.primary,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#F87171',
-    borderRadius: 8,
+    borderColor: colors.light,
+    padding: 24,
+    ...shadow.card,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FDF3F2',
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
   errorBannerText: {
-    color: '#9B1C1C',
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '500',
+    flex: 1,
+    fontFamily: fonts.sans.medium,
+    fontSize: 13,
+    color: colors.danger,
   },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  inputError: {
-    borderColor: '#F87171',
-    backgroundColor: '#FEF2F2',
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 12,
-    marginTop: 6,
-    fontWeight: '500',
-  },
-  button: {
-    backgroundColor: '#0284C7',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor:'#f22b2b',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonTextError: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  toggleButton: {
+    padding: 4,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
   },
   footerText: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   footerLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0284C7',
+    fontFamily: fonts.sans.bold,
+    color: colors.primary,
+  },
+  helperPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: 24,
+  },
+  helperText: {
+    fontFamily: fonts.mono.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
 });
