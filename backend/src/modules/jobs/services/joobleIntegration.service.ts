@@ -3,14 +3,16 @@ import { prisma } from "../../../lib/auth";
 
 const JOOBLE_API_URL = "https://br.jooble.org/api";
 const RMR_LOCATION = "Recife, Pernambuco";
-const DEFAULT_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_SYNC_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_MAX_PAGES = 2;
+const DEFAULT_BATCH_SIZE = 10;
 
 const CATEGORY_KEYWORDS = {
-  Backend: "estágio backend tecnologia",
-  Frontend: "estágio frontend tecnologia",
-  Mobile: "estágio mobile tecnologia",
-  Dados: "estágio dados tecnologia",
-  QA: "estágio QA tecnologia",
+  Backend: "estágio junior backend tecnologia",
+  Frontend: "estágio junior frontend tecnologia",
+  Mobile: "estágio junior mobile tecnologia",
+  Dados: "estágio junior dados tecnologia",
+  QA: "estágio junior QA tecnologia",
 } as const;
 
 export type JobCategory = keyof typeof CATEGORY_KEYWORDS;
@@ -28,6 +30,7 @@ interface JoobleJob {
 
 interface JoobleResponse {
   jobs?: JoobleJob[];
+  totalCount?: number;
 }
 
 interface JoobleRequest {
@@ -54,6 +57,9 @@ export interface JoobleIntegrationOptions {
   repository?: JobsRepository;
   categories?: readonly JobCategory[];
   pageSize?: number;
+  maxPages?: number;
+  batchSize?: number;
+  logger?: Pick<Console, "error" | "info">;
 }
 
 export class JoobleIntegrationService {
@@ -63,6 +69,9 @@ export class JoobleIntegrationService {
   private readonly repository: JobsRepository;
   private readonly categories: readonly JobCategory[];
   private readonly pageSize: number;
+  private readonly maxPages: number;
+  private readonly batchSize: number;
+  private readonly logger: Pick<Console, "error" | "info">;
 
   constructor(options: JoobleIntegrationOptions = {}) {
     this.apiKey = options.apiKey ?? process.env.JOOBLE_API_KEY ?? "";
@@ -71,6 +80,9 @@ export class JoobleIntegrationService {
     this.repository = options.repository ?? prisma;
     this.categories = options.categories ?? (Object.keys(CATEGORY_KEYWORDS) as JobCategory[]);
     this.pageSize = options.pageSize ?? 20;
+    this.maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+    this.batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
+    this.logger = options.logger ?? console;
   }
 
   async synchronize(): Promise<{ fetched: number; synchronized: number }> {
@@ -82,44 +94,59 @@ export class JoobleIntegrationService {
     let synchronized = 0;
 
     for (const category of this.categories) {
-      const jobs = await this.search(category);
-      fetched += jobs.length;
-      synchronized += await this.persist(category, jobs);
+      try {
+        const jobs = await this.search(category);
+        fetched += jobs.length;
+        synchronized += await this.persist(category, jobs);
+      } catch (error) {
+        this.logger.error("Falha ao sincronizar categoria de vagas via Jooble.", {
+          category,
+          error,
+        });
+      }
     }
 
     return { fetched, synchronized };
   }
 
   private async search(category: JobCategory): Promise<JoobleJob[]> {
-    const payload: JoobleRequest = {
-      keywords: CATEGORY_KEYWORDS[category],
-      location: RMR_LOCATION,
-      radius: "40",
-      page: 1,
-      ResultOnPage: this.pageSize,
-      SearchMode: 0,
-      companysearch: false,
-    };
+    const jobs: JoobleJob[] = [];
+    for (let page = 1; page <= this.maxPages; page += 1) {
+      const payload: JoobleRequest = {
+        keywords: CATEGORY_KEYWORDS[category],
+        location: RMR_LOCATION,
+        radius: "40",
+        page,
+        ResultOnPage: this.pageSize,
+        SearchMode: 0,
+        companysearch: false,
+      };
+      const response = await this.fetcher(`${this.apiUrl}/${this.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const response = await this.fetcher(`${this.apiUrl}/${this.apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      if (!response.ok) {
+        throw new Error(`Jooble retornou HTTP ${response.status} para ${category} (página ${page}).`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Jooble retornou HTTP ${response.status} para ${category}.`);
+      const data = (await response.json()) as JoobleResponse;
+      const pageJobs = Array.isArray(data.jobs) ? data.jobs : [];
+      jobs.push(...pageJobs);
+      if (pageJobs.length < this.pageSize || jobs.length >= (data.totalCount ?? jobs.length)) {
+        break;
+      }
     }
-
-    const data = (await response.json()) as JoobleResponse;
-    return Array.isArray(data.jobs) ? data.jobs : [];
+    return jobs;
   }
 
   private async persist(category: JobCategory, jobs: JoobleJob[]): Promise<number> {
     const externalIds = jobs.map((job) => String(job.id));
 
-    for (const job of jobs) {
-      await this.repository.job.upsert({
+    for (let index = 0; index < jobs.length; index += this.batchSize) {
+      const batch = jobs.slice(index, index + this.batchSize);
+      await Promise.all(batch.map((job) => this.repository.job.upsert({
         where: { externalId: String(job.id) },
         create: {
           externalId: String(job.id),
@@ -144,7 +171,7 @@ export class JoobleIntegrationService {
           isExpired: false,
           updatedAt: parseUpdatedAt(job.updated),
         },
-      });
+      })));
     }
 
     await this.repository.job.updateMany({

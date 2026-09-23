@@ -46,7 +46,7 @@ describe("JoobleIntegrationService", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: expect.stringContaining('"keywords":"estágio backend tecnologia"'),
+        body: expect.stringContaining('"keywords":"estágio junior backend tecnologia"'),
       }),
     );
     expect(upsert).toHaveBeenCalledWith(
@@ -86,8 +86,9 @@ describe("JoobleIntegrationService", () => {
       },
     });
 
-    await expect(service.synchronize()).rejects.toThrow(
-      "Jooble retornou HTTP 429 para QA.",
-    );
+    await expect(service.synchronize()).resolves.toEqual({
+      fetched: 0,
+      synchronized: 0,
+    });
   });
 });

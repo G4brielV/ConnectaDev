@@ -8,6 +8,7 @@ import { courseRoutes } from "./modules/courses/routes/course.routes";
 import { reviewRoutes } from "./modules/reviews/routes/review.routes";
 import { gamificationRoutes } from "./modules/gamification/routes/gamification.routes";
 import { startJobsSynchronization } from "./modules/jobs/services/joobleIntegration.service";
+import { jobsRoutes } from "./modules/jobs/routes/jobs.routes";
 
 const app = fastify({ logger: true });
 
@@ -28,6 +29,7 @@ app.register(quizRoutes);
 app.register(courseRoutes);
 app.register(reviewRoutes);
 app.register(gamificationRoutes);
+app.register(jobsRoutes);
 
 // Health check
 app.get("/health", async () => {
