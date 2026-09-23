@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "vitest";
 import {
   calculateNewStreak,
   getDayDifference,
@@ -26,10 +25,12 @@ test("getReviewQuestionsService throws 404 if topic not found", async () => {
     hasCompletedSession: async () => false,
   };
 
-  await assert.rejects(
-    () => getReviewQuestionsService("user-1", "non-existent-topic", repository),
-    { statusCode: 404, message: "Tópico de revisão não encontrado ou inativo." },
-  );
+  await expect(
+    getReviewQuestionsService("user-1", "non-existent-topic", repository),
+  ).rejects.toMatchObject({
+    statusCode: 404,
+    message: "Tópico de revisão não encontrado ou inativo.",
+  });
 });
 
 test("getReviewQuestionsService creates session and returns ordered questions", async () => {
@@ -76,15 +77,15 @@ test("getReviewQuestionsService creates session and returns ordered questions", 
 
   const response = await getReviewQuestionsService("user-1", "topic-1", repository);
 
-  assert.equal(response.sessionId, "session-123");
-  assert.equal(response.topicId, "topic-1");
-  assert.equal(response.topicTitle, "Lógica e Algoritmos");
-  assert.equal(response.alreadyCompleted, false);
-  assert.equal(response.questions.length, 2);
-  assert.equal(response.questions[0].id, "q-1");
-  assert.equal(response.questions[0].correctOptionId, "A");
-  assert.equal(response.questions[0].explanation, "Justificativa 1");
-  assert.deepEqual(createdSessionData, {
+  expect(response.sessionId).toBe("session-123");
+  expect(response.topicId).toBe("topic-1");
+  expect(response.topicTitle).toBe("Lógica e Algoritmos");
+  expect(response.alreadyCompleted).toBe(false);
+  expect(response.questions.length).toBe(2);
+  expect(response.questions[0].id).toBe("q-1");
+  expect(response.questions[0].correctOptionId).toBe("A");
+  expect(response.questions[0].explanation).toBe("Justificativa 1");
+  expect(createdSessionData).toEqual({
     userId: "user-1",
     topicId: "topic-1",
     totalQuestions: 2,
@@ -189,21 +190,21 @@ test("submitReviewService validates session ownership and computes score / XP", 
     mockGamification,
   );
 
-  assert.equal(result.score, 4);
-  assert.equal(result.totalQuestions, 5);
-  assert.equal(result.percentage, 80);
-  assert.equal(result.xpEarned, 40); // 4 * 10 XP
-  assert.equal(result.isFirstCompletion, true);
-  assert.equal(result.totalXp, 140);
-  assert.equal(result.currentStreak, 3);
-  assert.equal(result.results.length, 5);
-  assert.equal(result.results[0].isCorrect, true);
-  assert.equal(result.results[4].isCorrect, false);
-  assert.equal(result.results[4].selectedOptionId, "B");
-  assert.equal(result.results[4].correctOptionId, "A");
-  assert.equal(result.results[4].explanation, "Justificativa 5");
+  expect(result.score).toBe(4);
+  expect(result.totalQuestions).toBe(5);
+  expect(result.percentage).toBe(80);
+  expect(result.xpEarned).toBe(40); // 4 * 10 XP
+  expect(result.isFirstCompletion).toBe(true);
+  expect(result.totalXp).toBe(140);
+  expect(result.currentStreak).toBe(3);
+  expect(result.results.length).toBe(5);
+  expect(result.results[0].isCorrect).toBe(true);
+  expect(result.results[4].isCorrect).toBe(false);
+  expect(result.results[4].selectedOptionId).toBe("B");
+  expect(result.results[4].correctOptionId).toBe("A");
+  expect(result.results[4].explanation).toBe("Justificativa 5");
 
-  assert.ok(updatedSession);
+  expect(updatedSession).toBeTruthy();
 });
 
 test("calculateNewStreak handles streak transitions correctly", () => {
@@ -213,27 +214,27 @@ test("calculateNewStreak handles streak transitions correctly", () => {
 
   // First time ever
   const firstTime = calculateNewStreak(null, 0, 0, day1);
-  assert.equal(firstTime.newCurrentStreak, 1);
-  assert.equal(firstTime.newLongestStreak, 1);
-  assert.equal(firstTime.streakIncremented, true);
+  expect(firstTime.newCurrentStreak).toBe(1);
+  expect(firstTime.newLongestStreak).toBe(1);
+  expect(firstTime.streakIncremented).toBe(true);
 
   // Same day
   const sameDay = calculateNewStreak(day1, 1, 1, new Date("2026-09-10T18:00:00Z"));
-  assert.equal(sameDay.newCurrentStreak, 1);
-  assert.equal(sameDay.newLongestStreak, 1);
-  assert.equal(sameDay.streakIncremented, false);
+  expect(sameDay.newCurrentStreak).toBe(1);
+  expect(sameDay.newLongestStreak).toBe(1);
+  expect(sameDay.streakIncremented).toBe(false);
 
   // Next day
   const nextDay = calculateNewStreak(day1, 1, 1, day2);
-  assert.equal(nextDay.newCurrentStreak, 2);
-  assert.equal(nextDay.newLongestStreak, 2);
-  assert.equal(nextDay.streakIncremented, true);
+  expect(nextDay.newCurrentStreak).toBe(2);
+  expect(nextDay.newLongestStreak).toBe(2);
+  expect(nextDay.streakIncremented).toBe(true);
 
   // Missed day
   const missedDay = calculateNewStreak(day1, 5, 10, day4);
-  assert.equal(missedDay.newCurrentStreak, 1);
-  assert.equal(missedDay.newLongestStreak, 10);
-  assert.equal(missedDay.streakIncremented, true);
+  expect(missedDay.newCurrentStreak).toBe(1);
+  expect(missedDay.newLongestStreak).toBe(10);
+  expect(missedDay.streakIncremented).toBe(true);
 });
 
 test("getReviewQuestionsService dynamically generates AI questions for an unindexed course topic", async () => {
@@ -303,13 +304,12 @@ test("getReviewQuestionsService dynamically generates AI questions for an uninde
     { forCourse: aiMock, forArea: async () => [] },
   );
 
-  assert.equal(result.sessionId, "session-ai-1");
-  assert.equal(result.topicTitle, "Revisão: JavaScript Moderno");
-  assert.equal(result.questions.length, 1);
-  assert.ok(createdTopic);
-  assert.equal(createdQuestionsCount, 1);
+  expect(result.sessionId).toBe("session-ai-1");
+  expect(result.topicTitle).toBe("Revisão: JavaScript Moderno");
+  expect(result.questions.length).toBe(1);
+  expect(createdTopic).toBeTruthy();
+  expect(createdQuestionsCount).toBe(1);
 });
-
 
 const singleQuestion = [
   {
@@ -339,16 +339,17 @@ test("submitReviewService rejects a session that was already completed (409)", a
     hasCompletedSession: async () => true,
   };
 
-  await assert.rejects(
-    () =>
-      submitReviewService(
-        "user-1",
-        "session-done",
-        [{ questionId: "q-1", selectedOptionId: "A" }],
-        repository,
-      ),
-    { statusCode: 409, message: "Esta sessão de revisão já foi finalizada." },
-  );
+  await expect(
+    submitReviewService(
+      "user-1",
+      "session-done",
+      [{ questionId: "q-1", selectedOptionId: "A" }],
+      repository,
+    ),
+  ).rejects.toMatchObject({
+    statusCode: 409,
+    message: "Esta sessão de revisão já foi finalizada.",
+  });
 });
 
 test("submitReviewService awards 0 XP on a retake but still registers streak activity", async () => {
@@ -393,13 +394,13 @@ test("submitReviewService awards 0 XP on a retake but still registers streak act
     mockGamification,
   );
 
-  assert.equal(result.score, 1);
-  assert.equal(result.xpEarned, 0);
-  assert.equal(result.isFirstCompletion, false);
-  assert.equal(result.totalXp, 50);
-  assert.equal(result.streakIncremented, true);
-  assert.deepEqual(gamificationCall, { userId: "user-1", xpEarned: 0 });
-  assert.deepEqual(updatedSession, { xpEarned: 0, status: "COMPLETED" });
+  expect(result.score).toBe(1);
+  expect(result.xpEarned).toBe(0);
+  expect(result.isFirstCompletion).toBe(false);
+  expect(result.totalXp).toBe(50);
+  expect(result.streakIncremented).toBe(true);
+  expect(gamificationCall).toEqual({ userId: "user-1", xpEarned: 0 });
+  expect(updatedSession).toEqual({ xpEarned: 0, status: "COMPLETED" });
 });
 
 test("getReviewQuestionsService flags alreadyCompleted when the user finished the topic before", async () => {
@@ -413,7 +414,7 @@ test("getReviewQuestionsService flags alreadyCompleted when the user finished th
   };
 
   const response = await getReviewQuestionsService("user-1", "topic-1", repository);
-  assert.equal(response.alreadyCompleted, true);
+  expect(response.alreadyCompleted).toBe(true);
 });
 
 test("getReviewQuestionsService generates area questions from the user's diagnosis technologies", async () => {
@@ -448,10 +449,10 @@ test("getReviewQuestionsService generates area questions from the user's diagnos
     },
   });
 
-  assert.equal(result.sessionId, "session-area-1");
-  assert.equal(result.topicTitle, "Revisão: Cibersegurança");
-  assert.deepEqual(areaInput, { name: "Cibersegurança", technologies: ["Linux", "Wireshark"] });
-  assert.deepEqual(createdTopic, { id: "area-topic-ciberseguranca", title: "Revisão: Cibersegurança" });
+  expect(result.sessionId).toBe("session-area-1");
+  expect(result.topicTitle).toBe("Revisão: Cibersegurança");
+  expect(areaInput).toEqual({ name: "Cibersegurança", technologies: ["Linux", "Wireshark"] });
+  expect(createdTopic).toEqual({ id: "area-topic-ciberseguranca", title: "Revisão: Cibersegurança" });
 });
 
 test("getReviewQuestionsService returns 404 for an area slug outside the catalog", async () => {
@@ -466,26 +467,25 @@ test("getReviewQuestionsService returns 404 for an area slug outside the catalog
     createTopicWithQuestions: async () => {},
   };
 
-  await assert.rejects(
-    () =>
-      getReviewQuestionsService("user-1", "area-topic-astrologia", repository, {
-        forCourse: async () => [],
-        forArea: async () => {
-          generatorCalled = true;
-          return [];
-        },
-      }),
-    { statusCode: 404 },
-  );
-  assert.equal(generatorCalled, false);
+  await expect(
+    getReviewQuestionsService("user-1", "area-topic-astrologia", repository, {
+      forCourse: async () => [],
+      forArea: async () => {
+        generatorCalled = true;
+        return [];
+      },
+    }),
+  ).rejects.toMatchObject({ statusCode: 404 });
+
+  expect(generatorCalled).toBe(false);
 });
 
 test("area slugs round-trip for every supported area", () => {
   for (const area of SUPPORTED_AREAS) {
     const slug = slugifyArea(area);
-    assert.match(slug, /^[a-z0-9-]+$/);
-    assert.equal(resolveAreaFromSlug(slug), area);
+    expect(slug).toMatch(/^[a-z0-9-]+$/);
+    expect(resolveAreaFromSlug(slug)).toBe(area);
   }
-  assert.equal(slugifyArea("Dados e Inteligência Artificial"), "dados-e-inteligencia-artificial");
-  assert.equal(resolveAreaFromSlug("nao-existe"), null);
+  expect(slugifyArea("Dados e Inteligência Artificial")).toBe("dados-e-inteligencia-artificial");
+  expect(resolveAreaFromSlug("nao-existe")).toBeNull();
 });
