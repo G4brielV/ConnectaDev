@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "prisma generate && tsc --noEmit",
-    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/quizDiagnosis.test.ts test/submitQuiz.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts",
+    "test": "prisma generate && tsc --noEmit && vitest",
+    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push",
@@ -30,11 +30,12 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.28.2",
