@@ -2,11 +2,12 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+import { balancedQuestions } from "./vocationalQuestions";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-const questions = [
+const legacyQuestions = [
   {
     statement: "Quando você se depara com um problema que não sabe resolver, qual costuma ser sua primeira reação?",
     type: "MULTIPLE_CHOICE",
@@ -247,6 +248,8 @@ const questions = [
     ],
   },
 ] as const;
+
+const questions = balancedQuestions;
 
 /**
  * Replace the `externalUrl` values with the final course or playlist links.
@@ -575,6 +578,15 @@ const trails = [
 ] as const;
 
 async function main(): Promise<void> {
+  await prisma.quizQuestion.updateMany({
+    where: {
+      sequence: {
+        notIn: balancedQuestions.map((question) => question.sequence),
+      },
+    },
+    data: { isActive: false },
+  });
+
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
       where: { sequence: question.sequence },

@@ -5,6 +5,49 @@ import {
 } from "../src/modules/jobs/services/joobleIntegration.service";
 
 describe("JoobleIntegrationService", () => {
+  it("não persiste resultados do Jooble que não tenham cargo técnico no título", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          jobs: [
+            {
+              id: 1,
+              title: "Estágio em Biblioteca - PE",
+              location: "Recife, PE",
+              snippet: "Atendimento e organização de acervo",
+              link: "https://example.com/library",
+            },
+            {
+              id: 2,
+              title: "Estágio Frontend React",
+              location: "Recife, PE",
+              snippet: "Desenvolvimento de interfaces",
+              link: "https://example.com/frontend",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Frontend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await service.synchronize();
+
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { externalId: "2" },
+      }),
+    );
+  });
+
   it("consulta uma categoria e persiste a vaga pelo identificador externo", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(

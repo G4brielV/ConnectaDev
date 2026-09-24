@@ -18,12 +18,12 @@ import {
   JobContractType,
   JobRecommendation,
 } from "../shared/api/jobsApi";
+import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 const CONTRACT_FILTERS: Array<"Todas" | JobContractType> = [
-  "Todas",
   "Estágio",
-  "Jovem Aprendiz",
-  "Bolsa",
+  "Júnior",
+  "Todas",
 ];
 
 export function JobsScreen() {
@@ -33,7 +33,7 @@ export function JobsScreen() {
   const [jobs, setJobs] = useState<JobRecommendation[]>([]);
   const [areaPrincipal, setAreaPrincipal] = useState("");
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<"Todas" | JobContractType>("Todas");
+  const [selectedFilter, setSelectedFilter] = useState<"Todas" | JobContractType>("Estágio");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -121,6 +121,7 @@ export function JobsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+      <XpProgressBar />
       <FlatList
         data={filteredJobs}
         keyExtractor={(job) => job.id}
@@ -128,10 +129,10 @@ export function JobsScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.badge}>OPORTUNIDADES LOCAIS</Text>
+            <Text style={styles.badge}>VAGAS ALINHADAS À SUA TRILHA</Text>
             <Text style={styles.title}>Vagas para sua trilha</Text>
             <Text style={styles.subtitle}>
-              Oportunidades de {areaPrincipal} na Região Metropolitana do Recife.
+              Estágios, posições júnior e outras oportunidades de {areaPrincipal} na Região Metropolitana do Recife.
             </Text>
             <View style={styles.filterRow}>
               {CONTRACT_FILTERS.map((filter) => (

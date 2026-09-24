@@ -15,6 +15,36 @@ const AREA_CATEGORIES: Record<string, string[]> = {
     "Product Management",
   ],
 };
+const TECH_CATEGORIES = new Set(Object.values(AREA_CATEGORIES).flat());
+const TECH_KEYWORDS = [
+  "desenvolv",
+  "backend",
+  "frontend",
+  "front-end",
+  "mobile",
+  "software",
+  "program",
+  "javascript",
+  "typescript",
+  "python",
+  "java",
+  "react",
+  "node",
+  "dados",
+  "sql",
+  "qa",
+  "testes",
+  "infraestrutura",
+  "devops",
+  "cloud",
+  "rede",
+  "linux",
+  "seguranca",
+  "cyber",
+  "ux",
+  "ui",
+  "produto digital",
+];
 
 type JobsRepository = Pick<PrismaClient, "vocationalDiagnosis" | "job">;
 
@@ -28,7 +58,7 @@ export interface JobRecommendation {
   salary: string | null;
   link: string;
   category: string;
-  contractType: "Estágio" | "Jovem Aprendiz" | "Bolsa" | "Outro";
+  contractType: "Estágio" | "Júnior" | "Pleno" | "Sênior" | "Outro";
   updatedAt: Date;
 }
 
@@ -73,10 +103,31 @@ export async function getJobRecommendations(
       updatedAt: true,
     },
   }).then((items) =>
-    items.map((job) => ({
-      ...job,
-      contractType: getContractType(`${job.title} ${job.description}`),
-    })),
+    items
+      .map((job) => ({
+        ...job,
+        contractType: getContractType(`${job.title} ${job.description}`),
+      }))
+      .filter(
+        (job) =>
+          TECH_CATEGORIES.has(job.category) &&
+          hasTechTerm(job.title) &&
+          !hasExcludedNonTechRole(`${job.title} ${job.description}`),
+      )
+      .sort((left, right) => {
+        const contractOrder = {
+          "Estágio": 0,
+          "Júnior": 1,
+          "Pleno": 2,
+          "Sênior": 3,
+          "Outro": 4,
+        } as const;
+        const orderDifference =
+          contractOrder[left.contractType] - contractOrder[right.contractType];
+
+        return orderDifference || right.updatedAt.getTime() - left.updatedAt.getTime();
+      })
+      .map(({ contractType, ...job }) => ({ ...job, contractType })),
   );
 
   return {
@@ -88,19 +139,49 @@ export async function getJobRecommendations(
   };
 }
 
-function getContractType(
-  value: string,
-): JobRecommendation["contractType"] {
-  const normalized = value.toLocaleLowerCase("pt-BR");
+function getContractType(value: string): JobRecommendation["contractType"] {
+  const normalized = normalize(value);
 
-  if (normalized.includes("jovem aprendiz") || normalized.includes("aprendiz")) {
-    return "Jovem Aprendiz";
-  }
-  if (normalized.includes("bolsa") || normalized.includes("residência")) {
-    return "Bolsa";
-  }
-  if (normalized.includes("estágio") || normalized.includes("estagio")) {
+  if (normalized.includes("estagio")) {
     return "Estágio";
   }
+  if (normalized.includes("junior") || normalized.includes("trainee") || normalized.includes("entry level")) {
+    return "Júnior";
+  }
+  if (normalized.includes("pleno") || normalized.includes("mid-level")) {
+    return "Pleno";
+  }
+  if (normalized.includes("senior") || normalized.includes("specialist") || normalized.includes("lead")) {
+    return "Sênior";
+  }
   return "Outro";
+}
+
+function hasExcludedNonTechRole(value: string): boolean {
+  const normalized = normalize(value);
+  return [
+    "administrativ",
+    "bibliotec",
+    "trabalhist",
+    "recepcion",
+    "vendedor",
+    "comercial",
+    "financeir",
+    "contabil",
+    "juridic",
+    "enferm",
+    "marketing",
+  ].some((term) => normalized.includes(term));
+}
+
+function hasTechTerm(value: string): boolean {
+  const normalized = normalize(value);
+  return TECH_KEYWORDS.some((term) => normalized.includes(normalize(term)));
+}
+
+function normalize(value: string): string {
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }

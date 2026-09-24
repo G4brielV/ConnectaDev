@@ -1,6 +1,6 @@
 import { API_URL } from "../config/api";
 
-export type JobContractType = "Estágio" | "Jovem Aprendiz" | "Bolsa" | "Outro";
+export type JobContractType = "Estágio" | "Júnior" | "Pleno" | "Sênior" | "Outro";
 
 export interface JobRecommendation {
   id: string;

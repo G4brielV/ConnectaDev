@@ -5,6 +5,7 @@ export type QuizQuestionType = "MULTIPLE_CHOICE" | "OPEN_TEXT";
 export interface QuizOption {
   id: string;
   label: string;
+  targetArea?: string;
 }
 
 export interface QuizQuestion {

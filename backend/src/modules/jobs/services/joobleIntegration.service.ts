@@ -95,7 +95,9 @@ export class JoobleIntegrationService {
 
     for (const category of this.categories) {
       try {
-        const jobs = await this.search(category);
+        const jobs = (await this.search(category)).filter((job) =>
+          isRelevantJob(category, job),
+        );
         fetched += jobs.length;
         synchronized += await this.persist(category, jobs);
       } catch (error) {
@@ -194,6 +196,49 @@ function parseUpdatedAt(value: string | undefined): Date {
 
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+const CATEGORY_TERMS: Record<JobCategory, readonly string[]> = {
+  Backend: ["backend", "back-end", "api", "node", "java", "python", "servidor", "desenvolvimento", "software"],
+  Frontend: ["frontend", "front-end", "react", "angular", "vue", "javascript", "typescript", "web", "desenvolvimento", "software"],
+  Mobile: ["mobile", "android", "ios", "flutter", "react native", "kotlin", "swift", "desenvolvimento", "software"],
+  Dados: ["dados", "data", "python", "sql", "analytics", "pandas", "bi"],
+  QA: ["qa", "teste", "testes", "qualidade", "automação", "automatizacao"],
+};
+
+const EXCLUDED_TERMS = [
+  "administrativ",
+  "bibliotec",
+  "trabalhist",
+  "recepcion",
+  "vendedor",
+  "comercial",
+  "financeir",
+  "contabil",
+  "juridic",
+  "enferm",
+  "marketing",
+];
+
+function isRelevantJob(category: JobCategory, job: JoobleJob): boolean {
+  const title = normalize(job.title);
+  const description = normalize(job.snippet ?? "");
+  const searchableText = `${title} ${description}`;
+
+  if (EXCLUDED_TERMS.some((term) => searchableText.includes(term))) {
+    return false;
+  }
+
+  return CATEGORY_TERMS[category].some((term) =>
+    title.includes(normalize(term)),
+  );
+}
+
+function normalize(value: string): string {
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 export function startJobsSynchronization(
