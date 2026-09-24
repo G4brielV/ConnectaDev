@@ -9,7 +9,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../entities/session";
+import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import {
   fetchJobRecommendations,
   JobContractType,
@@ -25,6 +28,8 @@ const CONTRACT_FILTERS: Array<"Todas" | JobContractType> = [
 
 export function JobsScreen() {
   const { token } = useAuth();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [jobs, setJobs] = useState<JobRecommendation[]>([]);
   const [areaPrincipal, setAreaPrincipal] = useState("");
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
@@ -90,12 +95,27 @@ export function JobsScreen() {
 
   if (!hasDiagnosis) {
     return (
-      <View style={styles.centered}>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Faça o teste vocacional para ver vagas alinhadas ao seu perfil.</Text>
-          <Text style={styles.emptyText}>Sua trilha define as áreas e oportunidades exibidas aqui.</Text>
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <View style={styles.centered}>
+          <View style={styles.emptyCard}>
+            <Text style={styles.bannerBadge}>RECOMENDAÇÃO PERSONALIZADA</Text>
+            <Text style={styles.emptyTitle}>
+              Faça o teste vocacional para ver vagas alinhadas ao seu perfil.
+            </Text>
+            <Text style={styles.emptyText}>
+              Sua trilha define as áreas e oportunidades exibidas aqui.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fazer teste vocacional"
+              onPress={() => navigation.navigate("Quiz")}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>Fazer Teste Vocacional</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -142,8 +162,22 @@ export function JobsScreen() {
 }
 
 function JobCard({ job }: { job: JobRecommendation }) {
+  const [linkError, setLinkError] = useState<string | null>(null);
+
   async function openJob(): Promise<void> {
-    await Linking.openURL(job.link);
+    setLinkError(null);
+
+    try {
+      const canOpen = await Linking.canOpenURL(job.link);
+      if (!canOpen) {
+        setLinkError("Não foi possível abrir o link desta vaga neste dispositivo.");
+        return;
+      }
+
+      await Linking.openURL(job.link);
+    } catch {
+      setLinkError("Não foi possível abrir o link desta vaga neste dispositivo.");
+    }
   }
 
   return (
@@ -156,6 +190,7 @@ function JobCard({ job }: { job: JobRecommendation }) {
       <Text style={styles.jobCompany}>🏢 {job.company}</Text>
       <Text style={styles.jobLocation}>📍 {job.location}</Text>
       {job.salary ? <Text style={styles.salary}>💰 {job.salary}</Text> : null}
+      {linkError ? <Text style={styles.linkError}>{linkError}</Text> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={`Ver detalhes de ${job.title}`} onPress={() => void openJob()} style={styles.applyButton}>
         <Text style={styles.applyButtonText}>Ver Detalhes da Vaga →</Text>
       </Pressable>
@@ -172,6 +207,7 @@ const styles = StyleSheet.create({
   retryButton: { backgroundColor: "#036564", borderRadius: 10, marginTop: 20, paddingHorizontal: 20, paddingVertical: 13 },
   retryButtonText: { color: "#FFFFFF", fontWeight: "700" },
   emptyCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, padding: 22 },
+  bannerBadge: { alignSelf: "center", color: "#036564", fontSize: 11, fontWeight: "800", letterSpacing: 0.6, marginBottom: 10, textAlign: "center" },
   emptyTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", textAlign: "center" },
   emptyText: { color: "#64748B", fontSize: 13, lineHeight: 20, marginTop: 8, textAlign: "center" },
   header: { marginBottom: 18 },
@@ -191,6 +227,7 @@ const styles = StyleSheet.create({
   jobCompany: { color: "#475569", fontSize: 13, fontWeight: "600", marginTop: 8 },
   jobLocation: { color: "#64748B", fontSize: 12, marginTop: 5 },
   salary: { color: "#036564", fontSize: 13, fontWeight: "700", marginTop: 12 },
+  linkError: { color: "#8B1E1E", fontSize: 12, lineHeight: 18, marginTop: 10 },
   applyButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, marginTop: 16, paddingVertical: 12 },
   applyButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });
