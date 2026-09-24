@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
+import { colors, fonts, radius } from '@/shared/config/theme';
 import { AuthError } from '../api/authService';
 
 export interface LoginFormProps {
@@ -16,6 +18,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
   const [email, setEmail] = useState(initialEmail || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
@@ -81,7 +84,8 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
       <Input
         label="E-mail"
-        placeholder="seu.email@exemplo.com"
+        leftIcon="at-sign"
+        placeholder="estudante@exemplo.com"
         value={email}
         onChangeText={(text) => {
           setEmail(text);
@@ -96,20 +100,33 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
       <Input
         label="Senha"
-        placeholder="Sua senha secreta"
+        leftIcon="lock"
+        placeholder="••••••••"
         value={password}
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
           if (apiError) setApiError(null);
         }}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         autoCapitalize="none"
         error={errors.password}
+        rightAccessory={
+          <Pressable
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={8}
+            style={styles.toggleButton}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+          </Pressable>
+        }
       />
 
       <Button
-        title="Entrar"
+        title="Entrar na Minha Conta"
+        rightIcon="arrow-right"
         onPress={handleLogin}
         loading={isSubmitting}
         style={styles.submitButton}
@@ -123,20 +140,23 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FDF3F2',
     borderWidth: 1,
-    borderColor: '#F87171',
-    borderRadius: 8,
+    borderColor: colors.danger,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
   errorBannerText: {
-    color: '#B91C1C',
+    color: colors.danger,
+    fontFamily: fonts.sans.medium,
     fontSize: 14,
     textAlign: 'center',
-    fontWeight: '500',
+  },
+  toggleButton: {
+    padding: 4,
   },
   submitButton: {
-    marginTop: 8,
+    marginTop: 4,
   },
 });

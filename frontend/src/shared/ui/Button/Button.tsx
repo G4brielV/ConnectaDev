@@ -6,22 +6,31 @@ import {
   StyleSheet,
   TouchableOpacityProps,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { colors, fonts, radius } from '@/shared/config/theme';
 
 export interface ButtonProps extends TouchableOpacityProps {
   title: string;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'soft' | 'danger';
+  /** Ícone Feather exibido após o título */
+  rightIcon?: keyof typeof Feather.glyphMap;
 }
+
+// Variantes com texto na cor primária (fundo claro ou transparente)
+const LIGHT_VARIANTS: ReadonlyArray<ButtonProps['variant']> = ['outline', 'soft'];
 
 export function Button({
   title,
   loading = false,
   variant = 'primary',
+  rightIcon,
   disabled,
   style,
   ...props
 }: ButtonProps) {
   const isButtonDisabled = disabled || loading;
+  const textColor = LIGHT_VARIANTS.includes(variant) ? colors.primary : colors.textOnPrimary;
 
   return (
     <TouchableOpacity
@@ -36,56 +45,50 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? '#0284C7' : '#FFFFFF'} />
+        <ActivityIndicator color={textColor} />
       ) : (
-        <Text
-          style={[
-            styles.text,
-            variant === 'outline' ? styles.outlineText : styles.primaryText,
-          ]}
-        >
-          {title}
-        </Text>
+        <>
+          <Text style={[styles.text, { color: textColor }]}>{title}</Text>
+          {rightIcon && <Feather name={rightIcon} size={20} color={textColor} />}
+        </>
       )}
     </TouchableOpacity>
   );
 };
 
+// Variantes conforme Identidade_Visual.md §6.1
 const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 48,
-    borderRadius: 8,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    gap: 8,
   },
   primary: {
-    backgroundColor: '#0284C7', // Azul do ecossistema tech ConnectaDev
+    backgroundColor: colors.primary,
   },
   secondary: {
-    backgroundColor: '#4B5563',
+    backgroundColor: colors.secondary,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: '#0284C7',
+    borderColor: colors.primary,
+  },
+  soft: {
+    backgroundColor: colors.creamSoft,
   },
   danger: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger,
   },
   disabled: {
     opacity: 0.6,
   },
   text: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-  },
-  outlineText: {
-    color: '#0284C7',
+    fontFamily: fonts.sans.semiBold,
   },
 });
-

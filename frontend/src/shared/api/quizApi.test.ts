@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fetchQuizQuestions } from "./quizApi";
+import { fetchQuizDiagnosis, fetchQuizQuestions } from "./quizApi";
 
 const originalFetch = globalThis.fetch;
 
@@ -69,4 +69,38 @@ test("rejects network and server failures for the retry flow", async () => {
 
   globalThis.fetch = async () => new Response("error", { status: 504 });
   await assert.rejects(() => fetchQuizQuestions("token"));
+});
+
+test("fetchQuizDiagnosis sends the bearer token and returns the parsed status", async () => {
+  const seen: { url: string; authorization: string | null }[] = [];
+  globalThis.fetch = async (input, init) => {
+    const headers = new Headers(init?.headers);
+    seen.push({ url: String(input), authorization: headers.get("Authorization") });
+    return new Response(
+      JSON.stringify({ completed: true, areaPrincipal: "Dados", tecnologiasSugeridas: ["SQL"] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  const status = await fetchQuizDiagnosis("token-1");
+
+  assert.equal(seen[0]?.url.endsWith("/api/quiz/diagnosis"), true);
+  assert.equal(seen[0]?.authorization, "Bearer token-1");
+  assert.deepEqual(status, { completed: true, areaPrincipal: "Dados", tecnologiasSugeridas: ["SQL"] });
+});
+
+test("fetchQuizDiagnosis maps 401 to the session message", async () => {
+  globalThis.fetch = async () => new Response("", { status: 401 });
+
+  await assert.rejects(() => fetchQuizDiagnosis("token"), {
+    message: "Sua sessão não é válida. Faça login para continuar.",
+  });
+});
+
+test("fetchQuizDiagnosis maps other failures to a generic message", async () => {
+  globalThis.fetch = async () => new Response("", { status: 500 });
+
+  await assert.rejects(() => fetchQuizDiagnosis("token"), {
+    message: "Não foi possível consultar seu diagnóstico vocacional.",
+  });
 });

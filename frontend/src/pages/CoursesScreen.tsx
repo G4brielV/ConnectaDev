@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -25,7 +26,7 @@ import { CourseRatingModal } from "../features/courses/ui/CourseRatingModal";
 import { useGamification } from "../entities/gamification";
 import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
-export function CoursesScreen() {
+function CoursesScreenContent() {
   const { token } = useAuth();
   const { refresh } = useGamification();
   const navigation =
@@ -334,7 +335,19 @@ export function CoursesScreen() {
   );
 }
 
+export function CoursesScreen() {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <CoursesScreenContent />
+    </SafeAreaView>
+  );
+}
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9F8F5",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F9F8F5",

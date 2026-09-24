@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface JobItem {
   id: string;
@@ -70,7 +70,7 @@ export function JobsScreen() {
     : JOBS_DATA.filter((job) => job.type === selectedFilter);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.badge}>OPORTUNIDADES LOCAIS 💼</Text>

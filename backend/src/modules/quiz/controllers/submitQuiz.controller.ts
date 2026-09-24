@@ -9,9 +9,49 @@ import {
 } from "../services/submitQuiz.service";
 import { ensureDevelopmentUser, prisma } from "../../../lib/auth";
 
+type QuizAnalysisResult = Awaited<ReturnType<typeof submitQuiz>>;
+
+type SessionResolver = (context: {
+  headers: Headers;
+}) => Promise<{ user: { id: string } } | null>;
+
+// Dependências injetáveis para permitir testes sem banco/Better Auth
+export interface SubmitQuizControllerDeps {
+  analyzeQuiz?: typeof submitQuiz;
+  getSession?: SessionResolver;
+  resolveDevelopmentUser?: () => Promise<string>;
+  isProduction?: () => boolean;
+  saveDiagnosis?: (userId: string, result: QuizAnalysisResult) => Promise<void>;
+}
+
+const defaultSaveDiagnosis = async (
+  userId: string,
+  result: QuizAnalysisResult,
+): Promise<void> => {
+  await prisma.vocationalDiagnosis.upsert({
+    where: { userId },
+    create: {
+      userId,
+      areaPrincipal: result.areaPrincipal,
+      tecnologiasSugeridas: result.tecnologiasSugeridas,
+    },
+    update: {
+      areaPrincipal: result.areaPrincipal,
+      tecnologiasSugeridas: result.tecnologiasSugeridas,
+    },
+  });
+};
+
 export async function submitQuizController(
   request: FastifyRequest<{ Body: QuizSubmitRequest }>,
   reply: FastifyReply,
+  {
+    analyzeQuiz = submitQuiz,
+    getSession = ({ headers }) => auth.api.getSession({ headers }),
+    resolveDevelopmentUser = ensureDevelopmentUser,
+    isProduction = () => process.env.NODE_ENV === "production",
+    saveDiagnosis = defaultSaveDiagnosis,
+  }: SubmitQuizControllerDeps = {},
 ) {
   const headers = new Headers();
   for (const [key, value] of Object.entries(request.headers)) {
@@ -22,10 +62,12 @@ export async function submitQuizController(
     }
   }
 
-  const developmentMode = process.env.NODE_ENV !== "production";
-  const session = developmentMode ? null : await auth.api.getSession({ headers });
+  // A sessão é sempre resolvida: o diagnóstico precisa ser gravado no mesmo
+  // usuário que getQuizDiagnosis consulta, senão o onboarding do quiz reabre
+  // a cada login. O usuário de desenvolvimento é só o fallback sem sessão.
+  const session = await getSession({ headers });
 
-  if (!session && !developmentMode) {
+  if (!session && isProduction()) {
     throw new AppError("É necessário estar autenticado para enviar o quiz.", 401);
   }
 
@@ -35,20 +77,9 @@ export async function submitQuizController(
   }
 
   try {
-    const userId = session?.user.id ?? await ensureDevelopmentUser();
-    const result = await submitQuiz(payload, userId);
-    await prisma.vocationalDiagnosis.upsert({
-        where: { userId },
-        create: {
-          userId,
-          areaPrincipal: result.areaPrincipal,
-          tecnologiasSugeridas: result.tecnologiasSugeridas,
-        },
-        update: {
-          areaPrincipal: result.areaPrincipal,
-          tecnologiasSugeridas: result.tecnologiasSugeridas,
-        },
-    });
+    const userId = session?.user.id ?? (await resolveDevelopmentUser());
+    const result = await analyzeQuiz(payload, userId);
+    await saveDiagnosis(userId, result);
     return reply.send(result);
   } catch (error) {
     if (error instanceof AiGatewayTimeoutError) {
