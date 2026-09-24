@@ -6,6 +6,8 @@ import { SUPPORTED_AREAS } from "../constants/areas";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const AI_REQUEST_TIMEOUT_MS = 30_000;
 
 const UNSUPPORTED_CAREER_TRACK = "UNSUPPORTED_CAREER_TRACK";
@@ -107,6 +109,7 @@ async function requestAnalysis(
   userPrompt: string,
   userId: string,
   correctiveRequest = false,
+  provider: "gemini" | "groq" = "gemini",
 ): Promise<unknown> {
   const controller = new AbortController();
   const startedAt = Date.now();
@@ -114,32 +117,44 @@ async function requestAnalysis(
   let response: Response;
 
   try {
-    response = await fetch(GEMINI_ENDPOINT, {
+    response = await fetch(provider === "gemini" ? GEMINI_ENDPOINT : GROQ_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-goog-api-key": apiKey,
+        ...(provider === "gemini"
+          ? { "X-goog-api-key": apiKey }
+          : { Authorization: `Bearer ${apiKey}` }),
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${SYSTEM_PROMPT}${
-                  correctiveRequest
-                    ? "\nEscolha obrigatoriamente uma áreaPrincipal do catálogo oficial."
-                    : ""
-                }\n\n${userPrompt}`,
+      body: JSON.stringify(
+        provider === "gemini"
+          ? {
+              contents: [{ parts: [{ text: `${SYSTEM_PROMPT}${
+                correctiveRequest
+                  ? "\nEscolha obrigatoriamente uma áreaPrincipal do catálogo oficial."
+                  : ""
+              }\n\n${userPrompt}` }] }],
+              generationConfig: {
+                temperature: 0.2,
+                responseMimeType: "application/json",
+                maxOutputTokens: 512,
               },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json",
-          maxOutputTokens: 512,
-        },
-      }),
+            }
+          : {
+              model: GROQ_MODEL,
+              temperature: 0.2,
+              max_tokens: 512,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                {
+                  role: "user",
+                  content: `${correctiveRequest
+                    ? "Escolha obrigatoriamente uma áreaPrincipal do catálogo oficial.\n"
+                    : ""}${userPrompt}`,
+                },
+              ],
+            },
+      ),
       signal: controller.signal,
     });
   } catch (error) {
@@ -180,14 +195,13 @@ async function requestAnalysis(
   }
 
   const responseBody = (await response.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    choices?: Array<{ message?: { content?: string } }>;
   };
-  const generatedText = responseBody.candidates?.[0]?.content?.parts
-    ?.map((part) => part.text ?? "")
-    .join("")
-    .trim();
+  const generatedText = (provider === "gemini"
+    ? responseBody.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("")
+    : responseBody.choices?.[0]?.message?.content
+  )?.trim();
   if (!generatedText) {
     throw new Error("A IA não retornou uma análise válida.");
   }
@@ -212,21 +226,49 @@ export async function submitQuiz(
   payload: QuizSubmitRequest,
   userId: string,
 ): Promise<z.infer<typeof quizAnalysisSchema>> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (!geminiApiKey && !groqApiKey) {
     throw new Error("A integração com a IA não está configurada.");
   }
 
   const userPrompt = buildUserPrompt(payload.answers);
+  const requestWithFallback = async (correctiveRequest = false): Promise<unknown> => {
+    const providers: Array<{ key: string; provider: "gemini" | "groq" }> = [
+      ...(geminiApiKey ? [{ key: geminiApiKey, provider: "gemini" as const }] : []),
+      ...(groqApiKey ? [{ key: groqApiKey, provider: "groq" as const }] : []),
+    ];
+    let lastError: unknown;
+    for (const candidate of providers) {
+      try {
+        return await requestAnalysis(
+          candidate.key,
+          userPrompt,
+          userId,
+          correctiveRequest,
+          candidate.provider,
+        );
+      } catch (error) {
+        lastError = error;
+        console.warn(JSON.stringify({
+          event: "AI_PROVIDER_FALLBACK",
+          provider: candidate.provider,
+          user_id: userId,
+        }));
+      }
+    }
+    throw lastError ?? new Error("Nenhum provedor de IA disponível.");
+  };
+
   let parsedResult: unknown;
   try {
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId);
+    parsedResult = await requestWithFallback();
   } catch (error) {
     if (!(error instanceof MalformedAiResponseError)) {
       throw error;
     }
 
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId, true);
+    parsedResult = await requestWithFallback(true);
   }
   const initialArea =
     parsedResult && typeof parsedResult === "object"
@@ -238,7 +280,7 @@ export async function submitQuiz(
     !SUPPORTED_AREAS.includes(initialArea as (typeof SUPPORTED_AREAS)[number])
   ) {
     emitUnsupportedCareerTrackEvent(initialArea);
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId, true);
+    parsedResult = await requestWithFallback(true);
   }
 
   const validation = quizAnalysisSchema.safeParse(parsedResult);

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const AI_REQUEST_TIMEOUT_MS = 25_000;
 
 export interface CourseData {
@@ -222,71 +224,87 @@ async function requestQuestions(
   fallback: () => GeneratedQuestionItem[],
   apiKey: string | undefined,
   logLabel: string,
+  groqApiKey: string | undefined = process.env.GROQ_API_KEY,
 ): Promise<GeneratedQuestionItem[]> {
-  if (!apiKey) {
+  if (!apiKey && !groqApiKey) {
     return fallback();
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  const providers: Array<{ key: string; name: "Gemini" | "Groq"; url: string }> = [
+    ...(apiKey ? [{ key: apiKey, name: "Gemini" as const, url: GEMINI_ENDPOINT }] : []),
+    ...(groqApiKey ? [{ key: groqApiKey, name: "Groq" as const, url: GROQ_ENDPOINT }] : []),
+  ];
 
-  try {
-    const response = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          responseMimeType: "application/json",
+  for (const provider of providers) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(provider.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(provider.name === "Gemini"
+            ? { "X-goog-api-key": provider.key }
+            : { Authorization: `Bearer ${provider.key}` }),
         },
-      }),
-      signal: controller.signal,
-    });
+        body: JSON.stringify(
+          provider.name === "Gemini"
+            ? {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.3,
+                  responseMimeType: "application/json",
+                },
+              }
+            : {
+                model: GROQ_MODEL,
+                temperature: 0.3,
+                response_format: { type: "json_object" },
+                messages: [
+                  { role: "system", content: "Responda exclusivamente com JSON válido." },
+                  { role: "user", content: prompt },
+                ],
+              },
+        ),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      console.warn(`[${logLabel}] Gemini API returned status ${response.status}. Using contextual fallback.`);
-      return fallback();
+      if (!response.ok) {
+        console.warn(`[${logLabel}] ${provider.name} API returned status ${response.status}. Trying fallback provider.`);
+        continue;
+      }
+
+      const responseBody = (await response.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const rawText = (provider.name === "Gemini"
+        ? responseBody.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("")
+        : responseBody.choices?.[0]?.message?.content
+      )?.trim();
+
+      if (!rawText) {
+        continue;
+      }
+
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/)?.[0];
+      const parsed = JSON.parse(jsonMatch || rawText);
+      const validated = generatedQuestionsSchema.safeParse(parsed);
+
+      if (validated.success) {
+        return validated.data.questions;
+      }
+
+      console.warn(`[${logLabel}] Invalid JSON schema returned by ${provider.name}. Trying fallback provider.`);
+    } catch (error) {
+      console.warn(`[${logLabel}] Error calling ${provider.name}: ${error instanceof Error ? error.message : String(error)}. Trying fallback provider.`);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const responseBody = (await response.json()) as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-
-    const rawText = responseBody.candidates?.[0]?.content?.parts
-      ?.map((p) => p.text ?? "")
-      .join("")
-      .trim();
-
-    if (!rawText) {
-      return fallback();
-    }
-
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/)?.[0];
-    const parsed = JSON.parse(jsonMatch || rawText);
-    const validated = generatedQuestionsSchema.safeParse(parsed);
-
-    if (validated.success) {
-      return validated.data.questions;
-    }
-
-    console.warn(`[${logLabel}] Invalid JSON schema returned by Gemini. Using contextual fallback.`);
-    return fallback();
-  } catch (error) {
-    console.warn(`[${logLabel}] Error calling Gemini: ${error instanceof Error ? error.message : String(error)}. Using fallback.`);
-    return fallback();
-  } finally {
-    clearTimeout(timeout);
   }
+
+  return fallback();
 }
 
 export async function generateQuestionsForCourse(
