@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { Pressable, View, Text, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/entities/session';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -41,7 +42,7 @@ export function HomePage() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Pressable accessibilityRole="button" onPress={() => setIsLogoutModalVisible(true)}>

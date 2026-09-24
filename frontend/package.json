@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-community/netinfo": "^12.0.1",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
     "axios": "^1.8.1",
     "expo": "~57.0.18",
+    "expo-font": "~57.0.4",
     "expo-secure-store": "~14.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -15,6 +19,7 @@
     "react-native": "0.86.3",
     "react-native-safe-area-context": "5.2.0",
     "react-native-screens": "~4.4.0",
+    "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
@@ -29,7 +34,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsc --noEmit",
-    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts src/pages/knowledgeReviewState.test.ts src/shared/api/reviewApi.test.ts src/shared/api/gamificationApi.test.ts src/shared/lib/areaTopic.test.ts"
+    "test:unit": "tsx --test src/pages/quizState.test.ts src/shared/api/quizApi.test.ts src/app/navigation/quizOnboarding.test.ts src/pages/quiz-result/quizResultState.test.ts src/pages/knowledgeReviewState.test.ts src/shared/api/reviewApi.test.ts src/shared/api/gamificationApi.test.ts src/shared/lib/areaTopic.test.ts"
   },
   "private": true
 }

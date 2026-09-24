@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Button } from '@/shared/ui/Button/Button';
+import { colors, fonts, radius } from '@/shared/config/theme';
 
 export interface ConflictModalProps {
   visible: boolean;
@@ -23,7 +25,7 @@ export function ConflictModal({
       <View style={styles.overlay}>
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Text style={styles.iconText}>⚠️</Text>
+            <Feather name="alert-triangle" size={24} color={colors.accent} />
           </View>
 
           <Text style={styles.title}>Este e-mail já está em uso</Text>
@@ -50,46 +52,44 @@ export function ConflictModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(3, 22, 52, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   content: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 24,
     width: '100%',
     maxWidth: 360,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowColor: colors.dark,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
     elevation: 8,
   },
   iconContainer: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  iconText: {
-    fontSize: 26,
-  },
   title: {
+    fontFamily: fonts.sans.bold,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   description: {
+    fontFamily: fonts.sans.regular,
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelText: {
+    fontFamily: fonts.sans.medium,
     fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
+    color: colors.textMuted,
   },
 });
