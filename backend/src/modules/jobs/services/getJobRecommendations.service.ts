@@ -7,6 +7,13 @@ const AREA_CATEGORIES: Record<string, string[]> = {
   "Desenvolvimento de Software": ["Desenvolvimento de Software", "Backend", "Frontend", "Mobile"],
   "Dados e Inteligência Artificial": ["Dados e Inteligência Artificial", "Dados"],
   "Cibersegurança": ["Cibersegurança", "Segurança"],
+  "Infraestrutura e Redes": ["Infraestrutura e Redes", "Infraestrutura", "Redes", "DevOps"],
+  "Design e Experiência do Usuário": ["Design e Experiência do Usuário", "Design", "UX", "UI"],
+  "Gestão de Produtos de Tecnologia": [
+    "Gestão de Produtos de Tecnologia",
+    "Produto",
+    "Product Management",
+  ],
 };
 
 type JobsRepository = Pick<PrismaClient, "vocationalDiagnosis" | "job">;
@@ -21,6 +28,7 @@ export interface JobRecommendation {
   salary: string | null;
   link: string;
   category: string;
+  contractType: "Estágio" | "Jovem Aprendiz" | "Bolsa" | "Outro";
   updatedAt: Date;
 }
 
@@ -64,7 +72,12 @@ export async function getJobRecommendations(
       category: true,
       updatedAt: true,
     },
-  });
+  }).then((items) =>
+    items.map((job) => ({
+      ...job,
+      contractType: getContractType(`${job.title} ${job.description}`),
+    })),
+  );
 
   return {
     hasDiagnosis,
@@ -73,4 +86,21 @@ export async function getJobRecommendations(
     ...(jobs.length === 0 ? { message: EMPTY_JOBS_MESSAGE } : {}),
     canRetry: jobs.length === 0,
   };
+}
+
+function getContractType(
+  value: string,
+): JobRecommendation["contractType"] {
+  const normalized = value.toLocaleLowerCase("pt-BR");
+
+  if (normalized.includes("jovem aprendiz") || normalized.includes("aprendiz")) {
+    return "Jovem Aprendiz";
+  }
+  if (normalized.includes("bolsa") || normalized.includes("residência")) {
+    return "Bolsa";
+  }
+  if (normalized.includes("estágio") || normalized.includes("estagio")) {
+    return "Estágio";
+  }
+  return "Outro";
 }
