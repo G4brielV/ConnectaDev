@@ -14,19 +14,22 @@ import { CoursesScreen } from '@/pages/CoursesScreen';
 import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import { TrailsScreen } from '@/pages/TrailsScreen';
+import { TrailPhasePage } from '@/pages/trail-phase';
+import { TrailPhaseResultPage } from '@/pages/trail-phase-result';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import type { QuizAnalysisResult } from '@/shared/api/quizApi';
+import type { ScoreLessonResult } from '@/shared/api/gamificationApi';
 import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
 import { colors } from '@/shared/config/theme';
-import { MainTabNavigator } from './MainTabNavigator';
+import { MainTabNavigator, MainTabType } from './MainTabNavigator';
 import { checkQuizOnboarding, resolveInitialNavigationState } from './quizOnboarding';
 
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: { initialEmail?: string; successMessage?: string } | undefined;
   Register: { initialEmail?: string } | undefined;
-  Home: { tab?: 'home' | 'review' | 'forum' | 'jobs' } | undefined;
+  Home: { tab?: MainTabType } | undefined;
   QuizIntro: undefined;
   Quiz: undefined;
   QuizResult: { result: QuizAnalysisResult };
@@ -36,6 +39,8 @@ export type RootStackParamList = {
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
   Trails: undefined;
   TrailLesson: { lessonId: string };
+  TrailPhase: { lessonId: string };
+  TrailPhaseResult: { result: ScoreLessonResult; phaseTitle: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -113,6 +118,12 @@ export function RootNavigator() {
             <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
             <Stack.Screen name="Trails" component={TrailsScreen} />
             <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
+            <Stack.Screen name="TrailPhase" component={TrailPhasePage} />
+            <Stack.Screen
+              name="TrailPhaseResult"
+              component={TrailPhaseResultPage}
+              options={{ gestureEnabled: false }}
+            />
           </>
         ) : (
           <>
