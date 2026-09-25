@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "trails:exams": "tsx scripts/generatePhaseExams.ts"
   },
   "keywords": [],
   "author": "",
