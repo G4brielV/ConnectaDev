@@ -38,7 +38,10 @@ export const colors = {
   primarySoft: '#87d4d2', // no concluido
   primaryTint: '#a3f0ee', // trilho do caminho
   accentDeep: '#dec38f', // sombra solida do bau bonus
-  lockedNode: '#bec9c8', // no bloqueado
+  accentFixed: '#fcdfa9', // bau bonus, selo de estrelas e selo da unidade
+  accentInk: '#524018', // icone/texto sobre accentFixed
+  lockedNode: '#bec9c8', // no bloqueado (sombra solida) e trilho ainda nao percorrido
+  lockedSurface: '#e6ebea', // face do no bloqueado
 
   // Feedback
   success: '#198754',
