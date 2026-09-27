@@ -85,6 +85,70 @@ export function calculateNewStreak(
   };
 }
 
+export interface StudyActivityResult {
+  totalXp: number;
+  currentLevel: number;
+  previousLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  streakIncremented: boolean;
+}
+
+/**
+ * Soma o XP e registra o dia de estudo dentro de uma transação já aberta.
+ * Conta a ofensiva mesmo com 0 XP: estudar é o que mantém o fogo aceso.
+ */
+export async function applyStudyActivity(
+  transaction: Prisma.TransactionClient,
+  userId: string,
+  earnedXp: number,
+  now: Date = new Date(),
+): Promise<StudyActivityResult> {
+  const previous = await transaction.userGamification.findUnique({
+    where: { userId },
+    select: {
+      totalXp: true,
+      currentLevel: true,
+      currentStreak: true,
+      longestStreak: true,
+      lastActivityDate: true,
+    },
+  });
+
+  const previousLevel = previous?.currentLevel ?? 1;
+  const totalXp = (previous?.totalXp ?? 0) + earnedXp;
+  const currentLevel = calculateLevel(totalXp);
+  const { newCurrentStreak, newLongestStreak, streakIncremented } = calculateNewStreak(
+    previous?.lastActivityDate ?? null,
+    previous?.currentStreak ?? 0,
+    previous?.longestStreak ?? 0,
+    now,
+  );
+
+  const data = {
+    totalXp,
+    currentLevel,
+    currentStreak: newCurrentStreak,
+    longestStreak: newLongestStreak,
+    lastActivityDate: now,
+  };
+  await transaction.userGamification.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
+  await recordActivityDay(transaction, userId, now);
+
+  return {
+    totalXp,
+    currentLevel,
+    previousLevel,
+    currentStreak: newCurrentStreak,
+    longestStreak: newLongestStreak,
+    streakIncremented,
+  };
+}
+
 export async function awardGamificationPoints(
   prisma: PrismaClient,
   params: UpdateGamificationParams,

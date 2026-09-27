@@ -1,6 +1,6 @@
 import { prisma } from "../../../lib/auth";
-import { calculateLevel, LEVEL_NAME } from "../constants/xpLevel";
-import { calculateNewStreak, recordActivityDay } from "./gamification.service";
+import { LEVEL_NAME } from "../constants/xpLevel";
+import { applyStudyActivity } from "./gamification.service";
 import { calculatePercentage, calculateStars, isPhaseUnlocked } from "./trailMapRules";
 import { loadPhaseGate } from "./getTrailMap.service";
 import {
@@ -154,47 +154,7 @@ export async function scoreLesson(
 
     // A ofensiva conta a tentativa mesmo sem XP novo — é o que registra a
     // atividade do dia, do mesmo jeito que a revisão de conhecimento faz.
-    const previousGamification = await transaction.userGamification.findUnique({
-      where: { userId },
-      select: {
-        totalXp: true,
-        currentLevel: true,
-        currentStreak: true,
-        longestStreak: true,
-        lastActivityDate: true,
-      },
-    });
-
-    const previousLevel = previousGamification?.currentLevel ?? 1;
-    const totalXp = (previousGamification?.totalXp ?? 0) + earnedXp;
-    const currentLevel = calculateLevel(totalXp);
-    const now = new Date();
-    const { newCurrentStreak, newLongestStreak } = calculateNewStreak(
-      previousGamification?.lastActivityDate ?? null,
-      previousGamification?.currentStreak ?? 0,
-      previousGamification?.longestStreak ?? 0,
-      now,
-    );
-
-    await transaction.userGamification.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalXp,
-        currentLevel,
-        currentStreak: newCurrentStreak,
-        longestStreak: newLongestStreak,
-        lastActivityDate: now,
-      },
-      update: {
-        totalXp,
-        currentLevel,
-        currentStreak: newCurrentStreak,
-        longestStreak: newLongestStreak,
-        lastActivityDate: now,
-      },
-    });
-    await recordActivityDay(transaction, userId, now);
+    const activity = await applyStudyActivity(transaction, userId, earnedXp);
 
     return {
       correctCount,
@@ -204,13 +164,13 @@ export async function scoreLesson(
       passed,
       stars: progress.stars,
       xpEarned: earnedXp,
-      totalXp,
-      currentLevel,
+      totalXp: activity.totalXp,
+      currentLevel: activity.currentLevel,
       levelName: LEVEL_NAME,
-      leveledUp: currentLevel > previousLevel,
+      leveledUp: activity.currentLevel > activity.previousLevel,
       alreadyRewarded: earnedXp === 0 && progress.passed,
-      currentStreak: newCurrentStreak,
-      longestStreak: newLongestStreak,
+      currentStreak: activity.currentStreak,
+      longestStreak: activity.longestStreak,
       review,
       completed: progress.passed,
     };
