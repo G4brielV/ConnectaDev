@@ -32,6 +32,21 @@ export const colors = {
   textOnPrimary: '#FFFFFF',
   textOnDark: '#FFFFFF',
 
+  // Mapa de fases (tela "Trilha de Aprendizado" do Stitch)
+  primaryDeep: '#004b4a', // sombra solida do no ativo
+  primaryDeepest: '#00201f', // sombra solida do CTA
+  primarySoft: '#87d4d2', // no concluido
+  primaryTint: '#a3f0ee', // trilho do caminho
+  accentDeep: '#dec38f', // sombra solida do bau bonus
+  accentFixed: '#fcdfa9', // bau bonus, selo de estrelas e selo da unidade
+  accentInk: '#524018', // icone/texto sobre accentFixed
+  lockedNode: '#bec9c8', // no bloqueado (sombra solida) e trilho ainda nao percorrido
+  lockedSurface: '#e6ebea', // face do no bloqueado
+
+  // Ofensiva (tela "Minha Ofensiva" do Stitch, cor do mascote)
+  flame: '#EA6C1E',
+  flameSoft: '#FDE6D3',
+
   // Feedback
   success: '#198754',
   warning: '#cdb380',
@@ -89,6 +104,17 @@ export const shadow = {
   },
 } as const;
 
-export const theme = { colors, fonts, typography, radius, spacing, shadow } as const;
+/**
+ * Sombra solida estilo "botao 3D" usada nos nos do mapa de fases.
+ * No Stitch e `box-shadow: 0 6px 0 <cor>`; no React Native nao ha spread
+ * zero com offset, entao e reproduzida com uma View de base atras do no.
+ */
+export const chunky = {
+  nodeDepth: 6,
+  ctaDepth: 4,
+  pressedDepth: 2,
+} as const;
+
+export const theme = { colors, fonts, typography, radius, spacing, shadow, chunky } as const;
 
 export type Theme = typeof theme;

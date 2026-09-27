@@ -33,10 +33,12 @@ const defaultSaveDiagnosis = async (
     create: {
       userId,
       areaPrincipal: result.areaPrincipal,
+      areasSecundarias: result.areasSecundarias,
       tecnologiasSugeridas: result.tecnologiasSugeridas,
     },
     update: {
       areaPrincipal: result.areaPrincipal,
+      areasSecundarias: result.areasSecundarias,
       tecnologiasSugeridas: result.tecnologiasSugeridas,
     },
   });

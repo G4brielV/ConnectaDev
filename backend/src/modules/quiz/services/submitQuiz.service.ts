@@ -3,9 +3,16 @@ import {
 } from "../schemas/quiz.schemas";
 import { z } from "zod";
 import { SUPPORTED_AREAS } from "../constants/areas";
+import {
+  AiClientOptions,
+  AiMalformedResponseError,
+  AiNotConfiguredError,
+  AiRequestError,
+  AiTimeoutError,
+  generateJson,
+  JsonSchema,
+} from "../../../shared/ai/aiClient";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const AI_REQUEST_TIMEOUT_MS = 30_000;
 
 const UNSUPPORTED_CAREER_TRACK = "UNSUPPORTED_CAREER_TRACK";
@@ -102,50 +109,57 @@ function emitUnsupportedCareerTrackEvent(area: unknown): void {
   );
 }
 
+/**
+ * Formato garantido pela xAI. `areaPrincipal` e `areasSecundarias` são enum do
+ * catálogo oficial, então a IA não tem como inventar uma área fora dele.
+ */
+const quizAnalysisJsonSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    areaPrincipal: { type: "string", enum: [...SUPPORTED_AREAS] },
+    areasSecundarias: {
+      type: "array",
+      items: { type: "string", enum: [...SUPPORTED_AREAS] },
+    },
+    justificativa: { type: "string" },
+    tecnologiasSugeridas: { type: "array", items: { type: "string" } },
+  },
+  required: [
+    "areaPrincipal",
+    "areasSecundarias",
+    "justificativa",
+    "tecnologiasSugeridas",
+  ],
+  additionalProperties: false,
+};
+
 async function requestAnalysis(
-  apiKey: string,
   userPrompt: string,
   userId: string,
   correctiveRequest = false,
+  clientOptions?: AiClientOptions,
 ): Promise<unknown> {
-  const controller = new AbortController();
-  const startedAt = Date.now();
-  const timeout = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
-  let response: Response;
+  const prompt = `${SYSTEM_PROMPT}${
+    correctiveRequest
+      ? "\nEscolha obrigatoriamente uma áreaPrincipal do catálogo oficial."
+      : ""
+  }\n\n${userPrompt}`;
 
   try {
-    response = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-goog-api-key": apiKey,
+    return await generateJson(
+      {
+        prompt,
+        schemaName: "connectadev_quiz_analysis",
+        jsonSchema: quizAnalysisJsonSchema,
+        timeoutMs: AI_REQUEST_TIMEOUT_MS,
+        temperature: 0.2,
+        maxTokens: 512,
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${SYSTEM_PROMPT}${
-                  correctiveRequest
-                    ? "\nEscolha obrigatoriamente uma áreaPrincipal do catálogo oficial."
-                    : ""
-                }\n\n${userPrompt}`,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json",
-          maxOutputTokens: 512,
-        },
-      }),
-      signal: controller.signal,
-    });
+      clientOptions,
+    );
   } catch (error) {
-    const durationMs = Date.now() - startedAt;
-    if (error instanceof Error && error.name === "AbortError") {
-      const timeoutError = new AiGatewayTimeoutError(durationMs, userId);
+    if (error instanceof AiTimeoutError) {
+      const timeoutError = new AiGatewayTimeoutError(error.durationMs, userId);
       console.error(
         JSON.stringify({
           event: "AI_GATEWAY_TIMEOUT",
@@ -155,90 +169,59 @@ async function requestAnalysis(
       );
       throw timeoutError;
     }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
 
-  if (!response.ok) {
-    const gatewayError = (await response.json().catch(() => null)) as {
-      error?: { message?: string };
-    } | null;
-    const gatewayMessage = gatewayError?.error?.message;
-    console.error(
-      JSON.stringify({
-        event: "AI_GATEWAY_REQUEST_ERROR",
-        status: response.status,
-        message: gatewayMessage ?? "unknown_gateway_error",
-        user_id: userId,
-      }),
-    );
-    throw new AiGatewayRequestError(
-      response.status,
-      gatewayMessage ?? "O gateway de IA recusou a solicitação.",
-    );
-  }
+    if (error instanceof AiRequestError) {
+      console.error(
+        JSON.stringify({
+          event: "AI_GATEWAY_REQUEST_ERROR",
+          status: error.status,
+          message: error.message,
+          user_id: userId,
+        }),
+      );
+      throw new AiGatewayRequestError(error.status, error.message);
+    }
 
-  const responseBody = (await response.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-  const generatedText = responseBody.candidates?.[0]?.content?.parts
-    ?.map((part) => part.text ?? "")
-    .join("")
-    .trim();
-  if (!generatedText) {
-    throw new Error("A IA não retornou uma análise válida.");
-  }
-
-  const extractedJson = generatedText.match(/\{[\s\S]*\}/)?.[0];
-  if (!extractedJson) {
-    throw new MalformedAiResponseError();
-  }
-
-  try {
-    return JSON.parse(generatedText);
-  } catch {
-    try {
-      return JSON.parse(extractedJson);
-    } catch {
+    if (error instanceof AiMalformedResponseError) {
       throw new MalformedAiResponseError();
     }
+
+    throw error;
   }
 }
 
 export async function submitQuiz(
   payload: QuizSubmitRequest,
   userId: string,
+  clientOptions?: AiClientOptions,
 ): Promise<z.infer<typeof quizAnalysisSchema>> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("A integração com a IA não está configurada.");
-  }
-
   const userPrompt = buildUserPrompt(payload.answers);
   let parsedResult: unknown;
   try {
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId);
+    parsedResult = await requestAnalysis(userPrompt, userId, false, clientOptions);
   } catch (error) {
+    if (error instanceof AiNotConfiguredError) {
+      throw new Error("A integração com a IA não está configurada.");
+    }
     if (!(error instanceof MalformedAiResponseError)) {
       throw error;
     }
 
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId, true);
+    parsedResult = await requestAnalysis(userPrompt, userId, true, clientOptions);
   }
   const initialArea =
     parsedResult && typeof parsedResult === "object"
       ? (parsedResult as Record<string, unknown>).areaPrincipal
       : undefined;
 
+  // Com a xAI o enum do JSON Schema já impede área fora do catálogo, mas o
+  // provedor Gemini não garante nada — a rodada corretiva segue valendo.
   if (
     typeof initialArea !== "string" ||
     !SUPPORTED_AREAS.includes(initialArea as (typeof SUPPORTED_AREAS)[number])
   ) {
     emitUnsupportedCareerTrackEvent(initialArea);
-    parsedResult = await requestAnalysis(apiKey, userPrompt, userId, true);
+    parsedResult = await requestAnalysis(userPrompt, userId, true, clientOptions);
   }
 
   const validation = quizAnalysisSchema.safeParse(parsedResult);

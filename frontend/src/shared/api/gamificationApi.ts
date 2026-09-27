@@ -10,6 +10,17 @@ export interface GamificationSummary {
   completedReviews: number;
 }
 
+export interface ExamReviewItem {
+  questionId: string;
+  statement: string;
+  options: Array<{ id: string; label: string }>;
+  /** null quando a pergunta ficou em branco (lições antigas). */
+  selectedOptionId: string | null;
+  correctOptionId: string;
+  isCorrect: boolean;
+  explanation: string | null;
+}
+
 export interface ScoreLessonResult {
   totalXp: number;
   currentLevel: number;
@@ -19,6 +30,17 @@ export interface ScoreLessonResult {
   xpEarned: number;
   leveledUp: boolean;
   alreadyRewarded: boolean;
+  /** Percentual de acerto e nota de corte da fase */
+  percentage: number;
+  passingScore: number;
+  /** Aprovado no gate: libera a fase seguinte */
+  passed: boolean;
+  stars: number;
+  currentStreak: number;
+  longestStreak: number;
+  /** Correção pergunta a pergunta, com explicação */
+  review: ExamReviewItem[];
+  /** @deprecated use `passed` */
   completed: boolean;
 }
 
@@ -69,8 +91,17 @@ export async function scoreLesson(
   });
 
   if (!response.ok) {
+    // O backend explica o motivo (ex.: 403 de fase ainda bloqueada);
+    // repassar a mensagem dele evita um erro genérico na tela.
+    let message = "Não foi possível registrar sua pontuação.";
+    try {
+      const body = (await response.clone().json()) as { message?: string };
+      if (body?.message) message = body.message;
+    } catch {
+      // sem corpo JSON: fica a mensagem padrão
+    }
     throw new ScoreLessonError(
-      "Não foi possível registrar sua pontuação.",
+      message,
       response.status,
     );
   }

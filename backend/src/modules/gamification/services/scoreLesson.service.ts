@@ -1,7 +1,24 @@
 import { prisma } from "../../../lib/auth";
-import { calculateLevel, LEVEL_NAME } from "../constants/xpLevel";
+import { LEVEL_NAME } from "../constants/xpLevel";
+import { applyStudyActivity } from "./gamification.service";
+import { calculatePercentage, calculateStars, isPhaseUnlocked } from "./trailMapRules";
+import { loadPhaseGate } from "./getTrailMap.service";
+import {
+  ExamReviewItem,
+  GradableQuestion,
+  gradeFullLesson,
+  gradePhaseExam,
+  toExamOptions,
+} from "./phaseExam";
 
 const TRAIL_LESSON_SOURCE = "TRAIL_LESSON";
+
+export class PhaseLockedError extends Error {
+  constructor() {
+    super("Conclua a fase anterior para liberar esta.");
+    this.name = "PhaseLockedError";
+  }
+}
 
 function calculateTargetXp(
   xpReward: number,
@@ -14,12 +31,21 @@ function calculateTargetXp(
 export interface ScoreLessonResult {
   correctCount: number;
   totalQuestions: number;
+  percentage: number;
+  passingScore: number;
+  passed: boolean;
+  stars: number;
   xpEarned: number;
   totalXp: number;
   currentLevel: number;
   levelName: string;
   leveledUp: boolean;
   alreadyRewarded: boolean;
+  currentStreak: number;
+  longestStreak: number;
+  /** Correção pergunta a pergunta, com a explicação — o feedback da tela de resultado. */
+  review: ExamReviewItem[];
+  /** @deprecated use `passed` — mantido para o cliente antigo */
   completed: boolean;
 }
 
@@ -34,7 +60,13 @@ export async function scoreLesson(
       questions: {
         where: { isActive: true },
         orderBy: { sequence: "asc" },
-        select: { id: true, correctAnswer: true },
+        select: {
+          id: true,
+          statement: true,
+          options: true,
+          correctAnswer: true,
+          explanation: true,
+        },
       },
     },
   });
@@ -47,32 +79,42 @@ export async function scoreLesson(
     throw new Error("A lição não possui perguntas ativas.");
   }
 
-  const correctCount = lesson.questions.filter(
-    (question) => answers[question.id] === question.correctAnswer,
-  ).length;
-  const totalQuestions = lesson.questions.length;
-  const completed = lesson.questions.every(
-    (question) => typeof answers[question.id] === "string" && answers[question.id].trim().length > 0,
-  );
+  // O gate vale no servidor: não adianta o cliente chamar direto uma fase travada.
+  const gate = await loadPhaseGate(userId, lessonId);
+  if (gate && !isPhaseUnlocked(gate, lessonId)) {
+    throw new PhaseLockedError();
+  }
 
-  console.log(
-    `[gamification] Pontuação recebida: user=${userId}, lesson=${lessonId}, correct=${correctCount}/${totalQuestions}, completed=${completed}`,
-  );
+  const questions: GradableQuestion[] = lesson.questions.map((question) => ({
+    ...question,
+    options: toExamOptions(question.options),
+  }));
+  // Fases do mapa sorteiam a prova do banco; lições antigas (sem unidade)
+  // continuam corrigindo todas as perguntas.
+  const { correctCount, totalQuestions, review } = lesson.unitId
+    ? gradePhaseExam(questions, answers)
+    : gradeFullLesson(questions, answers);
+  const percentage = calculatePercentage(correctCount, totalQuestions);
+  const passed = percentage >= lesson.passingScore;
+  const stars = calculateStars(percentage, lesson.passingScore);
 
   return prisma.$transaction(async (transaction) => {
     const previousProgress = await transaction.userTrailProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId } },
     });
+
     const progress = previousProgress
       ? await transaction.userTrailProgress.update({
           where: { id: previousProgress.id },
           data: {
             attempts: { increment: 1 },
             bestCorrect: Math.max(previousProgress.bestCorrect, correctCount),
+            bestPercentage: Math.max(previousProgress.bestPercentage, percentage),
+            stars: Math.max(previousProgress.stars, stars),
+            // Aprovação não se perde ao tentar de novo e ir pior.
+            passed: previousProgress.passed || passed,
             totalQuestions,
-            completedAt: completed
-              ? previousProgress.completedAt ?? new Date()
-              : previousProgress.completedAt,
+            completedAt: passed ? previousProgress.completedAt ?? new Date() : previousProgress.completedAt,
           },
         })
       : await transaction.userTrailProgress.create({
@@ -81,87 +123,56 @@ export async function scoreLesson(
             lessonId,
             attempts: 1,
             bestCorrect: correctCount,
+            bestPercentage: percentage,
+            stars,
+            passed,
             totalQuestions,
-            completedAt: completed ? new Date() : null,
+            completedAt: passed ? new Date() : null,
           },
         });
 
-    const targetXp = completed
-      ? calculateTargetXp(lesson.xpReward, correctCount, totalQuestions)
-      : progress.xpAwarded;
-    const earnedXp = Math.max(0, targetXp - progress.xpAwarded);
-    console.log(
-      `[gamification] XP calculado: user=${userId}, lesson=${lessonId}, target=${targetXp}, alreadyAwarded=${progress.xpAwarded}, earned=${earnedXp}`,
-    );
-    if (earnedXp === 0) {
-      const gamification = await transaction.userGamification.findUnique({
-        where: { userId },
-        select: { totalXp: true, currentLevel: true },
-      });
-      const totalXp = gamification?.totalXp ?? 0;
-      const currentLevel = gamification?.currentLevel ?? 1;
+    // XP só por fase aprovada, e apenas o delta em relação ao que já foi pago.
+    const targetXp = progress.passed
+      ? calculateTargetXp(lesson.xpReward, progress.bestCorrect, totalQuestions)
+      : 0;
+    const earnedXp = Math.max(0, targetXp - (previousProgress?.xpAwarded ?? 0));
 
-      return {
-        correctCount,
-        totalQuestions,
-        xpEarned: 0,
-        totalXp,
-        currentLevel,
-        levelName: LEVEL_NAME,
-        leveledUp: false,
-        alreadyRewarded: targetXp <= progress.xpAwarded,
-        completed: Boolean(progress.completedAt),
-      };
+    if (earnedXp > 0) {
+      await transaction.xpEvent.create({
+        data: {
+          userId,
+          source: TRAIL_LESSON_SOURCE,
+          referenceId: lessonId,
+          amount: earnedXp,
+        },
+      });
+      await transaction.userTrailProgress.update({
+        where: { id: progress.id },
+        data: { xpAwarded: targetXp },
+      });
     }
 
-    await transaction.xpEvent.create({
-      data: {
-        userId,
-        source: TRAIL_LESSON_SOURCE,
-        referenceId: lessonId,
-        amount: earnedXp,
-      },
-    });
-    console.log(
-      `[gamification] Evento XP criado: user=${userId}, source=${TRAIL_LESSON_SOURCE}, reference=${lessonId}, amount=${earnedXp}`,
-    );
-
-    const previousGamification = await transaction.userGamification.findUnique({
-      where: { userId },
-      select: { totalXp: true, currentLevel: true },
-    });
-    const previousLevel = previousGamification?.currentLevel ?? 1;
-    const previousTotalXp = previousGamification?.totalXp ?? 0;
-    const totalXp = previousTotalXp + earnedXp;
-    const currentLevel = calculateLevel(totalXp);
-
-    await transaction.userGamification.upsert({
-      where: { userId },
-      create: { userId, totalXp, currentLevel },
-      update: { totalXp, currentLevel },
-    });
-    console.log(
-      `[gamification] Saldo atualizado: user=${userId}, totalXp=${totalXp}, level=${currentLevel}`,
-    );
-
-    await transaction.userTrailProgress.update({
-      where: { id: progress.id },
-      data: { xpAwarded: targetXp },
-    });
-    console.log(
-      `[gamification] Progresso atualizado: user=${userId}, lesson=${lessonId}, xpAwarded=${targetXp}`,
-    );
+    // A ofensiva conta a tentativa mesmo sem XP novo — é o que registra a
+    // atividade do dia, do mesmo jeito que a revisão de conhecimento faz.
+    const activity = await applyStudyActivity(transaction, userId, earnedXp);
 
     return {
       correctCount,
       totalQuestions,
+      percentage,
+      passingScore: lesson.passingScore,
+      passed,
+      stars: progress.stars,
       xpEarned: earnedXp,
-      totalXp,
-      currentLevel,
+      totalXp: activity.totalXp,
+      currentLevel: activity.currentLevel,
       levelName: LEVEL_NAME,
-      leveledUp: currentLevel > previousLevel,
-      alreadyRewarded: false,
-      completed: true,
+      leveledUp: activity.currentLevel > activity.previousLevel,
+      alreadyRewarded: earnedXp === 0 && progress.passed,
+      currentStreak: activity.currentStreak,
+      longestStreak: activity.longestStreak,
+      review,
+      completed: progress.passed,
     };
   });
 }
