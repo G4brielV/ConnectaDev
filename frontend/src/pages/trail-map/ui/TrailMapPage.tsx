@@ -15,7 +15,12 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { useGamification } from '@/entities/gamification';
 import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
-import { fetchTrailMap, TrailMap, TrailMapPhase } from '@/shared/api/trailMapApi';
+import {
+  DailyPracticeStatus,
+  fetchTrailMap,
+  TrailMap,
+  TrailMapPhase,
+} from '@/shared/api/trailMapApi';
 import { colors, fonts, radius, shadow, chunky } from '@/shared/config/theme';
 import { Logo } from '@/shared/ui/Logo';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
@@ -155,6 +160,13 @@ export function TrailMapPage() {
               ]}
             />
           </View>
+          {/* Fora do ScrollView: o mapa abre rolado até a unidade atual e o esconderia. */}
+          {map.dailyPractice.available && units.length > 0 ? (
+            <DailyPracticeCard
+              status={map.dailyPractice}
+              onPress={() => navigation.navigate('DailyPractice')}
+            />
+          ) : null}
         </View>
       ) : null}
 
@@ -268,6 +280,57 @@ export function TrailMapPage() {
   );
 }
 
+interface DailyPracticeCardProps {
+  status: DailyPracticeStatus;
+  onPress: () => void;
+}
+
+/** Atalho do hábito diário: revisa a fase atual e mantém a ofensiva. */
+function DailyPracticeCard({ status, onPress }: DailyPracticeCardProps) {
+  const done = !status.rewardAvailable;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.practiceCard,
+        done && styles.practiceCardDone,
+        pressed && styles.practiceCardPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={
+        done
+          ? 'Prática do dia feita. Treinar mais'
+          : `Fazer a prática do dia, vale até ${status.maxXp} XP`
+      }
+    >
+      <View style={[styles.practiceIcon, done && styles.practiceIconDone]}>
+        <MaterialCommunityIcons
+          name={done ? 'check-bold' : 'fire'}
+          size={19}
+          color={done ? colors.primary : colors.flame}
+        />
+      </View>
+      <View style={styles.practiceTexts}>
+        <Text style={styles.practiceTitle} numberOfLines={1}>
+          Prática do dia
+        </Text>
+        <Text style={styles.practiceSubtitle} numberOfLines={1}>
+          {done ? 'Feita hoje · treine quanto quiser' : 'Revise sua fase e mantenha a ofensiva'}
+        </Text>
+      </View>
+      {done ? (
+        <Feather name="chevron-right" size={20} color={colors.textMuted} />
+      ) : (
+        <View style={styles.practiceXp}>
+          <MaterialCommunityIcons name="lightning-bolt" size={13} color={colors.accentInk} />
+          <Text style={styles.practiceXpText}>+{status.maxXp} XP</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 interface EmptyStateProps {
   icon: keyof typeof Feather.glyphMap;
   title: string;
@@ -360,6 +423,42 @@ const styles = StyleSheet.create({
   },
   bannerText: { flex: 1, fontFamily: fonts.sans.medium, fontSize: 13, color: colors.danger },
   unitBlock: { marginBottom: 20 },
+  practiceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.flame,
+    borderBottomWidth: 3,
+    borderRadius: 16,
+    padding: 10,
+    marginTop: 4,
+  },
+  practiceCardDone: { borderColor: colors.light },
+  practiceCardPressed: { borderBottomWidth: 1, transform: [{ translateY: 2 }] },
+  practiceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.flameSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  practiceIconDone: { backgroundColor: colors.creamSoft },
+  practiceTexts: { flex: 1, gap: 1 },
+  practiceTitle: { fontFamily: fonts.sans.extraBold, fontSize: 15, color: colors.textPrimary },
+  practiceSubtitle: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.textMuted },
+  practiceXp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.accentFixed,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  practiceXpText: { fontFamily: fonts.mono.medium, fontSize: 11, color: colors.accentInk },
   finishedCard: {
     alignItems: 'center',
     gap: 8,

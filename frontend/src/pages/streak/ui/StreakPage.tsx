@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -9,12 +9,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { fetchStreakOverview, StreakOverview, StreakWeekDay } from '@/shared/api/streakApi';
-import { fetchTrailMap, TrailMapPhase } from '@/shared/api/trailMapApi';
+import { DailyPracticeStatus, fetchTrailMap, TrailMapPhase } from '@/shared/api/trailMapApi';
 import { chunky, colors, fonts, radius, shadow } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import {
@@ -44,6 +44,7 @@ export function StreakPage() {
   const [isChangingMonth, setIsChangingMonth] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [nextPhase, setNextPhase] = useState<TrailMapPhase | null>(null);
+  const [practice, setPractice] = useState<DailyPracticeStatus | null>(null);
 
   const load = useCallback(
     async (targetMonth?: string) => {
@@ -65,19 +66,27 @@ export function StreakPage() {
     [token],
   );
 
-  useEffect(() => {
-    void load();
-    if (!token) return;
-    // O CTA leva direto à fase atual; sem ela (sem quiz ou trilha terminada) ele some.
-    fetchTrailMap(token)
-      .then((map) => {
-        const current = map.units
-          .flatMap((unit) => unit.phases)
-          .find((phase) => phase.id === map.currentPhaseId);
-        setNextPhase(current ?? null);
-      })
-      .catch(() => setNextPhase(null));
-  }, [load, token]);
+  // Recarrega no foco: quem volta da prática já vê o dia marcado.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      if (!token) return;
+      // O CTA leva à prática do dia, o jeito mais curto de salvar a ofensiva; sem
+      // ela (sem quiz), cai na fase atual e, sem nenhuma das duas, some.
+      fetchTrailMap(token)
+        .then((map) => {
+          const current = map.units
+            .flatMap((unit) => unit.phases)
+            .find((phase) => phase.id === map.currentPhaseId);
+          setNextPhase(current ?? null);
+          setPractice(map.dailyPractice.available ? map.dailyPractice : null);
+        })
+        .catch(() => {
+          setNextPhase(null);
+          setPractice(null);
+        });
+    }, [load, token]),
+  );
 
   const changeMonth = (amount: number) => {
     if (!month) return;
@@ -143,7 +152,26 @@ export function StreakPage() {
       </ScrollView>
 
       <View style={styles.footer}>
-        {nextPhase ? (
+        {practice ? (
+          <Pressable
+            onPress={() => navigation.navigate('DailyPractice')}
+            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              practice.rewardAvailable
+                ? `Praticar agora, vale até ${practice.maxXp} XP`
+                : 'Praticar agora, treino livre'
+            }
+          >
+            <MaterialCommunityIcons name="fire" size={20} color={colors.flameSoft} />
+            <Text style={styles.ctaText}>Praticar agora</Text>
+            {practice.rewardAvailable ? (
+              <View style={styles.ctaXp}>
+                <Text style={styles.ctaXpText}>+{practice.maxXp} XP</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        ) : nextPhase ? (
           <Pressable
             onPress={() => navigation.navigate('TrailPhase', { lessonId: nextPhase.id })}
             style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
