@@ -9,6 +9,7 @@ import { LogoutConfirmationModal } from '@/features/auth';
 import { useGamification } from '@/entities/gamification';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
 import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
+import { StreakCard } from './StreakCard';
 
 export function HomePage() {
   const { user, logout, token } = useAuth();
@@ -53,6 +54,11 @@ export function HomePage() {
           </View>
         </View>
         <XpProgressBar />
+        <StreakCard
+          currentStreak={summary?.currentStreak ?? null}
+          longestStreak={summary?.longestStreak ?? null}
+          onPress={() => navigation.navigate('Streak')}
+        />
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE ✨</Text>
           <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
@@ -65,17 +71,6 @@ export function HomePage() {
           <View style={styles.chips}>
             <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
             <Text style={styles.chip}>💼 Vagas locais</Text>
-            {summary ? (
-              <Pressable
-                onPress={() => navigation.navigate('Streak')}
-                accessibilityRole="button"
-                accessibilityLabel={`Ver sua ofensiva: ${summary.currentStreak} dias`}
-              >
-                <Text style={styles.chip}>🔥 Ofensiva: {summary.currentStreak} ›</Text>
-              </Pressable>
-            ) : (
-              <Text style={styles.chip}>🏆 Seu perfil</Text>
-            )}
           </View>
         </View>
         <View style={styles.footer}>
