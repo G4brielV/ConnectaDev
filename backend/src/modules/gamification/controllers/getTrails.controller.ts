@@ -6,7 +6,7 @@ import { getTrailMapForUser } from "../services/getTrailMap.service";
 import { getTrailPhase } from "../services/getTrailPhase.service";
 import type { TrailLessonRequest } from "../schemas/trail.schemas";
 
-async function getUserId(request: FastifyRequest): Promise<string> {
+export async function getUserId(request: FastifyRequest): Promise<string> {
   const headers = new Headers();
   for (const [key, value] of Object.entries(request.headers)) {
     if (typeof value === "string") headers.set(key, value);

@@ -1,4 +1,6 @@
 import { prisma } from "../../../lib/auth";
+import { hasPracticeSources, PRACTICE_MAX_XP, practiceSources } from "./practiceRules";
+import { studyDayToDate, toStudyDay } from "./studyDay";
 import {
   EMPTY_PROGRESS,
   isTrailFinished,
@@ -42,6 +44,14 @@ export interface TrailMapUnit {
   progressPercentage: number;
 }
 
+export interface DailyPracticeStatus {
+  /** Há fase atual ou concluída para tirar perguntas. */
+  available: boolean;
+  /** A prática com XP de hoje ainda não foi feita. */
+  rewardAvailable: boolean;
+  maxXp: number;
+}
+
 export interface TrailMapResponse {
   hasDiagnosis: boolean;
   area: string | null;
@@ -51,6 +61,7 @@ export interface TrailMapResponse {
   completedPhases: number;
   totalPhases: number;
   finished: boolean;
+  dailyPractice: DailyPracticeStatus;
 }
 
 const EMPTY_MAP: TrailMapResponse = {
@@ -62,6 +73,7 @@ const EMPTY_MAP: TrailMapResponse = {
   completedPhases: 0,
   totalPhases: 0,
   finished: false,
+  dailyPractice: { available: false, rewardAvailable: false, maxXp: PRACTICE_MAX_XP },
 };
 
 export async function getTrailMapForUser(userId: string): Promise<TrailMapResponse> {
@@ -72,26 +84,32 @@ export async function getTrailMapForUser(userId: string): Promise<TrailMapRespon
 
   if (!diagnosis) return EMPTY_MAP;
 
-  const trail = await prisma.trail.findFirst({
-    where: { isActive: true, area: diagnosis.areaPrincipal, units: { some: { isActive: true } } },
-    orderBy: { createdAt: "asc" },
-    include: {
-      units: {
-        where: { isActive: true },
-        orderBy: { sequence: "asc" },
-        include: {
-          lessons: {
-            where: { isActive: true },
-            orderBy: { sequence: "asc" },
-            include: {
-              _count: { select: { resources: true } },
-              userProgress: { where: { userId }, take: 1 },
+  const [trail, rewardedToday] = await Promise.all([
+    prisma.trail.findFirst({
+      where: { isActive: true, area: diagnosis.areaPrincipal, units: { some: { isActive: true } } },
+      orderBy: { createdAt: "asc" },
+      include: {
+        units: {
+          where: { isActive: true },
+          orderBy: { sequence: "asc" },
+          include: {
+            lessons: {
+              where: { isActive: true },
+              orderBy: { sequence: "asc" },
+              include: {
+                _count: { select: { resources: true } },
+                userProgress: { where: { userId }, take: 1 },
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.trailPracticeSession.findFirst({
+      where: { userId, rewardedDay: studyDayToDate(toStudyDay(new Date())) },
+      select: { id: true },
+    }),
+  ]);
 
   if (!trail) {
     return { ...EMPTY_MAP, hasDiagnosis: true, area: diagnosis.areaPrincipal };
@@ -159,6 +177,11 @@ export async function getTrailMapForUser(userId: string): Promise<TrailMapRespon
     completedPhases,
     totalPhases: allPhases.length,
     finished: isTrailFinished(states),
+    dailyPractice: {
+      available: hasPracticeSources(practiceSources(states)),
+      rewardAvailable: rewardedToday === null,
+      maxXp: PRACTICE_MAX_XP,
+    },
   };
 }
 
