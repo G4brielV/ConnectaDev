@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/auth";
 import {
   EMPTY_PROGRESS,
+  isTrailFinished,
   PhaseProgress,
   PhaseStatus,
   resolvePhaseStates,
@@ -102,13 +103,13 @@ export async function getTrailMapForUser(userId: string): Promise<TrailMapRespon
     unit.lessons.map((lesson) => ({
       id: lesson.id,
       sequence: lesson.sequence,
+      kind: lesson.kind,
       progress: toProgress(lesson.userProgress[0]),
     })),
   );
 
-  const stateById = new Map(
-    resolvePhaseStates(flatPhases).map((state) => [state.id, state]),
-  );
+  const states = resolvePhaseStates(flatPhases);
+  const stateById = new Map(states.map((state) => [state.id, state]));
 
   const units = trail.units.map((unit): TrailMapUnit => {
     const phases = unit.lessons.map((lesson): TrailMapPhase => {
@@ -157,7 +158,7 @@ export async function getTrailMapForUser(userId: string): Promise<TrailMapRespon
     currentPhaseId: allPhases.find((phase) => phase.status === "current")?.id ?? null,
     completedPhases,
     totalPhases: allPhases.length,
-    finished: allPhases.length > 0 && completedPhases === allPhases.length,
+    finished: isTrailFinished(states),
   };
 }
 
@@ -188,6 +189,7 @@ export async function loadPhaseGate(userId: string, lessonId: string) {
     select: {
       id: true,
       sequence: true,
+      kind: true,
       userProgress: { where: { userId }, take: 1 },
     },
   });
@@ -195,6 +197,7 @@ export async function loadPhaseGate(userId: string, lessonId: string) {
   return siblings.map((sibling) => ({
     id: sibling.id,
     sequence: sibling.sequence,
+    kind: sibling.kind,
     progress: toProgress(sibling.userProgress[0]),
   }));
 }
