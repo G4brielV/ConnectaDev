@@ -1,18 +1,24 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/auth";
-import { ensurePhaseQuestions } from "../src/modules/gamification/services/getTrailPhase.service";
-import { PHASE_EXAM_MIN_QUESTIONS } from "../src/modules/reviews/services/generateReviewQuestions.service";
+import {
+  ensurePhaseQuestions,
+  PHASE_CONTEXT_INCLUDE,
+  toPhaseContext,
+} from "../src/modules/gamification/services/getTrailPhase.service";
+import { PHASE_QUESTION_POOL_TARGET } from "../src/modules/gamification/services/phaseExam";
 
 /**
- * Pré-gera a prova das fases que ainda não têm questões.
+ * Pré-gera o banco de questões das fases (20 por fase; cada tentativa
+ * sorteia 10 delas).
  *
- * A geração leva ~45s por fase, então deixá-la acontecer quando o estudante
- * abre a fase seria uma espera inaceitável. Este comando roda fora do caminho
- * do usuário (depois do seed, ou num deploy) e as questões ficam cacheadas.
+ * Sem isso, a primeira pessoa a abrir cada fase espera a IA gerar a prova.
+ * Este comando roda fora do caminho do usuário (depois do seed, ou num
+ * deploy) e completa os bancos incompletos sem apagar o que já existe.
  *
- *   npm run trails:exams              # fases sem prova ou abaixo do mínimo
- *   npm run trails:exams -- --unit 1  # só a unidade N
- *   npm run trails:exams -- --force   # refaz mesmo as provas já completas
+ *   npm run trails:exams              # fases com banco incompleto
+ *   npm run trails:exams -- --unit 1  # só a unidade N (de todas as áreas)
+ *   npm run trails:exams -- --area "Cibersegurança"  # só a trilha da área
+ *   npm run trails:exams -- --force   # apaga e refaz todos os bancos
  */
 const MAX_ATTEMPTS = 3;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,59 +64,52 @@ function extractRetryAfterMs(error: unknown): number | null {
 async function main(): Promise<void> {
   const unitArgIndex = process.argv.indexOf("--unit");
   const unitFilter = unitArgIndex >= 0 ? Number(process.argv[unitArgIndex + 1]) : null;
+  const areaArgIndex = process.argv.indexOf("--area");
+  const areaFilter = areaArgIndex >= 0 ? process.argv[areaArgIndex + 1] : null;
 
   const force = process.argv.includes("--force");
 
   const candidates = await prisma.trailLesson.findMany({
     where: {
       isActive: true,
-      trail: { isActive: true },
+      trail: areaFilter ? { isActive: true, area: areaFilter } : { isActive: true },
       unit: unitFilter ? { sequence: unitFilter } : { isNot: null },
     },
-    orderBy: { sequence: "asc" },
+    orderBy: [{ trailId: "asc" }, { sequence: "asc" }],
     include: {
-      unit: { select: { title: true, sequence: true } },
-      trail: { select: { area: true } },
-      resources: { orderBy: { sequence: "asc" }, select: { title: true } },
+      ...PHASE_CONTEXT_INCLUDE,
       _count: { select: { questions: { where: { isActive: true } } } },
     },
   });
 
-  // Provas geradas antes do piso de 10 perguntas também entram na fila.
   const phases = candidates.filter(
-    (phase) => force || phase._count.questions < PHASE_EXAM_MIN_QUESTIONS,
+    (phase) => force || phase._count.questions < PHASE_QUESTION_POOL_TARGET,
   );
 
   if (phases.length === 0) {
     console.log(
-      `Nenhuma fase pendente: todas já têm ao menos ${PHASE_EXAM_MIN_QUESTIONS} perguntas.`,
+      `Nenhuma fase pendente: todas já têm ${PHASE_QUESTION_POOL_TARGET} perguntas no banco.`,
     );
     return;
   }
 
   const incomplete = phases.filter((phase) => phase._count.questions > 0).length;
   console.log(
-    `${phases.length} fase(s) a gerar (${incomplete} com prova abaixo de ${PHASE_EXAM_MIN_QUESTIONS} perguntas). Isso leva ~1min por fase...`,
+    `${phases.length} fase(s) a completar (${incomplete} já com parte do banco). Cada leva de 10 perguntas leva alguns segundos...`,
   );
   let generated = 0;
   let failed = 0;
 
   for (const phase of phases) {
-    const label = `U${phase.unit?.sequence ?? "?"} F${phase.sequence} ${phase.title}`;
+    const label = `${phase.trail.area ?? "?"} F${phase.sequence} ${phase.title}`;
     const startedAt = Date.now();
     try {
-      if (phase._count.questions > 0) {
+      if (force && phase._count.questions > 0) {
         await prisma.trailQuestion.deleteMany({ where: { lessonId: phase.id } });
       }
 
       const questions = await withRetry(label, () =>
-        ensurePhaseQuestions(phase.id, {
-          title: phase.title,
-          description: phase.description,
-          unitTitle: phase.unit?.title ?? phase.title,
-          area: phase.trail.area ?? "Tecnologia",
-          resourceTitles: phase.resources.map((resource) => resource.title),
-        }),
+        ensurePhaseQuestions(phase.id, toPhaseContext(phase), { fillPool: true }),
       );
       generated += 1;
       console.log(

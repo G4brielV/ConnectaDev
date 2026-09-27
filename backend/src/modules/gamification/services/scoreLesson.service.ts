@@ -3,6 +3,13 @@ import { calculateLevel, LEVEL_NAME } from "../constants/xpLevel";
 import { calculateNewStreak } from "./gamification.service";
 import { calculatePercentage, calculateStars, isPhaseUnlocked } from "./trailMapRules";
 import { loadPhaseGate } from "./getTrailMap.service";
+import {
+  ExamReviewItem,
+  GradableQuestion,
+  gradeFullLesson,
+  gradePhaseExam,
+  toExamOptions,
+} from "./phaseExam";
 
 const TRAIL_LESSON_SOURCE = "TRAIL_LESSON";
 
@@ -36,6 +43,8 @@ export interface ScoreLessonResult {
   alreadyRewarded: boolean;
   currentStreak: number;
   longestStreak: number;
+  /** Correção pergunta a pergunta, com a explicação — o feedback da tela de resultado. */
+  review: ExamReviewItem[];
   /** @deprecated use `passed` — mantido para o cliente antigo */
   completed: boolean;
 }
@@ -51,7 +60,13 @@ export async function scoreLesson(
       questions: {
         where: { isActive: true },
         orderBy: { sequence: "asc" },
-        select: { id: true, correctAnswer: true },
+        select: {
+          id: true,
+          statement: true,
+          options: true,
+          correctAnswer: true,
+          explanation: true,
+        },
       },
     },
   });
@@ -70,10 +85,15 @@ export async function scoreLesson(
     throw new PhaseLockedError();
   }
 
-  const correctCount = lesson.questions.filter(
-    (question) => answers[question.id] === question.correctAnswer,
-  ).length;
-  const totalQuestions = lesson.questions.length;
+  const questions: GradableQuestion[] = lesson.questions.map((question) => ({
+    ...question,
+    options: toExamOptions(question.options),
+  }));
+  // Fases do mapa sorteiam a prova do banco; lições antigas (sem unidade)
+  // continuam corrigindo todas as perguntas.
+  const { correctCount, totalQuestions, review } = lesson.unitId
+    ? gradePhaseExam(questions, answers)
+    : gradeFullLesson(questions, answers);
   const percentage = calculatePercentage(correctCount, totalQuestions);
   const passed = percentage >= lesson.passingScore;
   const stars = calculateStars(percentage, lesson.passingScore);
@@ -190,6 +210,7 @@ export async function scoreLesson(
       alreadyRewarded: earnedXp === 0 && progress.passed,
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
+      review,
       completed: progress.passed,
     };
   });

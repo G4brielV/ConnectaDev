@@ -29,6 +29,12 @@ export interface PhaseData {
   unitTitle: string;
   area: string;
   resourceTitles: string[];
+  /** STANDARD | BONUS | BOSS — muda o escopo e o tom da prova. */
+  kind: string;
+  /** Fases da unidade em ordem; o chefão cobra todas elas. */
+  unitPhaseTitles: string[];
+  /** Enunciados já no banco da fase, para a nova leva não repetir. */
+  avoidStatements?: string[];
 }
 
 export interface CourseData {
@@ -387,10 +393,24 @@ export async function generateQuestionsForArea(
   });
 }
 
+function buildPhaseScope(phase: PhaseData): string {
+  if (phase.kind === "BOSS") {
+    const phases = phase.unitPhaseTitles.filter((title) => title !== phase.title);
+    return `Esta é a prova do CHEFÃO, o desafio final da unidade. Ela é cumulativa: distribua as perguntas entre todas as fases da unidade (${phases.join("; ")}) e inclua questões que combinem conceitos de fases diferentes, com dificuldade um pouco acima das fases comuns.`;
+  }
+  if (phase.kind === "BONUS") {
+    return "Esta é uma fase BÔNUS, opcional e sobre um tema complementar. Mantenha o nível acessível e foque no uso prático do tema.";
+  }
+  return "As perguntas devem avaliar de fato o que foi estudado nesta fase, em ordem crescente de dificuldade, sem depender de conteúdo de fases posteriores.";
+}
+
 function buildPhasePrompt(phase: PhaseData): string {
   const resources = phase.resourceTitles.length
     ? phase.resourceTitles.join("; ")
     : "materiais introdutórios do tema";
+  const avoid = phase.avoidStatements?.length
+    ? `\nA fase já tem as perguntas abaixo no banco. Não repita nenhuma delas nem faça variações com a mesma resposta — cubra outros pontos do tema:\n${phase.avoidStatements.map((statement) => `- ${statement}`).join("\n")}\n`
+    : "";
 
   return `Você é um professor de tecnologia que avalia estudantes do ensino médio e de transição de carreira no Recife.
 
@@ -399,8 +419,9 @@ Gere EXATAMENTE ${PHASE_EXAM_MIN_QUESTIONS} perguntas de múltipla escolha.
 Tema da fase: ${phase.description ?? phase.title}.
 Conteúdos estudados na fase: ${resources}.
 
-As perguntas devem avaliar de fato o que foi estudado nesta fase, em ordem crescente de dificuldade, sem depender de conteúdo de fases posteriores.
-Varie o formato entre conceito, leitura de código e aplicação prática, e distribua a alternativa correta entre A, B, C e D ao longo da prova.
+${buildPhaseScope(phase)}
+Varie o formato entre conceito e aplicação prática (e leitura de código quando o tema for programação), e distribua a alternativa correta entre A, B, C e D ao longo da prova.
+${avoid}
 ${PROMPT_RULES}`;
 }
 
