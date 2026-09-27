@@ -25,6 +25,7 @@ model User {
   reviewSessions  KnowledgeReviewSession[]
   trailProgress   UserTrailProgress[]
   xpEvents        XpEvent[]
+  activityDays    UserActivityDay[]
   courseRatings   CourseRating[]
 
   @@map("user")
@@ -363,6 +364,18 @@ model XpEvent {
 
   @@index([userId, source, referenceId, createdAt])
   @@map("xp_events")
+}
+
+// Um registro por dia de estudo (dia de Recife): o histórico do calendário da ofensiva
+model UserActivityDay {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  day       DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("user_activity_days")
 }
 
 model UserTrailProgress {

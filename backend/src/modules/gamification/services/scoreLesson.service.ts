@@ -1,6 +1,6 @@
 import { prisma } from "../../../lib/auth";
 import { calculateLevel, LEVEL_NAME } from "../constants/xpLevel";
-import { calculateNewStreak } from "./gamification.service";
+import { calculateNewStreak, recordActivityDay } from "./gamification.service";
 import { calculatePercentage, calculateStars, isPhaseUnlocked } from "./trailMapRules";
 import { loadPhaseGate } from "./getTrailMap.service";
 import {
@@ -194,6 +194,7 @@ export async function scoreLesson(
         lastActivityDate: now,
       },
     });
+    await recordActivityDay(transaction, userId, now);
 
     return {
       correctCount,
