@@ -15,7 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { useGamification } from '@/entities/gamification';
-import { fetchTrailPhase, TrailPhase } from '@/shared/api/trailMapApi';
+import { fetchTrailPhase, PhaseResource, TrailPhase } from '@/shared/api/trailMapApi';
 import { scoreLesson } from '@/shared/api/gamificationApi';
 import { colors, fonts, radius, shadow, chunky } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
@@ -25,6 +25,8 @@ import {
   firstUnansweredIndex,
   getExamButtonLabel,
   isLastQuestion,
+  optionLetter,
+  orderAnswers,
   PhaseStage,
 } from '../phaseExamState';
 
@@ -90,9 +92,13 @@ export function TrailPhasePage() {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      const result = await scoreLesson(token, phase.id, answers);
+      const result = await scoreLesson(token, phase.id, orderAnswers(phase.questions, answers));
       applySummary({ totalXp: result.totalXp, currentLevel: result.currentLevel });
-      navigation.replace('TrailPhaseResult', { result, phaseTitle: phase.title });
+      navigation.replace('TrailPhaseResult', {
+        result,
+        phaseTitle: phase.title,
+        phaseKind: phase.kind,
+      });
     } catch (error: unknown) {
       setErrorMessage(
         error instanceof Error
@@ -196,37 +202,31 @@ export function TrailPhasePage() {
           <>
             <Text style={styles.sectionTitle}>Conteúdo para estudar</Text>
             {phase.resources.map((resource) => (
-              <Pressable
-                key={resource.id}
-                onPress={() => Linking.openURL(resource.url).catch(() => {
-                  setErrorMessage('Não foi possível abrir este conteúdo.');
-                })}
-                style={styles.resourceCard}
-                accessibilityRole="link"
-                accessibilityLabel={`Abrir ${resource.title}`}
-              >
-                {resource.thumbnail ? (
-                  <Image source={{ uri: resource.thumbnail }} style={styles.thumbnail} />
-                ) : (
-                  <View style={[styles.thumbnail, styles.thumbnailFallback]}>
-                    <Feather name="play-circle" size={22} color={colors.primary} />
-                  </View>
-                )}
-                <View style={styles.resourceTexts}>
-                  <Text style={styles.resourceTitle} numberOfLines={2}>
-                    {resource.title}
-                  </Text>
-                  <Text style={styles.resourceMeta}>{resource.provider ?? resource.kind}</Text>
-                </View>
-                <Feather name="external-link" size={18} color={colors.textMuted} />
-              </Pressable>
+              <ResourceCard key={resource.id} resource={resource} onOpenError={setErrorMessage} />
             ))}
+
+            {phase.extraResources.length > 0 ? (
+              <>
+                <Text style={styles.sectionTitle}>Para você ir além</Text>
+                {phase.extraResources.map((resource) => (
+                  <ResourceCard
+                    key={resource.id}
+                    resource={resource}
+                    reason={resource.reason}
+                    onOpenError={setErrorMessage}
+                  />
+                ))}
+              </>
+            ) : null}
 
             <View style={styles.examIntro}>
               <Text style={styles.examIntroTitle}>Prova da fase</Text>
               <Text style={styles.examIntroText}>
-                {phase.questions.length} perguntas. Acerte ao menos {phase.passingScore}% para
-                liberar a próxima fase e ganhar até {phase.xpReward} XP.
+                {phase.questions.length} perguntas sorteadas a cada tentativa. Acerte ao menos{' '}
+                {phase.passingScore}%{' '}
+                {phase.kind === 'BONUS'
+                  ? `para abrir o baú e ganhar até ${phase.xpReward} XP. Esta fase é opcional.`
+                  : `para liberar a próxima fase e ganhar até ${phase.xpReward} XP.`}
               </Text>
             </View>
           </>
@@ -248,9 +248,9 @@ export function TrailPhasePage() {
 
             {currentQuestion ? (
               <View style={styles.questionCard}>
-                <Text style={styles.questionSequence}>PERGUNTA {currentQuestion.sequence}</Text>
+                <Text style={styles.questionSequence}>PERGUNTA {questionIndex + 1}</Text>
                 <Text style={styles.questionStatement}>{currentQuestion.statement}</Text>
-                {currentQuestion.options.map((option) => {
+                {currentQuestion.options.map((option, optionIndex) => {
                   const selected = answers[currentQuestion.id] === option.id;
                   return (
                     <Pressable
@@ -270,7 +270,7 @@ export function TrailPhasePage() {
                         <Text
                           style={[styles.optionBulletText, selected && styles.optionBulletTextSelected]}
                         >
-                          {option.id}
+                          {optionLetter(optionIndex)}
                         </Text>
                       </View>
                       <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
@@ -322,6 +322,42 @@ export function TrailPhasePage() {
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+interface ResourceCardProps {
+  resource: PhaseResource;
+  /** Presente nos extras: por que o curso foi sugerido para esta pessoa. */
+  reason?: string;
+  onOpenError: (message: string) => void;
+}
+
+function ResourceCard({ resource, reason, onOpenError }: ResourceCardProps) {
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(resource.url).catch(() => {
+        onOpenError('Não foi possível abrir este conteúdo.');
+      })}
+      style={styles.resourceCard}
+      accessibilityRole="link"
+      accessibilityLabel={`Abrir ${resource.title}`}
+    >
+      {resource.thumbnail ? (
+        <Image source={{ uri: resource.thumbnail }} style={styles.thumbnail} />
+      ) : (
+        <View style={[styles.thumbnail, styles.thumbnailFallback]}>
+          <Feather name="play-circle" size={22} color={colors.primary} />
+        </View>
+      )}
+      <View style={styles.resourceTexts}>
+        <Text style={styles.resourceTitle} numberOfLines={2}>
+          {resource.title}
+        </Text>
+        <Text style={styles.resourceMeta}>{resource.provider ?? resource.kind}</Text>
+        {reason ? <Text style={styles.resourceReason}>{reason}</Text> : null}
+      </View>
+      <Feather name="external-link" size={18} color={colors.textMuted} />
+    </Pressable>
   );
 }
 
@@ -417,6 +453,7 @@ const styles = StyleSheet.create({
   resourceTexts: { flex: 1, gap: 2 },
   resourceTitle: { fontFamily: fonts.sans.semiBold, fontSize: 14, color: colors.textPrimary },
   resourceMeta: { fontFamily: fonts.sans.regular, fontSize: 11, color: colors.textMuted },
+  resourceReason: { fontFamily: fonts.sans.medium, fontSize: 11, color: colors.primary },
   examIntro: {
     backgroundColor: colors.creamSoft,
     borderRadius: radius.lg,

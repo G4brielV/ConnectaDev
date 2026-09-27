@@ -10,6 +10,17 @@ export interface GamificationSummary {
   completedReviews: number;
 }
 
+export interface ExamReviewItem {
+  questionId: string;
+  statement: string;
+  options: Array<{ id: string; label: string }>;
+  /** null quando a pergunta ficou em branco (lições antigas). */
+  selectedOptionId: string | null;
+  correctOptionId: string;
+  isCorrect: boolean;
+  explanation: string | null;
+}
+
 export interface ScoreLessonResult {
   totalXp: number;
   currentLevel: number;
@@ -27,6 +38,8 @@ export interface ScoreLessonResult {
   stars: number;
   currentStreak: number;
   longestStreak: number;
+  /** Correção pergunta a pergunta, com explicação */
+  review: ExamReviewItem[];
   /** @deprecated use `passed` */
   completed: boolean;
 }

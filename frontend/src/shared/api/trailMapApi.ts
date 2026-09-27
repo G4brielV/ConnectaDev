@@ -1,6 +1,7 @@
 import { API_URL } from "../config/api";
 
-export type PhaseStatus = "completed" | "current" | "locked";
+/** "available" é o baú bônus liberado: opcional, não trava a trilha. */
+export type PhaseStatus = "completed" | "current" | "available" | "locked";
 export type PhaseKind = "STANDARD" | "BONUS" | "BOSS";
 
 export interface TrailMapPhase {
@@ -49,6 +50,11 @@ export interface PhaseResource {
   provider: string | null;
 }
 
+/** Curso do catálogo sugerido pelo perfil do quiz, com o motivo da sugestão. */
+export interface PhaseExtraResource extends PhaseResource {
+  reason: string;
+}
+
 export interface PhaseQuestion {
   id: string;
   statement: string;
@@ -66,6 +72,8 @@ export interface TrailPhase {
   passingScore: number;
   unitTitle: string;
   resources: PhaseResource[];
+  extraResources: PhaseExtraResource[];
+  /** Sorteadas do banco da fase a cada visita; `sequence` é a posição na prova. */
   questions: PhaseQuestion[];
 }
 

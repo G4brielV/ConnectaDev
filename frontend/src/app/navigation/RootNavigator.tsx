@@ -40,7 +40,7 @@ export type RootStackParamList = {
   Trails: undefined;
   TrailLesson: { lessonId: string };
   TrailPhase: { lessonId: string };
-  TrailPhaseResult: { result: ScoreLessonResult; phaseTitle: string };
+  TrailPhaseResult: { result: ScoreLessonResult; phaseTitle: string; phaseKind: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

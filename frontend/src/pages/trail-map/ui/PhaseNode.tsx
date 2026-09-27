@@ -69,7 +69,11 @@ export function PhaseNode({ phase, onPress }: PhaseNodeProps) {
         accessibilityLabel={
           isLocked
             ? `${phase.title}. Bloqueada. Conclua a fase anterior para liberar.`
-            : `${phase.title}. ${isCompleted ? `Concluída com ${phase.stars} de 3 estrelas.` : 'Disponível para começar.'}`
+            : isCompleted
+              ? `${phase.title}. Concluída com ${phase.stars} de 3 estrelas.`
+              : phase.status === 'available'
+                ? `${phase.title}. Opcional: não bloqueia a trilha.`
+                : `${phase.title}. Disponível para começar.`
         }
         accessibilityState={{ disabled: isLocked }}
         style={styles.nodeArea}
@@ -103,7 +107,9 @@ export function PhaseNode({ phase, onPress }: PhaseNodeProps) {
         {label}
       </Text>
       {!isLocked && !isCompleted ? (
-        <Text style={styles.xpHint}>+{phase.xpReward} XP</Text>
+        <Text style={styles.xpHint}>
+          +{phase.xpReward} XP{isBonus ? ' · opcional' : ''}
+        </Text>
       ) : null}
     </View>
   );

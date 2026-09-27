@@ -1,4 +1,5 @@
 import type { PhaseQuestion } from '@/shared/api/trailMapApi';
+import type { ExamReviewItem } from '@/shared/api/gamificationApi';
 
 export type PhaseStage = 'study' | 'exam';
 
@@ -57,4 +58,37 @@ export function buildResultHeadline(passed: boolean, stars: number): string {
   if (stars >= 3) return 'Perfeito!';
   if (stars === 2) return 'Muito bem!';
   return 'Fase concluída!';
+}
+
+/**
+ * As alternativas chegam embaralhadas e mantêm o id original, então a letra
+ * mostrada é a da posição na tela — senão a prova exibiria "C, A, D, B".
+ */
+export function optionLetter(index: number): string {
+  return String.fromCharCode(65 + index);
+}
+
+/** Envia as respostas na ordem da prova, que é a ordem da correção no resultado. */
+export function orderAnswers(
+  questions: PhaseQuestion[],
+  answers: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    questions
+      .filter((question) => Boolean(answers[question.id]))
+      .map((question) => [question.id, answers[question.id]]),
+  );
+}
+
+export function optionLabel(
+  options: Array<{ id: string; label: string }>,
+  optionId: string | null,
+): string {
+  if (!optionId) return 'Sem resposta';
+  return options.find((option) => option.id === optionId)?.label ?? optionId;
+}
+
+/** O que revisar primeiro: só as perguntas erradas, na ordem da prova. */
+export function reviewMistakes(review: ExamReviewItem[]): ExamReviewItem[] {
+  return review.filter((item) => !item.isCorrect);
 }

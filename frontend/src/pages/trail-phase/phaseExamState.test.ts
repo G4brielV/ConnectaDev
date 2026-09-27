@@ -8,6 +8,10 @@ import {
   firstUnansweredIndex,
   getExamButtonLabel,
   isLastQuestion,
+  optionLabel,
+  optionLetter,
+  orderAnswers,
+  reviewMistakes,
 } from "./phaseExamState";
 
 const questions = [
@@ -62,4 +66,38 @@ test("aponta a primeira pergunta em branco para quem pulou alguma", () => {
   assert.equal(firstUnansweredIndex(questions, { q1: "A", q2: "B" }), -1);
   assert.equal(firstUnansweredIndex(questions, { q2: "B" }), 0);
   assert.equal(firstUnansweredIndex(questions, { q1: "A" }), 1);
+});
+
+test("a letra da alternativa é a posição na tela, não o id embaralhado", () => {
+  assert.equal(optionLetter(0), "A");
+  assert.equal(optionLetter(3), "D");
+});
+
+test("respostas vão na ordem da prova, mesmo marcadas fora de ordem", () => {
+  const ordered = orderAnswers(questions, { q2: "B", q1: "A" });
+  assert.deepEqual(Object.keys(ordered), ["q1", "q2"]);
+  assert.deepEqual(orderAnswers(questions, { q2: "B" }), { q2: "B" });
+});
+
+test("o feedback mostra o texto da alternativa e trata resposta em branco", () => {
+  const options = [
+    { id: "A", label: "HTML" },
+    { id: "B", label: "SQL" },
+  ];
+  assert.equal(optionLabel(options, "B"), "SQL");
+  assert.equal(optionLabel(options, null), "Sem resposta");
+});
+
+test("a revisão lista só as perguntas erradas", () => {
+  const base = {
+    statement: "s",
+    options: [],
+    correctOptionId: "A",
+    explanation: null,
+  };
+  const review = [
+    { ...base, questionId: "q1", selectedOptionId: "A", isCorrect: true },
+    { ...base, questionId: "q2", selectedOptionId: "B", isCorrect: false },
+  ];
+  assert.deepEqual(reviewMistakes(review).map((item) => item.questionId), ["q2"]);
 });

@@ -6,7 +6,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, radius, shadow, chunky } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
-import { buildResultHeadline } from '@/pages/trail-phase/phaseExamState';
+import {
+  buildResultHeadline,
+  optionLabel,
+  reviewMistakes,
+} from '@/pages/trail-phase/phaseExamState';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'TrailPhaseResult'>;
 type ResultRouteProp = RouteProp<RootStackParamList, 'TrailPhaseResult'>;
@@ -14,9 +18,11 @@ type ResultRouteProp = RouteProp<RootStackParamList, 'TrailPhaseResult'>;
 export function TrailPhaseResultPage() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ResultRouteProp>();
-  const { result, phaseTitle } = route.params;
+  const { result, phaseTitle, phaseKind } = route.params;
+  const isBonus = phaseKind === 'BONUS';
 
   const headline = buildResultHeadline(result.passed, result.stars);
+  const mistakes = reviewMistakes(result.review);
 
   const backToTrail = () => navigation.navigate('Home', { tab: 'trail' });
 
@@ -85,16 +91,57 @@ export function TrailPhaseResultPage() {
         ) : null}
 
         <Text style={styles.message}>
-          {result.passed
-            ? 'A próxima fase está liberada. Bora continuar?'
-            : `Você precisa de ${result.passingScore}% para avançar. Revise o conteúdo e tente de novo — sem penalidade.`}
+          {isBonus
+            ? result.passed
+              ? 'Baú aberto! O XP extra já está na sua conta.'
+              : `O baú abre com ${result.passingScore}%. Ele é opcional: siga na trilha e volte quando quiser.`
+            : result.passed
+              ? 'A próxima fase está liberada. Bora continuar?'
+              : `Você precisa de ${result.passingScore}% para avançar. Revise o conteúdo e tente de novo — sem penalidade.`}
         </Text>
+
+        {mistakes.length > 0 ? (
+          <View style={styles.review}>
+            <Text style={styles.reviewTitle}>
+              Revise {mistakes.length === 1 ? 'o que errou' : `as ${mistakes.length} que errou`}
+            </Text>
+            <Text style={styles.reviewHint}>
+              A próxima tentativa sorteia outras perguntas, então vale entender o porquê.
+            </Text>
+            {mistakes.map((item, index) => (
+              <View key={item.questionId} style={styles.reviewCard}>
+                <Text style={styles.reviewStatement}>
+                  {index + 1}. {item.statement}
+                </Text>
+                <View style={styles.reviewAnswer}>
+                  <Feather name="x-circle" size={15} color={colors.danger} />
+                  <Text style={styles.reviewWrong}>
+                    {optionLabel(item.options, item.selectedOptionId)}
+                  </Text>
+                </View>
+                <View style={styles.reviewAnswer}>
+                  <Feather name="check-circle" size={15} color={colors.success} />
+                  <Text style={styles.reviewRight}>
+                    {optionLabel(item.options, item.correctOptionId)}
+                  </Text>
+                </View>
+                {item.explanation ? (
+                  <Text style={styles.reviewExplanation}>{item.explanation}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
         <Pressable onPress={backToTrail} style={styles.cta} accessibilityRole="button">
           <Text style={styles.ctaText}>
-            {result.passed ? 'Ir para a próxima fase' : 'Voltar e revisar'}
+            {isBonus
+              ? 'Voltar para a trilha'
+              : result.passed
+                ? 'Ir para a próxima fase'
+                : 'Voltar e revisar'}
           </Text>
           <Feather name="arrow-right" size={18} color={colors.textOnPrimary} />
         </Pressable>
@@ -163,6 +210,54 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     maxWidth: 300,
+  },
+  review: { width: '100%', marginTop: 28, gap: 10 },
+  reviewTitle: { fontFamily: fonts.sans.bold, fontSize: 16, color: colors.textPrimary },
+  reviewHint: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+    marginTop: -4,
+  },
+  reviewCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.light,
+    borderRadius: radius.lg,
+    padding: 14,
+    gap: 8,
+  },
+  reviewStatement: {
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textPrimary,
+  },
+  reviewAnswer: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  reviewWrong: {
+    flex: 1,
+    fontFamily: fonts.sans.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.danger,
+    textDecorationLine: 'line-through',
+  },
+  reviewRight: {
+    flex: 1,
+    fontFamily: fonts.sans.medium,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.success,
+  },
+  reviewExplanation: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textBody,
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.md,
+    padding: 10,
   },
   footer: {
     position: 'absolute',
