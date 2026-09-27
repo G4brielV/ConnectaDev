@@ -40,6 +40,8 @@ As tabelas de negócio atualmente implementadas são:
 - `user_gamification`
 - `xp_events`
 - `user_trail_progress`
+- `trail_practice_sessions`
+- `trail_practice_items`
 
 Não fazem parte do schema atual tabelas de desafios de código, fórum, eventos, vagas ou
 infraestrutura pública.
@@ -60,6 +62,9 @@ erDiagram
     trails ||--o{ trail_lessons : "contém"
     trail_lessons ||--o{ trail_questions : "possui"
     trail_lessons ||--o{ user_trail_progress : "é concluída"
+    user ||--o{ trail_practice_sessions : "pratica"
+    trail_practice_sessions ||--o{ trail_practice_items : "contém"
+    trail_questions ||--o{ trail_practice_items : "é sorteada"
     user ||--o{ user_course_bookmarks : "salva"
     courses ||--o{ user_course_bookmarks : "é salvo"
     user ||--o{ course_ratings : "avalia"
@@ -101,6 +106,11 @@ transação. A prevenção de excesso é feita comparando o XP proporcional alvo
 somada ao saldo. Quando o usuário atinge o XP máximo da lição, novas tentativas
 não criam evento nem concedem XP. `user_trail_progress` continua responsável
 por acertos, tentativas e conclusão da lição.
+
+A prática do dia grava eventos com `source = TRAIL_PRACTICE` e
+`reference_id = <id da sessão>`. O teto é de uma sessão premiada por dia de
+estudo (dia de Recife), garantido pelo unique `(user_id, rewarded_day)` de
+`trail_practice_sessions` — ver 7.8.
 
 ---
 
@@ -395,6 +405,54 @@ Restrições e índices:
    `currentLevel`, `levelName`, `currentStreak`, `longestStreak`, `lastActivityDate` e
    `completedReviews` (contagem de sessões `COMPLETED` do usuário).
 2. Usuários sem registro em `user_gamification` recebem zeros, com `currentLevel = 1`.
+
+### 7.8. Prática do Dia
+
+Hábito diário enquanto a fase não é vencida: 5 perguntas do mesmo banco da prova
+(`trail_questions`, até 40 por fase) — 3 da fase atual e 2 de revisão das fases
+concluídas. Não muda o gate: só a prova libera a próxima fase.
+
+1. `POST /api/trails/practice` escolhe as perguntas (nunca vistas primeiro, depois
+   as erradas, por último as acertadas), cria a sessão e os itens e devolve as
+   perguntas **sem** `correct_answer`.
+2. `POST /api/trails/practice/:sessionId/answers` grava a resposta de uma pergunta e
+   devolve a correção com a explicação. Vale a primeira resposta: o update só
+   acontece onde `selected_option_id` ainda é nulo, e reenvios devolvem o que já foi
+   gravado.
+3. `POST /api/trails/practice/:sessionId/complete` exige todas as respostas, marca
+   `completed_at` (409 se já finalizada) e, se ainda não houver sessão com
+   `rewarded_day` igual a hoje, paga 2 XP por acerto (até 10) e grava `rewarded_day`.
+   As sessões seguintes do dia são treino livre, com 0 XP. Em todos os casos
+   `user_gamification` e `user_activity_days` registram o estudo do dia na mesma
+   transação.
+
+Tabela `trail_practice_sessions`:
+
+| Coluna | Tipo Prisma | Nulo | Chave/Regra | Default | Descrição |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `String` | Não | PK | `uuid()` | Identificador da sessão |
+| `user_id` | `String` | Não | FK → `user.id` | - | Quem praticou |
+| `correct_count` | `Int` | Não | - | `0` | Acertos ao finalizar |
+| `xp_earned` | `Int` | Não | - | `0` | XP pago por esta sessão |
+| `rewarded_day` | `DateTime` (`DATE`) | Sim | unique com `user_id` | - | Dia (Recife) em que esta sessão levou o XP da prática |
+| `completed_at` | `DateTime` | Sim | - | - | Quando foi finalizada |
+| `created_at` | `DateTime` | Não | - | `now()` | Quando foi aberta |
+
+Tabela `trail_practice_items`:
+
+| Coluna | Tipo Prisma | Nulo | Chave/Regra | Default | Descrição |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `String` | Não | PK | `uuid()` | Identificador do item |
+| `session_id` | `String` | Não | FK → `trail_practice_sessions.id` | - | Sessão |
+| `question_id` | `String` | Não | FK → `trail_questions.id` | - | Pergunta sorteada |
+| `sequence` | `Int` | Não | unique com `session_id` | - | Posição na prática |
+| `selected_option_id` | `String` | Sim | - | - | Primeira resposta dada |
+| `is_correct` | `Boolean` | Sim | - | - | Se a primeira resposta acertou |
+| `answered_at` | `DateTime` | Sim | - | - | Quando respondeu |
+
+`@@unique([sessionId, questionId])` impede a mesma pergunta duas vezes na sessão.
+Todas as FKs usam `onDelete: Cascade`. O histórico de itens é o que prioriza as
+perguntas nunca vistas nas próximas práticas.
 
 ---
 
