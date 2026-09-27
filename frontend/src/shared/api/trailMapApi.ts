@@ -30,6 +30,14 @@ export interface TrailMapUnit {
   progressPercentage: number;
 }
 
+export interface DailyPracticeStatus {
+  /** Há fase atual ou concluída para tirar perguntas. */
+  available: boolean;
+  /** A prática com XP de hoje ainda não foi feita. */
+  rewardAvailable: boolean;
+  maxXp: number;
+}
+
 export interface TrailMap {
   hasDiagnosis: boolean;
   area: string | null;
@@ -39,6 +47,7 @@ export interface TrailMap {
   completedPhases: number;
   totalPhases: number;
   finished: boolean;
+  dailyPractice: DailyPracticeStatus;
 }
 
 export interface PhaseResource {
