@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "vitest";
 import {
   calculatePercentage,
   calculateStars,
@@ -27,14 +26,8 @@ test("a primeira fase abre para quem nunca jogou e o resto fica travado", () => 
     phase("c", 3, null),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.status),
-    ["current", "locked", "locked"],
-  );
-  assert.deepEqual(
-    states.map((s) => s.unlocked),
-    [true, false, false],
-  );
+  expect(states.map((s) => s.status)).toEqual(["current", "locked", "locked"]);
+  expect(states.map((s) => s.unlocked)).toEqual([true, false, false]);
 });
 
 test("aprovar uma fase libera exatamente a seguinte", () => {
@@ -44,10 +37,7 @@ test("aprovar uma fase libera exatamente a seguinte", () => {
     phase("c", 3, null),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.status),
-    ["completed", "current", "locked"],
-  );
+  expect(states.map((s) => s.status)).toEqual(["completed", "current", "locked"]);
 });
 
 test("reprovar não libera a próxima fase", () => {
@@ -56,11 +46,8 @@ test("reprovar não libera a próxima fase", () => {
     phase("b", 2, null),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.status),
-    ["current", "locked"],
-  );
-  assert.equal(isPhaseUnlocked([phase("a", 1, failed), phase("b", 2, null)], "b"), false);
+  expect(states.map((s) => s.status)).toEqual(["current", "locked"]);
+  expect(isPhaseUnlocked([phase("a", 1, failed), phase("b", 2, null)], "b")).toBe(false);
 });
 
 test("só existe uma fase atual, mesmo com buraco no progresso", () => {
@@ -71,8 +58,8 @@ test("só existe uma fase atual, mesmo com buraco no progresso", () => {
     phase("d", 4, null),
   ]);
 
-  assert.equal(states.filter((s) => s.status === "current").length, 1);
-  assert.equal(states.find((s) => s.status === "current")?.id, "c");
+  expect(states.filter((s) => s.status === "current").length).toBe(1);
+  expect(states.find((s) => s.status === "current")?.id).toBe("c");
 });
 
 test("a ordem vem da sequence, não da ordem do array", () => {
@@ -82,16 +69,13 @@ test("a ordem vem da sequence, não da ordem do array", () => {
     phase("b", 2, null),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.id),
-    ["a", "b", "c"],
-  );
-  assert.equal(states[1]?.status, "current");
+  expect(states.map((s) => s.id)).toEqual(["a", "b", "c"]);
+  expect(states[1]?.status).toBe("current");
 });
 
 test("uma trilha inteira concluída não tem fase atual", () => {
   const states = resolvePhaseStates([phase("a", 1, passed), phase("b", 2, passed)]);
-  assert.equal(states.some((s) => s.status === "current"), false);
+  expect(states.some((s) => s.status === "current")).toBe(false);
 });
 
 test("o baú bônus não trava a trilha: a fase seguinte abre sem ele", () => {
@@ -101,11 +85,8 @@ test("o baú bônus não trava a trilha: a fase seguinte abre sem ele", () => {
     phase("boss", 3, null, "BOSS"),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.status),
-    ["completed", "available", "current"],
-  );
-  assert.equal(isPhaseUnlocked(states, "boss"), true);
+  expect(states.map((s) => s.status)).toEqual(["completed", "available", "current"]);
+  expect(isPhaseUnlocked(states, "boss")).toBe(true);
 });
 
 test("o baú bônus só abre depois da fase obrigatória anterior", () => {
@@ -115,10 +96,7 @@ test("o baú bônus só abre depois da fase obrigatória anterior", () => {
     phase("b", 3, null),
   ]);
 
-  assert.deepEqual(
-    states.map((s) => s.status),
-    ["current", "locked", "locked"],
-  );
+  expect(states.map((s) => s.status)).toEqual(["current", "locked", "locked"]);
 });
 
 test("reprovar no bônus não bloqueia nada e aprovar nele o conclui", () => {
@@ -127,14 +105,14 @@ test("reprovar no bônus não bloqueia nada e aprovar nele o conclui", () => {
     phase("bonus", 2, failed, "BONUS"),
     phase("b", 3, null),
   ]);
-  assert.equal(skipped.find((s) => s.id === "b")?.status, "current");
+  expect(skipped.find((s) => s.id === "b")?.status).toBe("current");
 
   const done = resolvePhaseStates([
     phase("a", 1, passed),
     phase("bonus", 2, passed, "BONUS"),
     phase("b", 3, null),
   ]);
-  assert.equal(done.find((s) => s.id === "bonus")?.status, "completed");
+  expect(done.find((s) => s.id === "bonus")?.status).toBe("completed");
 });
 
 test("a trilha termina com as obrigatórias aprovadas, mesmo sem o bônus", () => {
@@ -143,29 +121,29 @@ test("a trilha termina com as obrigatórias aprovadas, mesmo sem o bônus", () =
     phase("bonus", 2, null, "BONUS"),
     phase("boss", 3, passed, "BOSS"),
   ]);
-  assert.equal(isTrailFinished(withoutBonus), true);
+  expect(isTrailFinished(withoutBonus)).toBe(true);
 
   const missingBoss = resolvePhaseStates([
     phase("a", 1, passed),
     phase("bonus", 2, passed, "BONUS"),
     phase("boss", 3, null, "BOSS"),
   ]);
-  assert.equal(isTrailFinished(missingBoss), false);
-  assert.equal(isTrailFinished([]), false);
+  expect(isTrailFinished(missingBoss)).toBe(false);
+  expect(isTrailFinished([])).toBe(false);
 });
 
 test("estrelas seguem o desempenho e exigem aprovação", () => {
-  assert.equal(calculateStars(100, 60), 3);
-  assert.equal(calculateStars(80, 60), 2);
-  assert.equal(calculateStars(79, 60), 1);
-  assert.equal(calculateStars(60, 60), 1, "exatamente na nota de corte já aprova");
-  assert.equal(calculateStars(59, 60), 0);
-  assert.equal(calculateStars(0, 60), 0);
+  expect(calculateStars(100, 60)).toBe(3);
+  expect(calculateStars(80, 60)).toBe(2);
+  expect(calculateStars(79, 60)).toBe(1);
+  expect(calculateStars(60, 60), "exatamente na nota de corte já aprova").toBe(1);
+  expect(calculateStars(59, 60)).toBe(0);
+  expect(calculateStars(0, 60)).toBe(0);
 });
 
 test("percentual arredonda e tolera lição sem questão", () => {
-  assert.equal(calculatePercentage(1, 3), 33);
-  assert.equal(calculatePercentage(2, 3), 67);
-  assert.equal(calculatePercentage(5, 5), 100);
-  assert.equal(calculatePercentage(0, 0), 0);
+  expect(calculatePercentage(1, 3)).toBe(33);
+  expect(calculatePercentage(2, 3)).toBe(67);
+  expect(calculatePercentage(5, 5)).toBe(100);
+  expect(calculatePercentage(0, 0)).toBe(0);
 });

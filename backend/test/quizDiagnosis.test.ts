@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test, { mock } from "node:test";
+import { expect, test, vi } from "vitest";
 import fastify from "fastify";
 import {
   QuizDiagnosisRepository,
@@ -17,7 +16,7 @@ test("getQuizDiagnosisService reports not completed when there is no diagnosis",
 
   const status = await getQuizDiagnosisService("user-1", repository);
 
-  assert.deepEqual(status, {
+  expect(status).toEqual({
     completed: false,
     areaPrincipal: null,
     tecnologiasSugeridas: [],
@@ -27,7 +26,7 @@ test("getQuizDiagnosisService reports not completed when there is no diagnosis",
 test("getQuizDiagnosisService maps the stored diagnosis and keeps only string technologies", async () => {
   const repository: QuizDiagnosisRepository = {
     findDiagnosis: async (userId) => {
-      assert.equal(userId, "user-1");
+      expect(userId).toBe("user-1");
       return {
         areaPrincipal: "Desenvolvimento Web",
         tecnologiasSugeridas: ["React", 42, "Node.js", null],
@@ -37,7 +36,7 @@ test("getQuizDiagnosisService maps the stored diagnosis and keeps only string te
 
   const status = await getQuizDiagnosisService("user-1", repository);
 
-  assert.deepEqual(status, {
+  expect(status).toEqual({
     completed: true,
     areaPrincipal: "Desenvolvimento Web",
     tecnologiasSugeridas: ["React", "Node.js"],
@@ -49,16 +48,16 @@ test("getQuizDiagnosisService treats a non-array technologies payload as empty",
     findDiagnosis: async () => ({ areaPrincipal: "Dados", tecnologiasSugeridas: "SQL" }),
   });
 
-  assert.deepEqual(status.tecnologiasSugeridas, []);
-  assert.equal(status.completed, true);
+  expect(status.tecnologiasSugeridas).toEqual([]);
+  expect(status.completed).toBe(true);
 });
 
 // ---------- Controller ----------
 
 test("controller answers 200 with the diagnosis of the session user", async () => {
-  const send = mock.fn((payload: unknown) => payload);
-  const status = mock.fn(() => ({ send }));
-  const loadDiagnosis = mock.fn(async (userId: string) => ({
+  const send = vi.fn((payload: unknown) => payload);
+  const status = vi.fn(() => ({ send }));
+  const loadDiagnosis = vi.fn(async (userId: string) => ({
     completed: true,
     areaPrincipal: userId === "user-1" ? "Dados" : "outro",
     tecnologiasSugeridas: ["SQL"],
@@ -74,9 +73,9 @@ test("controller answers 200 with the diagnosis of the session user", async () =
     },
   );
 
-  assert.equal(loadDiagnosis.mock.calls[0]?.arguments[0], "user-1");
-  assert.equal(status.mock.calls[0]?.arguments[0], 200);
-  assert.deepEqual(send.mock.calls[0]?.arguments[0], {
+  expect(loadDiagnosis.mock.calls[0][0]).toBe("user-1");
+  expect(status.mock.calls[0][0]).toBe(200);
+  expect(send.mock.calls[0][0]).toEqual({
     completed: true,
     areaPrincipal: "Dados",
     tecnologiasSugeridas: ["SQL"],
@@ -84,23 +83,21 @@ test("controller answers 200 with the diagnosis of the session user", async () =
 });
 
 test("controller rejects unauthenticated requests in production", async () => {
-  await assert.rejects(
-    () =>
-      getQuizDiagnosisController({ headers: {} } as never, {} as never, {
-        loadDiagnosis: async () => {
-          throw new Error("must not be called");
-        },
-        getSession: async () => null,
-        isProduction: () => true,
-      }),
-    { message: "É necessário estar autenticado para consultar o diagnóstico." },
-  );
+  await expect(
+    getQuizDiagnosisController({ headers: {} } as never, {} as never, {
+      loadDiagnosis: async () => {
+        throw new Error("must not be called");
+      },
+      getSession: async () => null,
+      isProduction: () => true,
+    }),
+  ).rejects.toMatchObject({ message: "É necessário estar autenticado para consultar o diagnóstico." });
 });
 
 test("controller falls back to the development user outside production", async () => {
-  const send = mock.fn((payload: unknown) => payload);
-  const status = mock.fn(() => ({ send }));
-  const loadDiagnosis = mock.fn(async () => ({
+  const send = vi.fn((payload: unknown) => payload);
+  const status = vi.fn(() => ({ send }));
+  const loadDiagnosis = vi.fn(async () => ({
     completed: false,
     areaPrincipal: null,
     tecnologiasSugeridas: [],
@@ -113,8 +110,8 @@ test("controller falls back to the development user outside production", async (
     isProduction: () => false,
   });
 
-  assert.equal(loadDiagnosis.mock.calls[0]?.arguments[0], "development-user");
-  assert.equal(status.mock.calls[0]?.arguments[0], 200);
+  expect(loadDiagnosis.mock.calls[0][0]).toBe("development-user");
+  expect(status.mock.calls[0][0]).toBe(200);
 });
 
 test("controller forwards the Authorization header to the session resolver", async () => {
@@ -132,7 +129,7 @@ test("controller forwards the Authorization header to the session resolver", asy
     },
   );
 
-  assert.deepEqual(seenHeaders, ["Bearer abc", "a,b"]);
+  expect(seenHeaders).toEqual(["Bearer abc", "a,b"]);
 });
 
 // ---------- Integração HTTP (rota + errorHandler, sem banco) ----------
@@ -163,9 +160,9 @@ test("GET /api/quiz/diagnosis returns the JSON status for an authenticated user"
     headers: { authorization: "Bearer token" },
   });
 
-  assert.equal(response.statusCode, 200);
-  assert.equal(response.headers["content-type"]?.toString().includes("application/json"), true);
-  assert.deepEqual(response.json(), {
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]?.toString().includes("application/json")).toBe(true);
+  expect(response.json()).toEqual({
     completed: true,
     areaPrincipal: "area-de-user-1",
     tecnologiasSugeridas: ["React"],
@@ -178,8 +175,8 @@ test("GET /api/quiz/diagnosis reports completed=false for a user without diagnos
 
   const response = await app.inject({ method: "GET", url: "/api/quiz/diagnosis" });
 
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), {
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({
     completed: false,
     areaPrincipal: null,
     tecnologiasSugeridas: [],
@@ -192,8 +189,8 @@ test("GET /api/quiz/diagnosis answers 401 through the error handler when unauthe
 
   const response = await app.inject({ method: "GET", url: "/api/quiz/diagnosis" });
 
-  assert.equal(response.statusCode, 401);
-  assert.deepEqual(response.json(), {
+  expect(response.statusCode).toBe(401);
+  expect(response.json()).toEqual({
     statusCode: 401,
     error: "App Error",
     message: "É necessário estar autenticado para consultar o diagnóstico.",

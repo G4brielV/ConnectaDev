@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test, { mock } from "node:test";
+import { expect, test, vi } from "vitest";
 import { submitQuizController } from "../src/modules/quiz/controllers/submitQuiz.controller";
 
 const ANALYSIS = {
@@ -12,7 +11,7 @@ const ANALYSIS = {
 const BODY = { answers: { "q-1": "Gosto de construir telas" } };
 
 function replyStub() {
-  const send = mock.fn((payload: unknown) => payload);
+  const send = vi.fn((payload: unknown) => payload);
   return { reply: { send } as never, send };
 }
 
@@ -21,8 +20,8 @@ function replyStub() {
 // a cada login para quem já tinha respondido.
 test("controller saves the diagnosis for the session user outside production", async () => {
   const { reply, send } = replyStub();
-  const saveDiagnosis = mock.fn(async () => {});
-  const analyzeQuiz = mock.fn(async () => ANALYSIS);
+  const saveDiagnosis = vi.fn(async () => {});
+  const analyzeQuiz = vi.fn(async () => ANALYSIS);
 
   await submitQuizController(
     { headers: { authorization: "Bearer token" }, body: BODY } as never,
@@ -38,16 +37,16 @@ test("controller saves the diagnosis for the session user outside production", a
     },
   );
 
-  assert.equal(analyzeQuiz.mock.calls[0]?.arguments[1], "user-1");
-  assert.equal(saveDiagnosis.mock.calls[0]?.arguments[0], "user-1");
-  assert.deepEqual(saveDiagnosis.mock.calls[0]?.arguments[1], ANALYSIS);
-  assert.deepEqual(send.mock.calls[0]?.arguments[0], ANALYSIS);
+  expect(analyzeQuiz.mock.calls[0][1]).toBe("user-1");
+  expect(saveDiagnosis.mock.calls[0][0]).toBe("user-1");
+  expect(saveDiagnosis.mock.calls[0][1]).toEqual(ANALYSIS);
+  expect(send.mock.calls[0][0]).toEqual(ANALYSIS);
 });
 
 test("controller forwards the Authorization header to the session resolver", async () => {
   const { reply } = replyStub();
-  const getSession = mock.fn(async ({ headers }: { headers: Headers }) => {
-    assert.equal(headers.get("authorization"), "Bearer token-123");
+  const getSession = vi.fn(async ({ headers }: { headers: Headers }) => {
+    expect(headers.get("authorization")).toBe("Bearer token-123");
     return { user: { id: "user-1" } };
   });
 
@@ -62,12 +61,12 @@ test("controller forwards the Authorization header to the session resolver", asy
     },
   );
 
-  assert.equal(getSession.mock.callCount(), 1);
+  expect(getSession.mock.calls.length).toBe(1);
 });
 
 test("controller falls back to the development user outside production", async () => {
   const { reply } = replyStub();
-  const saveDiagnosis = mock.fn(async () => {});
+  const saveDiagnosis = vi.fn(async () => {});
 
   await submitQuizController({ headers: {}, body: BODY } as never, reply, {
     saveDiagnosis,
@@ -77,43 +76,39 @@ test("controller falls back to the development user outside production", async (
     isProduction: () => false,
   });
 
-  assert.equal(saveDiagnosis.mock.calls[0]?.arguments[0], "development-user");
+  expect(saveDiagnosis.mock.calls[0][0]).toBe("development-user");
 });
 
 test("controller rejects unauthenticated requests in production", async () => {
   const { reply } = replyStub();
 
-  await assert.rejects(
-    () =>
-      submitQuizController({ headers: {}, body: BODY } as never, reply, {
-        getSession: async () => null,
-        isProduction: () => true,
-        analyzeQuiz: async () => {
-          throw new Error("must not be called");
-        },
-        saveDiagnosis: async () => {
-          throw new Error("must not be called");
-        },
-      }),
-    { message: "É necessário estar autenticado para enviar o quiz." },
-  );
+  await expect(
+    submitQuizController({ headers: {}, body: BODY } as never, reply, {
+      getSession: async () => null,
+      isProduction: () => true,
+      analyzeQuiz: async () => {
+        throw new Error("must not be called");
+      },
+      saveDiagnosis: async () => {
+        throw new Error("must not be called");
+      },
+    }),
+  ).rejects.toMatchObject({ message: "É necessário estar autenticado para enviar o quiz." });
 });
 
 test("controller rejects a payload without answers", async () => {
   const { reply } = replyStub();
 
-  await assert.rejects(
-    () =>
-      submitQuizController({ headers: {}, body: {} } as never, reply, {
-        getSession: async () => ({ user: { id: "user-1" } }),
-        isProduction: () => false,
-        analyzeQuiz: async () => {
-          throw new Error("must not be called");
-        },
-        saveDiagnosis: async () => {
-          throw new Error("must not be called");
-        },
-      }),
-    { message: "As respostas do quiz são obrigatórias." },
-  );
+  await expect(
+    submitQuizController({ headers: {}, body: {} } as never, reply, {
+      getSession: async () => ({ user: { id: "user-1" } }),
+      isProduction: () => false,
+      analyzeQuiz: async () => {
+        throw new Error("must not be called");
+      },
+      saveDiagnosis: async () => {
+        throw new Error("must not be called");
+      },
+    }),
+  ).rejects.toMatchObject({ message: "As respostas do quiz são obrigatórias." });
 });

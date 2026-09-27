@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "vitest";
 import {
   drawExam,
   gradeFullLesson,
@@ -45,32 +44,28 @@ test("shuffle mantém os mesmos itens e não mexe na entrada", () => {
   const input = [1, 2, 3, 4, 5];
   const output = shuffle(input, seededRandom(7));
 
-  assert.deepEqual([...output].sort(), [1, 2, 3, 4, 5]);
-  assert.deepEqual(input, [1, 2, 3, 4, 5]);
+  expect([...output].sort()).toEqual([1, 2, 3, 4, 5]);
+  expect(input).toEqual([1, 2, 3, 4, 5]);
 });
 
 test("a prova sorteia 10 perguntas distintas do banco, com as alternativas embaralhadas", () => {
   const exam = drawExam(pool, PHASE_EXAM_SIZE, seededRandom(42));
 
-  assert.equal(exam.length, PHASE_EXAM_SIZE);
-  assert.equal(new Set(exam.map((q) => q.id)).size, PHASE_EXAM_SIZE);
+  expect(exam.length).toBe(PHASE_EXAM_SIZE);
+  expect(new Set(exam.map((q) => q.id)).size).toBe(PHASE_EXAM_SIZE);
   for (const drawn of exam) {
-    assert.deepEqual(
-      drawn.options.map((option) => option.id).sort(),
-      ["A", "B", "C", "D"],
-      "embaralhar não pode perder nem trocar o id das alternativas",
-    );
+    expect(drawn.options.map((option) => option.id).sort(), "embaralhar não pode perder nem trocar o id das alternativas").toEqual(["A", "B", "C", "D"]);
   }
 });
 
 test("tentativas diferentes sorteiam provas diferentes", () => {
   const first = drawExam(pool, PHASE_EXAM_SIZE, seededRandom(1)).map((q) => q.id);
   const second = drawExam(pool, PHASE_EXAM_SIZE, seededRandom(2)).map((q) => q.id);
-  assert.notDeepEqual(first, second);
+  expect(first).not.toEqual(second);
 });
 
 test("banco menor que a prova serve tudo o que tem", () => {
-  assert.equal(drawExam(pool.slice(0, 6), PHASE_EXAM_SIZE, seededRandom(3)).length, 6);
+  expect(drawExam(pool.slice(0, 6), PHASE_EXAM_SIZE, seededRandom(3)).length).toBe(6);
 });
 
 test("a correção devolve acertos e o feedback de cada pergunta", () => {
@@ -81,25 +76,19 @@ test("a correção devolve acertos e o feedback de cada pergunta", () => {
 
   const grade = gradePhaseExam(pool, answers);
 
-  assert.equal(grade.correctCount, 7);
-  assert.equal(grade.totalQuestions, 10);
+  expect(grade.correctCount).toBe(7);
+  expect(grade.totalQuestions).toBe(10);
   const wrong = grade.review.find((item) => item.questionId === "q9");
-  assert.deepEqual(
-    {
+  expect({
       selected: wrong?.selectedOptionId,
       correct: wrong?.correctOptionId,
       isCorrect: wrong?.isCorrect,
       explanation: wrong?.explanation,
-    },
-    { selected: "A", correct: "B", isCorrect: false, explanation: "Porque B na 9" },
-  );
+    }).toEqual({ selected: "A", correct: "B", isCorrect: false, explanation: "Porque B na 9" });
 });
 
 test("não aceita prova incompleta — responder só as que sabe não passa", () => {
-  assert.throws(
-    () => gradePhaseExam(pool, { q1: "B", q2: "B" }),
-    InvalidExamAnswersError,
-  );
+  expect(() => gradePhaseExam(pool, { q1: "B", q2: "B" })).toThrow(InvalidExamAnswersError);
 });
 
 test("não aceita pergunta que não é do banco da fase", () => {
@@ -107,21 +96,21 @@ test("não aceita pergunta que não é do banco da fase", () => {
   pool.slice(0, 9).forEach((q) => {
     answers[q.id] = "B";
   });
-  assert.throws(() => gradePhaseExam(pool, answers), InvalidExamAnswersError);
+  expect(() => gradePhaseExam(pool, answers)).toThrow(InvalidExamAnswersError);
 });
 
 test("banco pequeno exige responder todas as perguntas dele", () => {
   const small = pool.slice(0, 4);
   const grade = gradePhaseExam(small, { q1: "B", q2: "B", q3: "C", q4: "B" });
-  assert.equal(grade.correctCount, 3);
-  assert.equal(grade.totalQuestions, 4);
+  expect(grade.correctCount).toBe(3);
+  expect(grade.totalQuestions).toBe(4);
 });
 
 test("lição antiga conta todas as perguntas, em branco vira erro", () => {
   const grade = gradeFullLesson(pool.slice(0, 3), { q1: "B" });
-  assert.equal(grade.correctCount, 1);
-  assert.equal(grade.totalQuestions, 3);
-  assert.equal(grade.review[2]?.selectedOptionId, null);
+  expect(grade.correctCount).toBe(1);
+  expect(grade.totalQuestions).toBe(3);
+  expect(grade.review[2]?.selectedOptionId).toBe(null);
 });
 
 const catalog: ExtraCourseCandidate[] = [
@@ -158,13 +147,13 @@ const noProfile = { technologies: [], areasSecundarias: [] };
 
 test("extras só trazem cursos do tema da fase", () => {
   const extras = pickExtraResources(catalog, ["HTML"], noProfile);
-  assert.deepEqual(extras.map((extra) => extra.id), ["web"]);
-  assert.match(extras[0]?.reason ?? "", /aprofundar HTML/);
+  expect(extras.map((extra) => extra.id)).toEqual(["web"]);
+  expect(extras[0]?.reason ?? "").toMatch(/aprofundar HTML/);
 });
 
 test("extras ignoram acento e caixa nas tags", () => {
   const extras = pickExtraResources(catalog, ["logica de programacao"], noProfile);
-  assert.deepEqual(extras.map((extra) => extra.id), ["web"]);
+  expect(extras.map((extra) => extra.id)).toEqual(["web"]);
 });
 
 test("o perfil do quiz ordena os extras e explica o motivo", () => {
@@ -173,8 +162,8 @@ test("o perfil do quiz ordena os extras e explica o motivo", () => {
     areasSecundarias: [],
   });
 
-  assert.deepEqual(extras.map((extra) => extra.id), ["dados", "web"]);
-  assert.equal(extras[0]?.reason, "Seu quiz indicou Python.");
+  expect(extras.map((extra) => extra.id)).toEqual(["dados", "web"]);
+  expect(extras[0]?.reason).toBe("Seu quiz indicou Python.");
 });
 
 test("área secundária do quiz também pesa no motivo", () => {
@@ -182,26 +171,17 @@ test("área secundária do quiz também pesa no motivo", () => {
     technologies: [],
     areasSecundarias: ["Dados e Inteligência Artificial"],
   });
-  assert.equal(extras[0]?.reason, "Conecta com Dados e Inteligência Artificial, uma das suas áreas secundárias.");
+  expect(extras[0]?.reason).toBe("Conecta com Dados e Inteligência Artificial, uma das suas áreas secundárias.");
 });
 
 test("extras não repetem o que já está na fase e respeitam o limite", () => {
-  assert.deepEqual(
-    pickExtraResources(catalog, ["HTML"], noProfile, ["https://youtube.com/web"]),
-    [],
-  );
-  assert.equal(pickExtraResources(catalog, ["HTML", "SQL", "UX"], noProfile).length, 2);
-  assert.deepEqual(pickExtraResources(catalog, [], noProfile), []);
+  expect(pickExtraResources(catalog, ["HTML"], noProfile, ["https://youtube.com/web"])).toEqual([]);
+  expect(pickExtraResources(catalog, ["HTML", "SQL", "UX"], noProfile).length).toBe(2);
+  expect(pickExtraResources(catalog, [], noProfile)).toEqual([]);
 });
 
 test("thumbnail sai do id do vídeo do YouTube", () => {
-  assert.equal(
-    youtubeThumbnail("https://www.youtube.com/watch?v=E6CdIawPTh0"),
-    "https://i.ytimg.com/vi/E6CdIawPTh0/hqdefault.jpg",
-  );
-  assert.equal(
-    youtubeThumbnail("https://www.youtube.com/watch?list=PL1&v=-i1JVMspDJQ"),
-    "https://i.ytimg.com/vi/-i1JVMspDJQ/hqdefault.jpg",
-  );
-  assert.equal(youtubeThumbnail("https://example.com/artigo"), null);
+  expect(youtubeThumbnail("https://www.youtube.com/watch?v=E6CdIawPTh0")).toBe("https://i.ytimg.com/vi/E6CdIawPTh0/hqdefault.jpg");
+  expect(youtubeThumbnail("https://www.youtube.com/watch?list=PL1&v=-i1JVMspDJQ")).toBe("https://i.ytimg.com/vi/-i1JVMspDJQ/hqdefault.jpg");
+  expect(youtubeThumbnail("https://example.com/artigo")).toBe(null);
 });

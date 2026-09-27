@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test, { mock } from "node:test";
+import { expect, test, vi } from "vitest";
 import {
   AiMalformedResponseError,
   AiNotConfiguredError,
@@ -39,7 +38,7 @@ function chatReply(content: string): unknown {
 // ---------- xAI ----------
 
 test("xai envia structured output strict e Bearer token", async () => {
-  const fetchImpl = mock.fn(async () => jsonResponse(chatReply('{"ok":true}')));
+  const fetchImpl = vi.fn(async () => jsonResponse(chatReply('{"ok":true}')));
 
   const provider = createXaiProvider({
     apiKey: "chave-de-teste",
@@ -48,23 +47,20 @@ test("xai envia structured output strict e Bearer token", async () => {
   });
   const result = await provider.generateJson(params);
 
-  assert.deepEqual(result, { ok: true });
+  expect(result).toEqual({ ok: true });
 
-  const [url, init] = fetchImpl.mock.calls[0]?.arguments as [string, RequestInit];
-  assert.equal(url, "https://api.x.ai/v1/chat/completions");
-  assert.equal(
-    (init.headers as Record<string, string>).Authorization,
-    "Bearer chave-de-teste",
-  );
+  const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+  expect(url).toBe("https://api.x.ai/v1/chat/completions");
+  expect((init.headers as Record<string, string>).Authorization).toBe("Bearer chave-de-teste");
 
   const body = JSON.parse(init.body as string);
-  assert.equal(body.model, "grok-build-0.1");
-  assert.equal(body.response_format.type, "json_schema");
-  assert.equal(body.response_format.json_schema.strict, true);
-  assert.equal(body.response_format.json_schema.name, "probe");
-  assert.deepEqual(body.response_format.json_schema.schema, SCHEMA);
-  assert.deepEqual(body.messages, [{ role: "user", content: "responda ok" }]);
-  assert.equal(body.max_tokens, 8000, "sem teto alto a resposta trunca e o schema falha");
+  expect(body.model).toBe("grok-build-0.1");
+  expect(body.response_format.type).toBe("json_schema");
+  expect(body.response_format.json_schema.strict).toBe(true);
+  expect(body.response_format.json_schema.name).toBe("probe");
+  expect(body.response_format.json_schema.schema).toEqual(SCHEMA);
+  expect(body.messages).toEqual([{ role: "user", content: "responda ok" }]);
+  expect(body.max_tokens, "sem teto alto a resposta trunca e o schema falha").toBe(8000);
 });
 
 test("xai não tenta extrair JSON de texto solto: resposta inválida é erro", async () => {
@@ -73,7 +69,7 @@ test("xai não tenta extrair JSON de texto solto: resposta inválida é erro", a
     fetchImpl: (async () => jsonResponse(chatReply("desculpe, não consigo"))) as never,
   });
 
-  await assert.rejects(() => provider.generateJson(params), AiMalformedResponseError);
+  await expect(provider.generateJson(params)).rejects.toThrow(AiMalformedResponseError);
 });
 
 test("xai trata resposta vazia como malformada", async () => {
@@ -82,7 +78,7 @@ test("xai trata resposta vazia como malformada", async () => {
     fetchImpl: (async () => jsonResponse({ choices: [] })) as never,
   });
 
-  await assert.rejects(() => provider.generateJson(params), AiMalformedResponseError);
+  await expect(provider.generateJson(params)).rejects.toThrow(AiMalformedResponseError);
 });
 
 test("xai preserva o status e a mensagem do erro HTTP", async () => {
@@ -92,15 +88,9 @@ test("xai preserva o status e a mensagem do erro HTTP", async () => {
       jsonResponse({ error: "sem créditos nesta equipe" }, 403)) as never,
   });
 
-  await assert.rejects(
-    () => provider.generateJson(params),
-    (error: unknown) => {
-      assert.ok(error instanceof AiRequestError);
-      assert.equal(error.status, 403);
-      assert.match(error.message, /créditos/);
-      return true;
-    },
-  );
+  const request = provider.generateJson(params);
+  await expect(request).rejects.toBeInstanceOf(AiRequestError);
+  await expect(request).rejects.toMatchObject({ status: 403, message: expect.stringMatching(/créditos/) });
 });
 
 test("xai converte abort em AiTimeoutError", async () => {
@@ -113,7 +103,7 @@ test("xai converte abort em AiTimeoutError", async () => {
     }) as never,
   });
 
-  await assert.rejects(() => provider.generateJson(params), AiTimeoutError);
+  await expect(provider.generateJson(params)).rejects.toThrow(AiTimeoutError);
 });
 
 test("xai sem chave falha antes de chamar a rede", async () => {
@@ -123,11 +113,11 @@ test("xai sem chave falha antes de chamar a rede", async () => {
   delete process.env.XAI_API_KEY;
 
   try {
-    const fetchImpl = mock.fn(async () => jsonResponse({}));
+    const fetchImpl = vi.fn(async () => jsonResponse({}));
     const provider = createXaiProvider({ fetchImpl: fetchImpl as never });
 
-    await assert.rejects(() => provider.generateJson(params), AiNotConfiguredError);
-    assert.equal(fetchImpl.mock.callCount(), 0, "nao deve gastar chamada sem chave");
+    await expect(provider.generateJson(params)).rejects.toThrow(AiNotConfiguredError);
+    expect(fetchImpl.mock.calls.length, "nao deve gastar chamada sem chave").toBe(0);
   } finally {
     restoreEnv("XAI_API_KEY", previous);
   }
@@ -136,7 +126,7 @@ test("xai sem chave falha antes de chamar a rede", async () => {
 // ---------- Gemini (alternativa) ----------
 
 test("gemini mantém o formato antigo de requisição", async () => {
-  const fetchImpl = mock.fn(async () =>
+  const fetchImpl = vi.fn(async () =>
     jsonResponse({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
   );
 
@@ -147,15 +137,15 @@ test("gemini mantém o formato antigo de requisição", async () => {
   });
   const result = await provider.generateJson(params);
 
-  assert.deepEqual(result, { ok: true });
+  expect(result).toEqual({ ok: true });
 
-  const [url, init] = fetchImpl.mock.calls[0]?.arguments as [string, RequestInit];
-  assert.match(url, /generativelanguage\.googleapis\.com/);
-  assert.equal((init.headers as Record<string, string>)["X-goog-api-key"], "chave-gemini");
+  const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+  expect(url).toMatch(/generativelanguage\.googleapis\.com/);
+  expect((init.headers as Record<string, string>)["X-goog-api-key"]).toBe("chave-gemini");
 
   const body = JSON.parse(init.body as string);
-  assert.equal(body.contents[0].parts[0].text, "responda ok");
-  assert.equal(body.generationConfig.responseMimeType, "application/json");
+  expect(body.contents[0].parts[0].text).toBe("responda ok");
+  expect(body.generationConfig.responseMimeType).toBe("application/json");
 });
 
 test("gemini ainda resgata JSON embrulhado em markdown", async () => {
@@ -169,7 +159,7 @@ test("gemini ainda resgata JSON embrulhado em markdown", async () => {
       })) as never,
   });
 
-  assert.deepEqual(await provider.generateJson(params), { ok: true });
+  expect(await provider.generateJson(params)).toEqual({ ok: true });
 });
 
 // ---------- seleção de provedor ----------
@@ -204,26 +194,19 @@ function restoreEnv(key: string, value: string | undefined): void {
 }
 
 async function runProviderSelection(): Promise<void> {
-  const groqFetch = mock.fn(async () => jsonResponse(chatReply('{"ok":true}')));
+  const groqFetch = vi.fn(async () => jsonResponse(chatReply('{"ok":true}')));
   await generateJson(params, { fetchImpl: groqFetch as never });
-  assert.match(
-    (groqFetch.mock.calls[0]?.arguments as [string])[0],
-    /api\.groq\.com/,
-    "sem AI_PROVIDER o padrão é groq",
-  );
+  expect((groqFetch.mock.calls[0] as [string])[0], "sem AI_PROVIDER o padrão é groq").toMatch(/api\.groq\.com/);
 
-  const xaiFetch = mock.fn(async () => jsonResponse(chatReply('{"ok":true}')));
+  const xaiFetch = vi.fn(async () => jsonResponse(chatReply('{"ok":true}')));
   await generateJson(params, { provider: "xai", fetchImpl: xaiFetch as never });
-  assert.match((xaiFetch.mock.calls[0]?.arguments as [string])[0], /api\.x\.ai/);
+  expect((xaiFetch.mock.calls[0] as [string])[0]).toMatch(/api\.x\.ai/);
 
-  const geminiFetch = mock.fn(async () =>
+  const geminiFetch = vi.fn(async () =>
     jsonResponse({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
   );
   await generateJson(params, { provider: "gemini", fetchImpl: geminiFetch as never });
-  assert.match(
-    (geminiFetch.mock.calls[0]?.arguments as [string])[0],
-    /generativelanguage/,
-  );
+  expect((geminiFetch.mock.calls[0] as [string])[0]).toMatch(/generativelanguage/);
 }
 
 test("resposta cortada por limite de tokens é tratada como malformada", async () => {
@@ -237,27 +220,22 @@ test("resposta cortada por limite de tokens é tratada como malformada", async (
       })) as never,
   });
 
-  await assert.rejects(
-    () => provider.generateJson(params),
-    (error: unknown) => {
-      assert.ok(error instanceof AiMalformedResponseError);
-      assert.match(error.message, /cortada/);
-      return true;
-    },
-  );
+  const request = provider.generateJson(params);
+  await expect(request).rejects.toBeInstanceOf(AiMalformedResponseError);
+  await expect(request).rejects.toMatchObject({ message: expect.stringMatching(/cortada/) });
 });
 
 test("groq aponta para o endpoint compatível com OpenAI", async () => {
-  const fetchImpl = mock.fn(async () => jsonResponse(chatReply('{"ok":true}')));
+  const fetchImpl = vi.fn(async () => jsonResponse(chatReply('{"ok":true}')));
   const provider = createGroqProvider({
     apiKey: "chave-groq",
     model: "openai/gpt-oss-120b",
     fetchImpl: fetchImpl as never,
   });
 
-  assert.deepEqual(await provider.generateJson(params), { ok: true });
+  expect(await provider.generateJson(params)).toEqual({ ok: true });
 
-  const [url, init] = fetchImpl.mock.calls[0]?.arguments as [string, RequestInit];
-  assert.equal(url, "https://api.groq.com/openai/v1/chat/completions");
-  assert.equal(JSON.parse(init.body as string).model, "openai/gpt-oss-120b");
+  const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+  expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
+  expect(JSON.parse(init.body as string).model).toBe("openai/gpt-oss-120b");
 });
