@@ -16,6 +16,7 @@ import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import { TrailsScreen } from '@/pages/TrailsScreen';
 import { TrailPhasePage } from '@/pages/trail-phase';
 import { TrailPhaseResultPage } from '@/pages/trail-phase-result';
+import { StreakPage } from '@/pages/streak';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import type { QuizAnalysisResult } from '@/shared/api/quizApi';
@@ -41,6 +42,7 @@ export type RootStackParamList = {
   TrailLesson: { lessonId: string };
   TrailPhase: { lessonId: string };
   TrailPhaseResult: { result: ScoreLessonResult; phaseTitle: string; phaseKind: string };
+  Streak: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -124,6 +126,7 @@ export function RootNavigator() {
               component={TrailPhaseResultPage}
               options={{ gestureEnabled: false }}
             />
+            <Stack.Screen name="Streak" component={StreakPage} options={{ presentation: 'modal' }} />
           </>
         ) : (
           <>

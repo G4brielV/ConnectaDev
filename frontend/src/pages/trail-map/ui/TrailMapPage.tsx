@@ -115,10 +115,16 @@ export function TrailMapPage() {
           </View>
         </View>
         <View style={styles.headerStats}>
-          <View style={[styles.statPill, styles.streakPill]}>
-            <MaterialCommunityIcons name="fire" size={15} color={colors.accentInk} />
+          <Pressable
+            onPress={() => navigation.navigate('Streak')}
+            style={({ pressed }) => [styles.statPill, styles.streakPill, pressed && styles.statPillPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver sua ofensiva: ${summary?.currentStreak ?? 0} dias`}
+            hitSlop={6}
+          >
+            <MaterialCommunityIcons name="fire" size={15} color={colors.flame} />
             <Text style={[styles.statText, styles.streakText]}>{summary?.currentStreak ?? 0}</Text>
-          </View>
+          </Pressable>
           <View style={[styles.statPill, styles.xpPill]}>
             <MaterialCommunityIcons name="lightning-bolt" size={15} color={colors.primary} />
             <Text style={[styles.statText, styles.xpText]}>{totalXp} XP</Text>
@@ -333,10 +339,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  streakPill: { backgroundColor: colors.accentSoft },
+  streakPill: { backgroundColor: colors.flameSoft },
+  statPillPressed: { opacity: 0.7 },
   xpPill: { backgroundColor: `${colors.primaryTint}66` },
   statText: { fontFamily: fonts.mono.medium, fontSize: 12 },
-  streakText: { color: colors.accentInk },
+  streakText: { color: colors.flame },
   xpText: { color: colors.primary },
   scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   scrollWithCta: { paddingBottom: 150 },

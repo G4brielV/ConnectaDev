@@ -75,10 +75,18 @@ export function TrailPhaseResultPage() {
                   : '0'}
             </Text>
           </View>
-          <View style={styles.scoreRow}>
+          <Pressable
+            onPress={() => navigation.navigate('Streak')}
+            style={styles.scoreRow}
+            accessibilityRole="button"
+            accessibilityLabel={`Ofensiva de ${result.currentStreak} dias. Ver detalhes`}
+          >
             <Text style={styles.scoreLabel}>Ofensiva</Text>
-            <Text style={styles.scoreValue}>🔥 {result.currentStreak} dias</Text>
-          </View>
+            <View style={styles.streakValue}>
+              <Text style={styles.scoreValue}>🔥 {result.currentStreak} dias</Text>
+              <Feather name="chevron-right" size={16} color={colors.textMuted} />
+            </View>
+          </Pressable>
         </View>
 
         {result.leveledUp ? (
@@ -190,6 +198,7 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   scoreLabel: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.textMuted },
   scoreValue: { fontFamily: fonts.sans.bold, fontSize: 14, color: colors.textPrimary },
+  streakValue: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   scoreHint: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.textMuted },
   levelUp: {
     flexDirection: 'row',

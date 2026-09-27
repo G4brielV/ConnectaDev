@@ -43,6 +43,10 @@ export const colors = {
   lockedNode: '#bec9c8', // no bloqueado (sombra solida) e trilho ainda nao percorrido
   lockedSurface: '#e6ebea', // face do no bloqueado
 
+  // Ofensiva (tela "Minha Ofensiva" do Stitch, cor do mascote)
+  flame: '#EA6C1E',
+  flameSoft: '#FDE6D3',
+
   // Feedback
   success: '#198754',
   warning: '#cdb380',

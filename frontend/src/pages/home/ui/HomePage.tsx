@@ -65,9 +65,17 @@ export function HomePage() {
           <View style={styles.chips}>
             <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
             <Text style={styles.chip}>💼 Vagas locais</Text>
-            <Text style={styles.chip}>
-              {summary ? `🔥 Ofensiva: ${summary.currentStreak}` : '🏆 Seu perfil'}
-            </Text>
+            {summary ? (
+              <Pressable
+                onPress={() => navigation.navigate('Streak')}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver sua ofensiva: ${summary.currentStreak} dias`}
+              >
+                <Text style={styles.chip}>🔥 Ofensiva: {summary.currentStreak} ›</Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.chip}>🏆 Seu perfil</Text>
+            )}
           </View>
         </View>
         <View style={styles.footer}>
