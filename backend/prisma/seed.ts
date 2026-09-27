@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -364,157 +365,6 @@ const courses = [
 },
 ] as const;
 
-// Fatia vertical do mapa de fases: 3 unidades x 5 fases para Desenvolvimento de Software.
-// As questoes NAO vivem aqui — sao geradas pela IA no primeiro acesso e cacheadas em trail_questions.
-// `courseTitle` liga o recurso a um curso ja cadastrado em `courses` (sem duplicar URL/thumbnail).
-const XP_BY_KIND = { STANDARD: 20, BONUS: 50, BOSS: 100 } as const;
-const PASSING_BY_KIND = { STANDARD: 60, BONUS: 50, BOSS: 70 } as const;
-
-type LessonKind = keyof typeof XP_BY_KIND;
-
-interface SeedResource {
-  title: string;
-  courseTitle?: string;
-  url?: string;
-  kind?: "VIDEO" | "COURSE" | "ARTICLE";
-}
-
-interface SeedPhase {
-  title: string;
-  description: string;
-  kind: LessonKind;
-  resources: SeedResource[];
-}
-
-interface SeedUnit {
-  title: string;
-  phases: SeedPhase[];
-}
-
-const WEB_BASICS = "Fundamentos de Desenvolvimento Web";
-const JS_TS = "JavaScript e TypeScript na Pr\u00e1tica";
-
-const learningTracks: Array<{
-  title: string;
-  description: string;
-  area: string;
-  units: SeedUnit[];
-}> = [
-  {
-    title: "Trilha de Desenvolvimento de Software",
-    description:
-      "Do primeiro algoritmo a uma aplica\u00e7\u00e3o completa, no ritmo de quem est\u00e1 come\u00e7ando.",
-    area: "Desenvolvimento de Software",
-    units: [
-      {
-        title: "Primeiros Passos na Programa\u00e7\u00e3o",
-        phases: [
-          {
-            title: "L\u00f3gica de Programa\u00e7\u00e3o",
-            description: "Vari\u00e1veis, condicionais e repeti\u00e7\u00e3o \u2014 a base de tudo.",
-            kind: "STANDARD",
-            resources: [{ title: "L\u00f3gica e primeiros algoritmos", courseTitle: WEB_BASICS }],
-          },
-          {
-            title: "HTML: a Estrutura da Web",
-            description: "Como uma p\u00e1gina \u00e9 montada: tags, sem\u00e2ntica e acessibilidade.",
-            kind: "STANDARD",
-            resources: [{ title: "HTML do zero", courseTitle: WEB_BASICS }],
-          },
-          {
-            title: "CSS: Estilo e Layout",
-            description: "Cores, espa\u00e7amento, Flexbox e responsividade.",
-            kind: "STANDARD",
-            resources: [{ title: "CSS e layout responsivo", courseTitle: WEB_BASICS }],
-          },
-          {
-            title: "Ba\u00fa B\u00f4nus: Ferramentas do Dev",
-            description: "Editor, terminal e DevTools do navegador.",
-            kind: "BONUS",
-            resources: [{ title: "Preparando o ambiente", courseTitle: WEB_BASICS }],
-          },
-          {
-            title: "Chef\u00e3o: Sua Primeira P\u00e1gina",
-            description: "Tudo da unidade junto: uma p\u00e1gina publicada do zero.",
-            kind: "BOSS",
-            resources: [{ title: "Projeto guiado da unidade", courseTitle: WEB_BASICS }],
-          },
-        ],
-      },
-      {
-        title: "L\u00f3gica & JS Moderno",
-        phases: [
-          {
-            title: "Fundamentos do JavaScript",
-            description: "Tipos, operadores e o fluxo de execu\u00e7\u00e3o.",
-            kind: "STANDARD",
-            resources: [{ title: "JavaScript essencial", courseTitle: JS_TS }],
-          },
-          {
-            title: "Estruturas de Dados",
-            description: "Arrays e objetos: como guardar e organizar informa\u00e7\u00e3o.",
-            kind: "STANDARD",
-            resources: [{ title: "Arrays e objetos na pr\u00e1tica", courseTitle: JS_TS }],
-          },
-          {
-            title: "Fun\u00e7\u00f5es & Arrays",
-            description: "Fun\u00e7\u00f5es, escopo e os m\u00e9todos map, filter e reduce.",
-            kind: "STANDARD",
-            resources: [{ title: "Fun\u00e7\u00f5es e m\u00e9todos de array", courseTitle: JS_TS }],
-          },
-          {
-            title: "Ba\u00fa B\u00f4nus: Git e GitHub",
-            description: "Versionar o c\u00f3digo e publicar seu primeiro reposit\u00f3rio.",
-            kind: "BONUS",
-            resources: [{ title: "Controle de vers\u00e3o para iniciantes", courseTitle: JS_TS }],
-          },
-          {
-            title: "Chef\u00e3o: DOM, Eventos & Fetch API",
-            description: "Deixar a p\u00e1gina viva e consumir dados de uma API.",
-            kind: "BOSS",
-            resources: [{ title: "DOM, eventos e requisi\u00e7\u00f5es", courseTitle: JS_TS }],
-          },
-        ],
-      },
-      {
-        title: "Construindo Aplica\u00e7\u00f5es",
-        phases: [
-          {
-            title: "TypeScript na Pr\u00e1tica",
-            description: "Tipagem est\u00e1tica para escrever c\u00f3digo mais seguro.",
-            kind: "STANDARD",
-            resources: [{ title: "TypeScript do zero", courseTitle: JS_TS }],
-          },
-          {
-            title: "Node.js e APIs REST",
-            description: "Construir um servidor e expor endpoints.",
-            kind: "STANDARD",
-            resources: [{ title: "Node.js e APIs", courseTitle: JS_TS }],
-          },
-          {
-            title: "React: Componentes e Estado",
-            description: "Interfaces com componentes reutiliz\u00e1veis.",
-            kind: "STANDARD",
-            resources: [{ title: "React na pr\u00e1tica", courseTitle: JS_TS }],
-          },
-          {
-            title: "Ba\u00fa B\u00f4nus: Banco de Dados e SQL",
-            description: "Modelar dados e escrever as primeiras consultas.",
-            kind: "BONUS",
-            resources: [{ title: "SQL para desenvolvedores", courseTitle: JS_TS }],
-          },
-          {
-            title: "Chef\u00e3o: Projeto Full Stack",
-            description: "Front, back e banco conversando numa aplica\u00e7\u00e3o s\u00f3.",
-            kind: "BOSS",
-            resources: [{ title: "Projeto full stack guiado", courseTitle: JS_TS }],
-          },
-        ],
-      },
-    ],
-  },
-];
-
 const trails = [
   {
     title: "Fundamentos de Dados e IA",
@@ -868,6 +718,7 @@ async function main(): Promise<void> {
           title: phase.title,
           description: phase.description,
           kind: phase.kind,
+          tags: phase.tags,
           xpReward: XP_BY_KIND[phase.kind],
           passingScore: PASSING_BY_KIND[phase.kind],
           isActive: true,
@@ -883,28 +734,13 @@ async function main(): Promise<void> {
         await prisma.trailLessonResource.deleteMany({ where: { lessonId: phaseRecord.id } });
 
         for (const [resourceIndex, resource] of phase.resources.entries()) {
-          const course = resource.courseTitle
-            ? await prisma.course.findFirst({
-                where: { title: resource.courseTitle },
-                select: { id: true, externalUrl: true },
-              })
-            : null;
-
-          const url = resource.url ?? course?.externalUrl;
-          if (!url) {
-            console.warn(
-              `Recurso "${resource.title}" ignorado: sem url e sem curso "${resource.courseTitle}".`,
-            );
-            continue;
-          }
-
           await prisma.trailLessonResource.create({
             data: {
               lessonId: phaseRecord.id,
-              courseId: course?.id ?? null,
               title: resource.title,
-              url,
-              kind: resource.kind ?? (course ? "COURSE" : "VIDEO"),
+              url: resource.url,
+              provider: resource.provider,
+              kind: resource.kind,
               sequence: resourceIndex + 1,
             },
           });
