@@ -186,6 +186,14 @@ async function loadExtraResources(
 // Complementos do banco em andamento neste processo, para duas visitas
 // simultâneas não pedirem a mesma leva à IA.
 const topUpsInFlight = new Set<string>();
+/**
+ * Teto de complementos simultâneos no processo inteiro. Com o banco maior,
+ * cada fase visitada pediria sua leva ao mesmo tempo e estouraria o limite
+ * do provedor; quem chega com a fila cheia só pula — a próxima visita tenta.
+ */
+export const MAX_BACKGROUND_TOP_UPS = 1;
+/** Enunciados mandados à IA para não repetir; limita o prompt conforme o banco cresce. */
+const MAX_AVOID_STATEMENTS = 30;
 
 /**
  * Garante o banco de questões da fase. O gabarito (`correctAnswer`) nunca sai
@@ -212,7 +220,11 @@ export async function ensurePhaseQuestions(
       pool = await generateBatch(lessonId, context, pool);
       if (pool.length === before) break;
     }
-  } else if (pool.length < PHASE_QUESTION_POOL_TARGET && !topUpsInFlight.has(lessonId)) {
+  } else if (
+    pool.length < PHASE_QUESTION_POOL_TARGET &&
+    !topUpsInFlight.has(lessonId) &&
+    topUpsInFlight.size < MAX_BACKGROUND_TOP_UPS
+  ) {
     topUpsInFlight.add(lessonId);
     void generateBatch(lessonId, context, pool)
       .catch((error: unknown) => {
@@ -237,7 +249,7 @@ async function generateBatch(
   try {
     generated = await generateQuestionsForPhase({
       ...context,
-      avoidStatements: pool.map((question) => question.statement),
+      avoidStatements: pool.slice(-MAX_AVOID_STATEMENTS).map((question) => question.statement),
     });
   } catch (error) {
     if (error instanceof AiQuestionGenerationError) {

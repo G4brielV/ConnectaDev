@@ -8,8 +8,8 @@ import {
 import { PHASE_QUESTION_POOL_TARGET } from "../src/modules/gamification/services/phaseExam";
 
 /**
- * Pré-gera o banco de questões das fases (20 por fase; cada tentativa
- * sorteia 10 delas).
+ * Pré-gera o banco de questões das fases (40 por fase; cada tentativa da
+ * prova sorteia 10 delas e a prática do dia sai do mesmo banco).
  *
  * Sem isso, a primeira pessoa a abrir cada fase espera a IA gerar a prova.
  * Este comando roda fora do caminho do usuário (depois do seed, ou num
@@ -19,6 +19,11 @@ import { PHASE_QUESTION_POOL_TARGET } from "../src/modules/gamification/services
  *   npm run trails:exams -- --unit 1  # só a unidade N (de todas as áreas)
  *   npm run trails:exams -- --area "Cibersegurança"  # só a trilha da área
  *   npm run trails:exams -- --force   # apaga e refaz todos os bancos
+ *   npm run trails:exams -- --delay 5000  # pausa entre fases (limite por minuto)
+ *
+ * O banco é da fase, não da pessoa: o custo cresce com o conteúdo, não com os
+ * usuários. Para caber na cota diária do provedor, rode em fatias
+ * (--unit 1, depois --unit 2...) — só o que falta é gerado.
  */
 const MAX_ATTEMPTS = 3;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -68,6 +73,11 @@ async function main(): Promise<void> {
   const areaFilter = areaArgIndex >= 0 ? process.argv[areaArgIndex + 1] : null;
 
   const force = process.argv.includes("--force");
+  const delayArgIndex = process.argv.indexOf("--delay");
+  const delayMs = delayArgIndex >= 0 ? Number(process.argv[delayArgIndex + 1]) : 0;
+  if (!Number.isFinite(delayMs) || delayMs < 0) {
+    throw new Error("--delay precisa ser um número de milissegundos.");
+  }
 
   const candidates = await prisma.trailLesson.findMany({
     where: {
@@ -100,7 +110,8 @@ async function main(): Promise<void> {
   let generated = 0;
   let failed = 0;
 
-  for (const phase of phases) {
+  for (const [index, phase] of phases.entries()) {
+    if (index > 0 && delayMs > 0) await sleep(delayMs);
     const label = `${phase.trail.area ?? "?"} F${phase.sequence} ${phase.title}`;
     const startedAt = Date.now();
     try {

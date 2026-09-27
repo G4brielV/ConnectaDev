@@ -1,11 +1,12 @@
 /** Perguntas servidas em cada tentativa da prova de uma fase. */
 export const PHASE_EXAM_SIZE = 10;
 /**
- * Tamanho do banco de questões por fase. Com o dobro do tamanho da prova,
+ * Tamanho do banco de questões por fase. Com quatro vezes o tamanho da prova,
  * cada tentativa sorteia um conjunto diferente — ver a correção no resultado
- * não vira gabarito decorado para a próxima.
+ * não vira gabarito decorado para a próxima — e a prática do dia, que também
+ * sai daqui, demora a repetir pergunta.
  */
-export const PHASE_QUESTION_POOL_TARGET = 20;
+export const PHASE_QUESTION_POOL_TARGET = 40;
 
 export type RandomSource = () => number;
 
