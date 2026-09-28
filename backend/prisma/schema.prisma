@@ -453,7 +453,6 @@ model UserCourseBookmark {
   @@index([userId])
   @@map("user_course_bookmarks")
 }
-<<<<<<< HEAD
 
 model Job {
   id          String   @id @default(uuid())
@@ -471,5 +470,3 @@ model Job {
   @@index([category, location])
   @@map("jobs")
 }
-=======
->>>>>>> origin/feat/offensive-screen

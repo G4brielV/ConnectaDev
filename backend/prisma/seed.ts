@@ -2,11 +2,8 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
-<<<<<<< HEAD
 import { balancedQuestions } from "./vocationalQuestions";
-=======
 import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
->>>>>>> origin/feat/offensive-screen
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
