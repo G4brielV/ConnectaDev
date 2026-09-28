@@ -21,9 +21,9 @@ import {
 import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 const CONTRACT_FILTERS: Array<"Todas" | JobContractType> = [
-  "Estágio",
-  "Júnior",
   "Todas",
+  "Júnior",
+  "Estágio",
 ];
 
 export function JobsScreen() {
@@ -33,7 +33,7 @@ export function JobsScreen() {
   const [jobs, setJobs] = useState<JobRecommendation[]>([]);
   const [areaPrincipal, setAreaPrincipal] = useState("");
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<"Todas" | JobContractType>("Estágio");
+  const [selectedFilter, setSelectedFilter] = useState<"Todas" | JobContractType>("Todas");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -220,15 +220,15 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: "#036564", borderColor: "#036564" },
   filterText: { color: "#475569", fontSize: 12, fontWeight: "600" },
   filterTextActive: { color: "#FFFFFF", fontWeight: "700" },
-  jobCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, marginBottom: 16, padding: 18 },
-  jobHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  contractBadge: { backgroundColor: "#E0F2F1", borderRadius: 6, color: "#036564", fontSize: 11, fontWeight: "800", paddingHorizontal: 8, paddingVertical: 4 },
-  areaBadge: { color: "#64748B", fontSize: 11, maxWidth: "55%", textAlign: "right" },
-  jobTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", lineHeight: 23 },
-  jobCompany: { color: "#475569", fontSize: 13, fontWeight: "600", marginTop: 8 },
-  jobLocation: { color: "#64748B", fontSize: 12, marginTop: 5 },
-  salary: { color: "#036564", fontSize: 13, fontWeight: "700", marginTop: 12 },
+  jobCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, marginBottom: 16, padding: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  jobHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  contractBadge: { backgroundColor: "#E0F2F1", borderRadius: 6, color: "#036564", fontSize: 11, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 4, overflow: "hidden" },
+  areaBadge: { color: "#64748B", fontSize: 11, maxWidth: "55%", textAlign: "right", fontWeight: "500" },
+  jobTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800", lineHeight: 24 },
+  jobCompany: { color: "#334155", fontSize: 14, fontWeight: "600", marginTop: 8 },
+  jobLocation: { color: "#64748B", fontSize: 13, marginTop: 6 },
+  salary: { color: "#036564", fontSize: 14, fontWeight: "800", marginTop: 14 },
   linkError: { color: "#8B1E1E", fontSize: 12, lineHeight: 18, marginTop: 10 },
-  applyButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, marginTop: 16, paddingVertical: 12 },
-  applyButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  applyButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 12, marginTop: 18, paddingVertical: 14, shadowColor: "#036564", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 2 },
+  applyButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
 });
