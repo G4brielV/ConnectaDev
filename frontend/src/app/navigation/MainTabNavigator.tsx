@@ -5,20 +5,13 @@ import { Feather } from '@expo/vector-icons';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import { HomePage } from '@/pages/home';
-import { ReviewHubScreen } from '@/pages/ReviewHubScreen';
-import { ForumScreen } from '@/pages/ForumScreen';
+import { TrailMapPage } from '@/pages/trail-map';
+import { CoursesScreen } from '@/pages/CoursesScreen';
 import { JobsScreen } from '@/pages/JobsScreen';
 import { colors, fonts } from '@/shared/config/theme';
 import type { RootStackParamList } from './RootNavigator';
 
-export type MainTabType = 'home' | 'review' | 'forum' | 'jobs';
-
-export type MainTabParamList = {
-  HomeTab: undefined;
-  ReviewTab: undefined;
-  ForumTab: undefined;
-  JobsTab: undefined;
-};
+export type MainTabType = 'trail' | 'courses' | 'jobs' | 'profile';
 
 interface TabContextType {
   activeTab: MainTabType;
@@ -26,7 +19,7 @@ interface TabContextType {
 }
 
 const TabContext = createContext<TabContextType>({
-  activeTab: 'home',
+  activeTab: 'trail',
   setActiveTab: () => {},
 });
 
@@ -38,16 +31,18 @@ interface TabItem {
   icon: keyof typeof Feather.glyphMap;
 }
 
+// Abas da tela "Trilha de Aprendizado" do Stitch. A aba Revisão saiu: a
+// prova agora vive dentro de cada fase da trilha.
 const TABS: TabItem[] = [
-  { id: 'home', label: 'Início', icon: 'home' },
-  { id: 'review', label: 'Revisão', icon: 'edit-3' },
-  { id: 'forum', label: 'Fórum', icon: 'message-circle' },
+  { id: 'trail', label: 'Trilha', icon: 'map' },
+  { id: 'courses', label: 'Cursos', icon: 'book-open' },
   { id: 'jobs', label: 'Vagas', icon: 'briefcase' },
+  { id: 'profile', label: 'Perfil', icon: 'user' },
 ];
 
 export function MainTabNavigator() {
   const route = useRoute<RouteProp<RootStackParamList, 'Home'>>();
-  const [activeTab, setActiveTab] = useState<MainTabType>(route.params?.tab || 'home');
+  const [activeTab, setActiveTab] = useState<MainTabType>(route.params?.tab || 'trail');
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -61,17 +56,17 @@ export function MainTabNavigator() {
       <View style={styles.container}>
         {/* Tab Screens - Keep state by rendering them in flex container with visibility toggled */}
         <View style={styles.screenContainer}>
-          <View style={[styles.screenWrapper, activeTab === 'home' ? styles.screenActive : styles.screenHidden]}>
-            <HomePage />
+          <View style={[styles.screenWrapper, activeTab === 'trail' ? styles.screenActive : styles.screenHidden]}>
+            <TrailMapPage />
           </View>
-          <View style={[styles.screenWrapper, activeTab === 'review' ? styles.screenActive : styles.screenHidden]}>
-            <ReviewHubScreen />
-          </View>
-          <View style={[styles.screenWrapper, activeTab === 'forum' ? styles.screenActive : styles.screenHidden]}>
-            <ForumScreen />
+          <View style={[styles.screenWrapper, activeTab === 'courses' ? styles.screenActive : styles.screenHidden]}>
+            <CoursesScreen />
           </View>
           <View style={[styles.screenWrapper, activeTab === 'jobs' ? styles.screenActive : styles.screenHidden]}>
             <JobsScreen />
+          </View>
+          <View style={[styles.screenWrapper, activeTab === 'profile' ? styles.screenActive : styles.screenHidden]}>
+            <HomePage />
           </View>
         </View>
 

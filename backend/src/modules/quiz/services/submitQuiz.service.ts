@@ -3,6 +3,7 @@ import {
 } from "../schemas/quiz.schemas";
 import { z } from "zod";
 import { SUPPORTED_AREAS } from "../constants/areas";
+<<<<<<< HEAD
 import { prisma } from "../../../lib/auth";
 import {
   calculateVocationalResult,
@@ -13,6 +14,18 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+=======
+import {
+  AiClientOptions,
+  AiMalformedResponseError,
+  AiNotConfiguredError,
+  AiRequestError,
+  AiTimeoutError,
+  generateJson,
+  JsonSchema,
+} from "../../../shared/ai/aiClient";
+
+>>>>>>> origin/feat/offensive-screen
 const AI_REQUEST_TIMEOUT_MS = 30_000;
 
 const UNSUPPORTED_CAREER_TRACK = "UNSUPPORTED_CAREER_TRACK";
@@ -114,19 +127,48 @@ function emitUnsupportedCareerTrackEvent(area: unknown): void {
   );
 }
 
+/**
+ * Formato garantido pela xAI. `areaPrincipal` e `areasSecundarias` são enum do
+ * catálogo oficial, então a IA não tem como inventar uma área fora dele.
+ */
+const quizAnalysisJsonSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    areaPrincipal: { type: "string", enum: [...SUPPORTED_AREAS] },
+    areasSecundarias: {
+      type: "array",
+      items: { type: "string", enum: [...SUPPORTED_AREAS] },
+    },
+    justificativa: { type: "string" },
+    tecnologiasSugeridas: { type: "array", items: { type: "string" } },
+  },
+  required: [
+    "areaPrincipal",
+    "areasSecundarias",
+    "justificativa",
+    "tecnologiasSugeridas",
+  ],
+  additionalProperties: false,
+};
+
 async function requestAnalysis(
-  apiKey: string,
   userPrompt: string,
   userId: string,
   correctiveRequest = false,
+<<<<<<< HEAD
   provider: "gemini" | "groq" = "gemini",
+=======
+  clientOptions?: AiClientOptions,
+>>>>>>> origin/feat/offensive-screen
 ): Promise<unknown> {
-  const controller = new AbortController();
-  const startedAt = Date.now();
-  const timeout = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
-  let response: Response;
+  const prompt = `${SYSTEM_PROMPT}${
+    correctiveRequest
+      ? "\nEscolha obrigatoriamente uma áreaPrincipal do catálogo oficial."
+      : ""
+  }\n\n${userPrompt}`;
 
   try {
+<<<<<<< HEAD
     response = await fetch(provider === "gemini" ? GEMINI_ENDPOINT : GROQ_ENDPOINT, {
       method: "POST",
       headers: {
@@ -167,10 +209,22 @@ async function requestAnalysis(
       ),
       signal: controller.signal,
     });
+=======
+    return await generateJson(
+      {
+        prompt,
+        schemaName: "connectadev_quiz_analysis",
+        jsonSchema: quizAnalysisJsonSchema,
+        timeoutMs: AI_REQUEST_TIMEOUT_MS,
+        temperature: 0.2,
+        maxTokens: 512,
+      },
+      clientOptions,
+    );
+>>>>>>> origin/feat/offensive-screen
   } catch (error) {
-    const durationMs = Date.now() - startedAt;
-    if (error instanceof Error && error.name === "AbortError") {
-      const timeoutError = new AiGatewayTimeoutError(durationMs, userId);
+    if (error instanceof AiTimeoutError) {
+      const timeoutError = new AiGatewayTimeoutError(error.durationMs, userId);
       console.error(
         JSON.stringify({
           event: "AI_GATEWAY_TIMEOUT",
@@ -180,30 +234,20 @@ async function requestAnalysis(
       );
       throw timeoutError;
     }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
 
-  if (!response.ok) {
-    const gatewayError = (await response.json().catch(() => null)) as {
-      error?: { message?: string };
-    } | null;
-    const gatewayMessage = gatewayError?.error?.message;
-    console.error(
-      JSON.stringify({
-        event: "AI_GATEWAY_REQUEST_ERROR",
-        status: response.status,
-        message: gatewayMessage ?? "unknown_gateway_error",
-        user_id: userId,
-      }),
-    );
-    throw new AiGatewayRequestError(
-      response.status,
-      gatewayMessage ?? "O gateway de IA recusou a solicitação.",
-    );
-  }
+    if (error instanceof AiRequestError) {
+      console.error(
+        JSON.stringify({
+          event: "AI_GATEWAY_REQUEST_ERROR",
+          status: error.status,
+          message: error.message,
+          user_id: userId,
+        }),
+      );
+      throw new AiGatewayRequestError(error.status, error.message);
+    }
 
+<<<<<<< HEAD
   const responseBody = (await response.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     choices?: Array<{ message?: { content?: string } }>;
@@ -227,15 +271,22 @@ async function requestAnalysis(
     try {
       return JSON.parse(extractedJson);
     } catch {
+=======
+    if (error instanceof AiMalformedResponseError) {
+>>>>>>> origin/feat/offensive-screen
       throw new MalformedAiResponseError();
     }
+
+    throw error;
   }
 }
 
 export async function submitQuiz(
   payload: QuizSubmitRequest,
   userId: string,
+  clientOptions?: AiClientOptions,
 ): Promise<z.infer<typeof quizAnalysisSchema>> {
+<<<<<<< HEAD
   const questions = await prisma.quizQuestion.findMany({
     where: {
       id: { in: Object.keys(payload.answers) },
@@ -300,24 +351,43 @@ export async function submitQuiz(
   let parsedResult: unknown;
   try {
     parsedResult = await requestWithFallback();
+=======
+  const userPrompt = buildUserPrompt(payload.answers);
+  let parsedResult: unknown;
+  try {
+    parsedResult = await requestAnalysis(userPrompt, userId, false, clientOptions);
+>>>>>>> origin/feat/offensive-screen
   } catch (error) {
+    if (error instanceof AiNotConfiguredError) {
+      throw new Error("A integração com a IA não está configurada.");
+    }
     if (!(error instanceof MalformedAiResponseError)) {
       throw error;
     }
 
+<<<<<<< HEAD
     parsedResult = await requestWithFallback(true);
+=======
+    parsedResult = await requestAnalysis(userPrompt, userId, true, clientOptions);
+>>>>>>> origin/feat/offensive-screen
   }
   const initialArea =
     parsedResult && typeof parsedResult === "object"
       ? (parsedResult as Record<string, unknown>).areaPrincipal
       : undefined;
 
+  // Com a xAI o enum do JSON Schema já impede área fora do catálogo, mas o
+  // provedor Gemini não garante nada — a rodada corretiva segue valendo.
   if (
     typeof initialArea !== "string" ||
     !SUPPORTED_AREAS.includes(initialArea as (typeof SUPPORTED_AREAS)[number])
   ) {
     emitUnsupportedCareerTrackEvent(initialArea);
+<<<<<<< HEAD
     parsedResult = await requestWithFallback(true);
+=======
+    parsedResult = await requestAnalysis(userPrompt, userId, true, clientOptions);
+>>>>>>> origin/feat/offensive-screen
   }
 
   const validation = quizAnalysisSchema.safeParse(parsedResult);

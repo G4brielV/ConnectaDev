@@ -2,7 +2,11 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+<<<<<<< HEAD
 import { balancedQuestions } from "./vocationalQuestions";
+=======
+import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
+>>>>>>> origin/feat/offensive-screen
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -369,75 +373,6 @@ const courses = [
 
 const trails = [
   {
-    title: "Fundamentos de Desenvolvimento Web",
-    description: "Aprenda os conceitos iniciais para construir páginas web.",
-    area: "Desenvolvimento de Software",
-    lessons: [
-      {
-        title: "Primeiros conceitos da Web",
-        sequence: 1,
-        xpReward: 50,
-        questions: [
-          {
-            statement: "Qual tecnologia define a estrutura de uma página web?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 1,
-            options: [
-              { id: "A", label: "HTML" },
-              { id: "B", label: "SQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual tecnologia é usada principalmente para estilizar uma página?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 2,
-            options: [
-              { id: "A", label: "CSS" },
-              { id: "B", label: "PostgreSQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual linguagem adiciona interatividade às páginas web?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 3,
-            options: [
-              { id: "A", label: "JavaScript" },
-              { id: "B", label: "HTML" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual elemento HTML representa um título principal?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 4,
-            options: [
-              { id: "A", label: "<h1>" },
-              { id: "B", label: "<main-title>" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual tecnologia é executada normalmente no navegador?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 5,
-            options: [
-              { id: "A", label: "JavaScript" },
-              { id: "B", label: "PostgreSQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-        ],
-      },
-    ],
-  },
-  {
     title: "Fundamentos de Dados e IA",
     description: "Conheça conceitos básicos de dados, modelos e inteligência artificial.",
     area: "Dados e Inteligência Artificial",
@@ -740,6 +675,95 @@ async function main(): Promise<void> {
     });
   }
 
+  // Mapa de fases: trilha -> unidades -> fases -> recursos.
+  for (const track of learningTracks) {
+    const existing = await prisma.trail.findFirst({
+      where: { title: track.title },
+      select: { id: true },
+    });
+
+    const trailRecord = existing
+      ? await prisma.trail.update({
+          where: { id: existing.id },
+          data: { description: track.description, area: track.area, isActive: true },
+        })
+      : await prisma.trail.create({
+          data: {
+            title: track.title,
+            description: track.description,
+            area: track.area,
+            isActive: true,
+          },
+        });
+
+    // `sequence` da fase e global na trilha: define a ordem de desbloqueio.
+    let phaseSequence = 0;
+
+    for (const [unitIndex, unit] of track.units.entries()) {
+      const unitSequence = unitIndex + 1;
+      const existingUnit = await prisma.trailUnit.findFirst({
+        where: { trailId: trailRecord.id, sequence: unitSequence },
+        select: { id: true },
+      });
+
+      const unitRecord = existingUnit
+        ? await prisma.trailUnit.update({
+            where: { id: existingUnit.id },
+            data: { title: unit.title, isActive: true },
+          })
+        : await prisma.trailUnit.create({
+            data: {
+              trailId: trailRecord.id,
+              title: unit.title,
+              sequence: unitSequence,
+              isActive: true,
+            },
+          });
+
+      for (const phase of unit.phases) {
+        phaseSequence += 1;
+
+        const existingPhase = await prisma.trailLesson.findFirst({
+          where: { trailId: trailRecord.id, sequence: phaseSequence },
+          select: { id: true },
+        });
+
+        const phaseData = {
+          unitId: unitRecord.id,
+          title: phase.title,
+          description: phase.description,
+          kind: phase.kind,
+          tags: phase.tags,
+          xpReward: XP_BY_KIND[phase.kind],
+          passingScore: PASSING_BY_KIND[phase.kind],
+          isActive: true,
+        };
+
+        const phaseRecord = existingPhase
+          ? await prisma.trailLesson.update({ where: { id: existingPhase.id }, data: phaseData })
+          : await prisma.trailLesson.create({
+              data: { ...phaseData, trailId: trailRecord.id, sequence: phaseSequence },
+            });
+
+        // Recursos sao reescritos a cada seed; as questoes geradas pela IA nao sao tocadas.
+        await prisma.trailLessonResource.deleteMany({ where: { lessonId: phaseRecord.id } });
+
+        for (const [resourceIndex, resource] of phase.resources.entries()) {
+          await prisma.trailLessonResource.create({
+            data: {
+              lessonId: phaseRecord.id,
+              title: resource.title,
+              url: resource.url,
+              provider: resource.provider,
+              kind: resource.kind,
+              sequence: resourceIndex + 1,
+            },
+          });
+        }
+      }
+    }
+  }
+
   for (const trail of trails) {
     const existingTrail = await prisma.trail.findFirst({
       where: { title: trail.title },
@@ -801,7 +825,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} trails, and ${reviewQuestions.length} review questions.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} legacy trails, ${learningTracks.length} phase map(s) with ${learningTracks.reduce((total, track) => total + track.units.length, 0)} units, and ${reviewQuestions.length} review questions.`,
   );
 }
 

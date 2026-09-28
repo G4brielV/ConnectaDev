@@ -1,10 +1,48 @@
 import { z } from "zod";
+import {
+  AiClientOptions,
+  AiNotConfiguredError,
+  AiRequestError,
+  generateJson,
+  JsonSchema,
+} from "../../../shared/ai/aiClient";
 
+<<<<<<< HEAD
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+=======
+>>>>>>> origin/feat/offensive-screen
 const AI_REQUEST_TIMEOUT_MS = 25_000;
+// A prova de fase pede 10 questões contextualizadas e leva bem mais que uma
+// revisão comum: medimos ~45s já com 5. Sem folga aqui o abort mata a geração.
+const AI_PHASE_TIMEOUT_MS = 180_000;
+
+export class AiQuestionGenerationError extends Error {
+  /** Repassado do provedor quando ele informa quanto esperar (429). */
+  readonly retryAfterMs: number | null;
+
+  constructor(message: string, retryAfterMs: number | null = null) {
+    super(message);
+    this.name = "AiQuestionGenerationError";
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+export interface PhaseData {
+  title: string;
+  description: string | null;
+  unitTitle: string;
+  area: string;
+  resourceTitles: string[];
+  /** STANDARD | BONUS | BOSS — muda o escopo e o tom da prova. */
+  kind: string;
+  /** Fases da unidade em ordem; o chefão cobra todas elas. */
+  unitPhaseTitles: string[];
+  /** Enunciados já no banco da fase, para a nova leva não repetir. */
+  avoidStatements?: string[];
+}
 
 export interface CourseData {
   id: string;
@@ -26,21 +64,75 @@ export interface GeneratedQuestionItem {
   explanation: string;
 }
 
-const generatedQuestionsSchema = z.object({
-  questions: z.array(
+const generatedQuestionSchema = z.object({
+  statement: z.string().min(10),
+  options: z.array(
     z.object({
-      statement: z.string().min(10),
-      options: z.array(
-        z.object({
-          id: z.string().min(1),
-          label: z.string().min(1),
-        }),
-      ).length(4),
-      correctOptionId: z.string().min(1),
-      explanation: z.string().min(10),
+      id: z.string().min(1),
+      label: z.string().min(1),
     }),
-  ).min(3).max(5),
+  ).length(4),
+  correctOptionId: z.string().min(1),
+  explanation: z.string().min(10),
 });
+
+/** A revisão usa 3-5 perguntas; a prova de fase exige bem mais. */
+function buildQuestionsSchema(min: number, max: number) {
+  return z.object({
+    questions: z.array(generatedQuestionSchema).min(min).max(max),
+  });
+}
+
+const generatedQuestionsSchema = buildQuestionsSchema(3, 5);
+
+/**
+ * Mesmo formato do Zod acima, em JSON Schema: é o que a xAI recebe para
+ * garantir a resposta. O Zod continua validando depois, porque o provedor
+ * Gemini não oferece essa garantia.
+ */
+function buildQuestionsJsonSchema(min: number, max: number): JsonSchema {
+  return {
+    type: "object",
+    properties: {
+      questions: {
+        type: "array",
+        minItems: min,
+        maxItems: max,
+        items: {
+          type: "object",
+          properties: {
+            statement: { type: "string" },
+            options: {
+              type: "array",
+              minItems: 4,
+              maxItems: 4,
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", enum: ["A", "B", "C", "D"] },
+                  label: { type: "string" },
+                },
+                required: ["id", "label"],
+                additionalProperties: false,
+              },
+            },
+            correctOptionId: { type: "string", enum: ["A", "B", "C", "D"] },
+            explanation: { type: "string" },
+          },
+          required: ["statement", "options", "correctOptionId", "explanation"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["questions"],
+    additionalProperties: false,
+  };
+}
+
+// Prova de fim de fase: 10 é o piso pedido; a folga até 12 evita descartar
+// uma geração boa só porque a IA passou um pouco do alvo.
+export const PHASE_EXAM_MIN_QUESTIONS = 10;
+const PHASE_EXAM_MAX_QUESTIONS = 12;
 
 function generateContextualFallbackQuestions(course: CourseData): GeneratedQuestionItem[] {
   const mainTag = course.tags[0] || "Programação";
@@ -219,6 +311,7 @@ ${PROMPT_RULES}`;
  * Calls Gemini with the given prompt and returns validated questions,
  * falling back to `fallback()` on any failure (missing key, HTTP error, invalid JSON).
  */
+<<<<<<< HEAD
 async function requestQuestions(
   prompt: string,
   fallback: () => GeneratedQuestionItem[],
@@ -302,6 +395,70 @@ async function requestQuestions(
     } finally {
       clearTimeout(timeout);
     }
+=======
+interface RequestQuestionsParams {
+  prompt: string;
+  /** null = o chamador exige conteúdo real e prefere erro a fallback. */
+  fallback: (() => GeneratedQuestionItem[]) | null;
+  logLabel: string;
+  timeoutMs?: number;
+  schema?: z.ZodType<{ questions: GeneratedQuestionItem[] }>;
+  jsonSchema?: JsonSchema;
+  clientOptions?: AiClientOptions;
+}
+
+async function requestQuestions({
+  prompt,
+  fallback,
+  logLabel,
+  timeoutMs = AI_REQUEST_TIMEOUT_MS,
+  schema = generatedQuestionsSchema,
+  jsonSchema = buildQuestionsJsonSchema(3, 5),
+  clientOptions,
+}: RequestQuestionsParams): Promise<GeneratedQuestionItem[]> {
+  // fallback === null: o chamador exige conteúdo real (ex.: prova que
+  // bloqueia progresso), então qualquer falha vira erro em vez de
+  // perguntas genéricas de template.
+  const onFailure = (
+    reason: string,
+    retryAfterMs: number | null = null,
+  ): GeneratedQuestionItem[] => {
+    if (fallback) return fallback();
+    throw new AiQuestionGenerationError(reason, retryAfterMs);
+  };
+
+  try {
+    const parsed = await generateJson(
+      {
+        prompt,
+        schemaName: "connectadev_questions",
+        jsonSchema,
+        timeoutMs,
+        temperature: 0.3,
+      },
+      clientOptions,
+    );
+
+    const validated = schema.safeParse(parsed);
+    if (validated.success) {
+      return validated.data.questions;
+    }
+
+    console.warn(`[${logLabel}] Resposta fora do formato esperado. Usando fallback.`);
+    return onFailure("A IA devolveu perguntas fora do formato esperado.");
+  } catch (error) {
+    if (error instanceof AiQuestionGenerationError) throw error;
+    if (error instanceof AiNotConfiguredError) {
+      return onFailure("A geração de perguntas por IA não está configurada.");
+    }
+    console.warn(
+      `[${logLabel}] Falha ao chamar a IA: ${error instanceof Error ? error.message : String(error)}.`,
+    );
+    return onFailure(
+      "Não foi possível falar com a IA agora.",
+      error instanceof AiRequestError ? error.retryAfterMs : null,
+    );
+>>>>>>> origin/feat/offensive-screen
   }
 
   return fallback();
@@ -309,24 +466,79 @@ async function requestQuestions(
 
 export async function generateQuestionsForCourse(
   course: CourseData,
-  apiKey: string | undefined = process.env.GEMINI_API_KEY,
+  clientOptions?: AiClientOptions,
 ): Promise<GeneratedQuestionItem[]> {
-  return requestQuestions(
-    buildCoursePrompt(course),
-    () => generateContextualFallbackQuestions(course),
-    apiKey,
-    "AI Course Review",
-  );
+  return requestQuestions({
+    prompt: buildCoursePrompt(course),
+    fallback: () => generateContextualFallbackQuestions(course),
+    logLabel: "AI Course Review",
+    clientOptions,
+  });
 }
 
 export async function generateQuestionsForArea(
   area: AreaData,
-  apiKey: string | undefined = process.env.GEMINI_API_KEY,
+  clientOptions?: AiClientOptions,
 ): Promise<GeneratedQuestionItem[]> {
-  return requestQuestions(
-    buildAreaPrompt(area),
-    () => generateContextualFallbackQuestionsForArea(area),
-    apiKey,
-    "AI Area Review",
-  );
+  return requestQuestions({
+    prompt: buildAreaPrompt(area),
+    fallback: () => generateContextualFallbackQuestionsForArea(area),
+    logLabel: "AI Area Review",
+    clientOptions,
+  });
+}
+
+function buildPhaseScope(phase: PhaseData): string {
+  if (phase.kind === "BOSS") {
+    const phases = phase.unitPhaseTitles.filter((title) => title !== phase.title);
+    return `Esta é a prova do CHEFÃO, o desafio final da unidade. Ela é cumulativa: distribua as perguntas entre todas as fases da unidade (${phases.join("; ")}) e inclua questões que combinem conceitos de fases diferentes, com dificuldade um pouco acima das fases comuns.`;
+  }
+  if (phase.kind === "BONUS") {
+    return "Esta é uma fase BÔNUS, opcional e sobre um tema complementar. Mantenha o nível acessível e foque no uso prático do tema.";
+  }
+  return "As perguntas devem avaliar de fato o que foi estudado nesta fase, em ordem crescente de dificuldade, sem depender de conteúdo de fases posteriores.";
+}
+
+function buildPhasePrompt(phase: PhaseData): string {
+  const resources = phase.resourceTitles.length
+    ? phase.resourceTitles.join("; ")
+    : "materiais introdutórios do tema";
+  const avoid = phase.avoidStatements?.length
+    ? `\nA fase já tem as perguntas abaixo no banco. Não repita nenhuma delas nem faça variações com a mesma resposta — cubra outros pontos do tema:\n${phase.avoidStatements.map((statement) => `- ${statement}`).join("\n")}\n`
+    : "";
+
+  return `Você é um professor de tecnologia que avalia estudantes do ensino médio e de transição de carreira no Recife.
+
+Gere a prova de conclusão da fase "${phase.title}" da unidade "${phase.unitTitle}", da trilha de ${phase.area}.
+Gere EXATAMENTE ${PHASE_EXAM_MIN_QUESTIONS} perguntas de múltipla escolha.
+Tema da fase: ${phase.description ?? phase.title}.
+Conteúdos estudados na fase: ${resources}.
+
+${buildPhaseScope(phase)}
+Varie o formato entre conceito e aplicação prática (e leitura de código quando o tema for programação), e distribua a alternativa correta entre A, B, C e D ao longo da prova.
+${avoid}
+${PROMPT_RULES}`;
+}
+
+/**
+ * Prova de fim de fase. Sem fallback de propósito: essas perguntas decidem se
+ * o estudante avança, então perguntas genéricas de template seriam pior do que
+ * um erro visível.
+ */
+export async function generateQuestionsForPhase(
+  phase: PhaseData,
+  clientOptions?: AiClientOptions,
+): Promise<GeneratedQuestionItem[]> {
+  return requestQuestions({
+    prompt: buildPhasePrompt(phase),
+    fallback: null,
+    logLabel: "AI Phase Exam",
+    timeoutMs: AI_PHASE_TIMEOUT_MS,
+    schema: buildQuestionsSchema(PHASE_EXAM_MIN_QUESTIONS, PHASE_EXAM_MAX_QUESTIONS),
+    jsonSchema: buildQuestionsJsonSchema(
+      PHASE_EXAM_MIN_QUESTIONS,
+      PHASE_EXAM_MAX_QUESTIONS,
+    ),
+    clientOptions,
+  });
 }

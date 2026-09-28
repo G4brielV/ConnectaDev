@@ -47,7 +47,12 @@ describe("getGamificationSummaryService", () => {
       countCompletedReviews: vi.fn().mockResolvedValue(4),
     });
 
-    const summary = await getGamificationSummaryService("user-1", repository);
+    // Mesmo dia da última atividade: a ofensiva gravada continua valendo.
+    const summary = await getGamificationSummaryService(
+      "user-1",
+      repository,
+      new Date("2026-09-17T15:00:00Z"),
+    );
 
     expect(summary).toEqual({
       totalXp: 120,
@@ -61,5 +66,26 @@ describe("getGamificationSummaryService", () => {
 
     expect(repository.findGamification).toHaveBeenCalledWith("user-1");
     expect(repository.countCompletedReviews).toHaveBeenCalledWith("user-1");
+  });
+
+  it("zera a ofensiva de quem faltou um dia, sem mexer no recorde", async () => {
+    const repository = makeRepository({
+      findGamification: vi.fn().mockResolvedValue({
+        totalXp: 120,
+        currentLevel: 2,
+        currentStreak: 3,
+        longestStreak: 7,
+        lastActivityDate: new Date("2026-09-17T10:00:00Z"),
+      }),
+    });
+
+    const summary = await getGamificationSummaryService(
+      "user-1",
+      repository,
+      new Date("2026-09-19T15:00:00Z"),
+    );
+
+    expect(summary.currentStreak).toBe(0);
+    expect(summary.longestStreak).toBe(7);
   });
 });

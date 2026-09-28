@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { calculateLevel } from "../constants/xpLevel";
+import { studyDayDiff, studyDayToDate, toStudyDay } from "./studyDay";
 
 export interface UpdateGamificationParams {
   userId: string;
@@ -17,20 +18,28 @@ export interface GamificationResult {
 }
 
 /**
- * Normalizes date to UTC YYYY-MM-DD string for comparison.
- */
-export function getUtcDayString(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-/**
- * Calculates day difference between two dates (dateA - dateB) in calendar days (UTC).
+ * Calculates day difference between two dates (dateA - dateB) in calendar
+ * days of Recife — see `studyDay.ts` for why the day doesn't turn over in UTC.
  */
 export function getDayDifference(dateA: Date, dateB: Date): number {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const utcA = Date.UTC(dateA.getUTCFullYear(), dateA.getUTCMonth(), dateA.getUTCDate());
-  const utcB = Date.UTC(dateB.getUTCFullYear(), dateB.getUTCMonth(), dateB.getUTCDate());
-  return Math.floor((utcA - utcB) / msPerDay);
+  return studyDayDiff(toStudyDay(dateA), toStudyDay(dateB));
+}
+
+type ActivityDayClient = Pick<PrismaClient, "userActivityDay"> | Prisma.TransactionClient;
+
+/**
+ * Marks the study day in the streak history. Called wherever the streak is
+ * updated; repeated activity on the same day is a no-op.
+ */
+export async function recordActivityDay(
+  client: ActivityDayClient,
+  userId: string,
+  date: Date,
+): Promise<void> {
+  await client.userActivityDay.createMany({
+    data: [{ userId, day: studyDayToDate(toStudyDay(date)) }],
+    skipDuplicates: true,
+  });
 }
 
 export function calculateNewStreak(
@@ -73,6 +82,70 @@ export function calculateNewStreak(
     newCurrentStreak: 1,
     newLongestStreak: Math.max(1, longestStreak),
     streakIncremented: true,
+  };
+}
+
+export interface StudyActivityResult {
+  totalXp: number;
+  currentLevel: number;
+  previousLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  streakIncremented: boolean;
+}
+
+/**
+ * Soma o XP e registra o dia de estudo dentro de uma transação já aberta.
+ * Conta a ofensiva mesmo com 0 XP: estudar é o que mantém o fogo aceso.
+ */
+export async function applyStudyActivity(
+  transaction: Prisma.TransactionClient,
+  userId: string,
+  earnedXp: number,
+  now: Date = new Date(),
+): Promise<StudyActivityResult> {
+  const previous = await transaction.userGamification.findUnique({
+    where: { userId },
+    select: {
+      totalXp: true,
+      currentLevel: true,
+      currentStreak: true,
+      longestStreak: true,
+      lastActivityDate: true,
+    },
+  });
+
+  const previousLevel = previous?.currentLevel ?? 1;
+  const totalXp = (previous?.totalXp ?? 0) + earnedXp;
+  const currentLevel = calculateLevel(totalXp);
+  const { newCurrentStreak, newLongestStreak, streakIncremented } = calculateNewStreak(
+    previous?.lastActivityDate ?? null,
+    previous?.currentStreak ?? 0,
+    previous?.longestStreak ?? 0,
+    now,
+  );
+
+  const data = {
+    totalXp,
+    currentLevel,
+    currentStreak: newCurrentStreak,
+    longestStreak: newLongestStreak,
+    lastActivityDate: now,
+  };
+  await transaction.userGamification.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
+  await recordActivityDay(transaction, userId, now);
+
+  return {
+    totalXp,
+    currentLevel,
+    previousLevel,
+    currentStreak: newCurrentStreak,
+    longestStreak: newLongestStreak,
+    streakIncremented,
   };
 }
 
@@ -119,6 +192,7 @@ export async function awardGamificationPoints(
       lastActivityDate: activityDate,
     },
   });
+  await recordActivityDay(prisma, userId, activityDate);
 
   return {
     totalXp: saved.totalXp,

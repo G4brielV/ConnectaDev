@@ -2,9 +2,11 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { auth, ensureDevelopmentUser } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { getTrailLesson, getTrailsForUser } from "../services/getTrails.service";
+import { getTrailMapForUser } from "../services/getTrailMap.service";
+import { getTrailPhase } from "../services/getTrailPhase.service";
 import type { TrailLessonRequest } from "../schemas/trail.schemas";
 
-async function getUserId(request: FastifyRequest): Promise<string> {
+export async function getUserId(request: FastifyRequest): Promise<string> {
   const headers = new Headers();
   for (const [key, value] of Object.entries(request.headers)) {
     if (typeof value === "string") headers.set(key, value);
@@ -35,4 +37,22 @@ export async function getTrailLessonController(
   const lesson = await getTrailLesson(request.params.lessonId);
   if (!lesson) throw new AppError("Lição não encontrada.", 404);
   return reply.status(200).send(lesson);
+}
+
+/** Mapa de fases da área do usuário, com progresso e bloqueio já resolvidos. */
+export async function getTrailMapController(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<FastifyReply> {
+  const userId = await getUserId(request);
+  return reply.status(200).send(await getTrailMapForUser(userId));
+}
+
+/** Uma fase para jogar: conteúdo de estudo + prova, respeitando o gate. */
+export async function getTrailPhaseController(
+  request: FastifyRequest<TrailLessonRequest>,
+  reply: FastifyReply,
+): Promise<FastifyReply> {
+  const userId = await getUserId(request);
+  return reply.status(200).send(await getTrailPhase(userId, request.params.lessonId));
 }
