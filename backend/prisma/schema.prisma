@@ -453,3 +453,20 @@ model UserCourseBookmark {
   @@index([userId])
   @@map("user_course_bookmarks")
 }
+
+model Job {
+  id          String   @id @default(uuid())
+  externalId  String   @unique @map("external_id")
+  title       String
+  company     String
+  location    String
+  description String
+  salary      String?
+  link        String
+  category    String
+  isExpired   Boolean  @default(false) @map("is_expired")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([category, location])
+  @@map("jobs")
+}

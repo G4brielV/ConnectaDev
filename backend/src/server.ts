@@ -7,6 +7,8 @@ import { quizRoutes } from "./modules/quiz/routes/quiz.routes";
 import { courseRoutes } from "./modules/courses/routes/course.routes";
 import { reviewRoutes } from "./modules/reviews/routes/review.routes";
 import { gamificationRoutes } from "./modules/gamification/routes/gamification.routes";
+import { startJobsSynchronization } from "./modules/jobs/services/joobleIntegration.service";
+import { jobsRoutes } from "./modules/jobs/routes/jobs.routes";
 
 const app = fastify({ logger: true });
 
@@ -27,6 +29,7 @@ app.register(quizRoutes);
 app.register(courseRoutes);
 app.register(reviewRoutes);
 app.register(gamificationRoutes);
+app.register(jobsRoutes);
 
 // Health check
 app.get("/health", async () => {
@@ -37,6 +40,7 @@ const start = async () => {
   try {
     const port = parseInt(process.env.PORT || "3000");
     await app.listen({ port, host: "0.0.0.0" });
+    startJobsSynchronization();
     console.log(`Server is running on http://localhost:${port}`);
   } catch (err) {
     app.log.error(err);
