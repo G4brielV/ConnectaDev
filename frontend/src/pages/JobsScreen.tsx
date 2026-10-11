@@ -67,9 +67,10 @@ export function JobsScreen() {
 
   const filteredJobs = useMemo(
     () =>
-      selectedFilter === "Todas"
+      [...(selectedFilter === "Todas"
         ? jobs
-        : jobs.filter((job) => job.contractType === selectedFilter),
+        : jobs.filter((job) => job.contractType === selectedFilter))]
+        .sort((left, right) => getMatchPercentage(right) - getMatchPercentage(left)),
     [jobs, selectedFilter],
   );
 
@@ -164,6 +165,8 @@ export function JobsScreen() {
 
 function JobCard({ job }: { job: JobRecommendation }) {
   const [linkError, setLinkError] = useState<string | null>(null);
+  const matchPercentage = getMatchPercentage(job);
+  const isHighlyCompatible = matchPercentage >= 80;
 
   async function openJob(): Promise<void> {
     setLinkError(null);
@@ -187,6 +190,14 @@ function JobCard({ job }: { job: JobRecommendation }) {
         <Text style={styles.contractBadge}>{job.contractType}</Text>
         <Text style={styles.areaBadge}>{job.category}</Text>
       </View>
+      <View
+        accessibilityLabel={`${matchPercentage}% de Compatibilidade${isHighlyCompatible ? ", alta relevância" : ""}`}
+        style={[styles.matchBadge, isHighlyCompatible && styles.matchBadgeHighlighted]}
+      >
+        <Text style={[styles.matchBadgeText, isHighlyCompatible && styles.matchBadgeTextHighlighted]}>
+          {matchPercentage}% de Compatibilidade
+        </Text>
+      </View>
       <Text style={styles.jobTitle}>{job.title}</Text>
       <Text style={styles.jobCompany}>🏢 {job.company}</Text>
       <Text style={styles.jobLocation}>📍 {job.location}</Text>
@@ -197,6 +208,14 @@ function JobCard({ job }: { job: JobRecommendation }) {
       </Pressable>
     </View>
   );
+}
+
+function getMatchPercentage(job: Pick<JobRecommendation, "matchPercentage">): number {
+  if (!Number.isFinite(job.matchPercentage)) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(job.matchPercentage)));
 }
 
 const styles = StyleSheet.create({
@@ -224,6 +243,10 @@ const styles = StyleSheet.create({
   jobHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
   contractBadge: { backgroundColor: "#E0F2F1", borderRadius: 6, color: "#036564", fontSize: 11, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 4, overflow: "hidden" },
   areaBadge: { color: "#64748B", fontSize: 11, maxWidth: "55%", textAlign: "right", fontWeight: "500" },
+  matchBadge: { alignSelf: "flex-start", backgroundColor: "#F1F5F9", borderRadius: 999, marginBottom: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  matchBadgeHighlighted: { backgroundColor: "#FEF3C7" },
+  matchBadgeText: { color: "#475569", fontSize: 12, fontWeight: "700" },
+  matchBadgeTextHighlighted: { color: "#92400E" },
   jobTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800", lineHeight: 24 },
   jobCompany: { color: "#334155", fontSize: 14, fontWeight: "600", marginTop: 8 },
   jobLocation: { color: "#64748B", fontSize: 13, marginTop: 6 },
