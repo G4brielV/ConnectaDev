@@ -29,6 +29,19 @@ describe("getJobRecommendations", () => {
     ).toBe(70);
   });
 
+  it("atribui compatibilidade ampla a vagas genéricas de desenvolvimento", () => {
+    expect(
+      calculateJobMatch({
+        areaPrincipal: "Desenvolvimento de Software",
+        userTechnologies: ["Java"],
+        category: "TECNOLOGIA_GERAL",
+        tags: ["Desenvolvimento"],
+        title: "Estágio em Desenvolvimento",
+        description: "",
+      }),
+    ).toBe(20);
+  });
+
   it("inclui vagas de Tecnologia Geral para usuários com diagnóstico", async () => {
     const findMany = vi.fn().mockResolvedValue([
       {
@@ -60,7 +73,7 @@ describe("getJobRecommendations", () => {
     expect(result.jobs).toHaveLength(1);
     expect(result.jobs[0]).toMatchObject({
       category: "TECNOLOGIA_GERAL",
-      matchPercentage: 0,
+      matchPercentage: 20,
     });
   });
 

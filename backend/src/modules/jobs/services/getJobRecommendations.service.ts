@@ -79,8 +79,12 @@ export function calculateJobMatch(input: JobMatchInput): number {
     return 0;
   }
 
-  const areaScore = matchesArea(input.areaPrincipal, input.category) ? 40 : 0;
   const classifiedJob = categorizeJob(input.title, input.description);
+  const areaScore = matchesArea(input.areaPrincipal, input.category)
+    ? 40
+    : isBroadTechnologyJob(input.category, classifiedJob.category)
+      ? 20
+      : 0;
   const jobTechnologies = [...input.tags, ...classifiedJob.tags];
   const technologies = deduplicateNormalized(input.userTechnologies);
 
@@ -113,6 +117,16 @@ function matchesArea(areaPrincipal: string, category: string): boolean {
 
   const categories = AREA_CATEGORIES[areaPrincipal] ?? [areaPrincipal];
   return categories.some((candidate) => normalize(candidate) === normalize(category));
+}
+
+function isBroadTechnologyJob(
+  storedCategory: string,
+  classifiedCategory: string,
+): boolean {
+  return (
+    storedCategory === "TECNOLOGIA_GERAL" ||
+    classifiedCategory === "TECNOLOGIA_GERAL"
+  );
 }
 
 function technologiesMatch(left: string, right: string): boolean {

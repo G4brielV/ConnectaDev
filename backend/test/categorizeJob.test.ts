@@ -20,6 +20,7 @@ describe("categorizeJob", () => {
 
   it.each([
     ["Estágio em TI", "Apoio à equipe", ["TI"]],
+    ["Estágio em Desenvolvimento", "", ["Desenvolvimento"]],
     ["Suporte Técnico", "Atendimento e help desk", ["Suporte Técnico", "Help Desk"]],
   ])("usa Tecnologia Geral para perfil genérico: %s", (title, description, tags) => {
     expect(categorizeJob(title, description)).toEqual({

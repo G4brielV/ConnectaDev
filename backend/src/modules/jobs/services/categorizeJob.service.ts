@@ -126,6 +126,7 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
 const GENERIC_KEYWORDS = [
   { keyword: "ti", tag: "TI" },
   { keyword: "tecnologia", tag: "Tecnologia" },
+  { keyword: "desenvolvimento", tag: "Desenvolvimento" },
   { keyword: "suporte tecnico", tag: "Suporte Técnico" },
   { keyword: "help desk", tag: "Help Desk" },
   { keyword: "informatica", tag: "Informática" },
