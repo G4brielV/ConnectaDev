@@ -19,6 +19,9 @@ import {
   JobRecommendation,
 } from "../shared/api/jobsApi";
 import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
+import {
+  subscribeToJobRecommendationsInvalidation,
+} from "../shared/api/jobRecommendationsCache";
 
 const CONTRACT_FILTERS: Array<"Todas" | JobContractType> = [
   "Todas",
@@ -63,6 +66,12 @@ export function JobsScreen() {
 
   useEffect(() => {
     void loadJobs();
+  }, [loadJobs]);
+
+  useEffect(() => {
+    return subscribeToJobRecommendationsInvalidation(() => {
+      void loadJobs();
+    });
   }, [loadJobs]);
 
   const filteredJobs = useMemo(

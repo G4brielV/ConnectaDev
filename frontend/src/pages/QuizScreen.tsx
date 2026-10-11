@@ -26,6 +26,7 @@ import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { getQuizCatalogState } from "./quizState";
+import { invalidateJobRecommendations } from "../shared/api/jobRecommendationsCache";
 
 function QuizScreenContent() {
   const quizLoadErrorMessage =
@@ -286,6 +287,7 @@ function QuizScreenContent() {
 
       try {
         const result = await submitQuiz(token, { answers: submissionAnswers });
+        invalidateJobRecommendations();
         navigation.replace("QuizResult", { result });
       } catch (error) {
         setAnswerValidationMessage(
