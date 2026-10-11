@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "../../../lib/auth";
+import { categorizeJob } from "./categorizeJob.service";
 
 const RMR_CITIES = ["Recife", "Olinda", "Jaboatão", "Jaboatao", "Paulista", "Camaragibe", "São Lourenço", "Sao Lourenco", "Igarassu", "Abreu e Lima", "Cabo de Santo Agostinho"];
 const EMPTY_JOBS_MESSAGE = "Não foi possível atualizar as vagas no momento. Volte em breve!";
@@ -58,8 +59,42 @@ export interface JobRecommendation {
   salary: string | null;
   link: string;
   category: string;
+  matchPercentage: number;
   contractType: "Estágio" | "Júnior" | "Pleno" | "Sênior" | "Outro";
   updatedAt: Date;
+}
+
+export interface JobMatchInput {
+  areaPrincipal: string;
+  userTechnologies: readonly string[];
+  category: string;
+  tags: readonly string[];
+  title: string;
+  description: string;
+}
+
+export function calculateJobMatch(input: JobMatchInput): number {
+  if (!input.areaPrincipal) {
+    return 0;
+  }
+
+  const areaScore = matchesArea(input.areaPrincipal, input.category) ? 40 : 0;
+  const classifiedJob = categorizeJob(input.title, input.description);
+  const jobTechnologies = [...input.tags, ...classifiedJob.tags];
+  const technologies = deduplicateNormalized(input.userTechnologies);
+
+  if (technologies.length === 0) {
+    return areaScore;
+  }
+
+  const matchedTechnologies = technologies.filter((technology) =>
+    jobTechnologies.some((jobTechnology) =>
+      technologiesMatch(technology, jobTechnology),
+    ),
+  ).length;
+  const technologyScore = Math.round((matchedTechnologies / technologies.length) * 60);
+
+  return areaScore + technologyScore;
 }
 
 export interface JobRecommendationsResponse {
@@ -70,16 +105,49 @@ export interface JobRecommendationsResponse {
   canRetry: boolean;
 }
 
+function matchesArea(areaPrincipal: string, category: string): boolean {
+  const categories = AREA_CATEGORIES[areaPrincipal] ?? [areaPrincipal];
+  return categories.some((candidate) => normalize(candidate) === normalize(category));
+}
+
+function technologiesMatch(left: string, right: string): boolean {
+  const normalizedLeft = normalize(left);
+  const normalizedRight = normalize(right);
+  return (
+    normalizedLeft === normalizedRight ||
+    normalizedLeft.includes(normalizedRight) ||
+    normalizedRight.includes(normalizedLeft)
+  );
+}
+
+function deduplicateNormalized(values: readonly string[]): string[] {
+  const unique = new Map<string, string>();
+  for (const value of values) {
+    const normalized = normalize(value);
+    if (normalized) {
+      unique.set(normalized, value);
+    }
+  }
+  return [...unique.values()];
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
 export async function getJobRecommendations(
   userId: string,
   repository: JobsRepository = prisma,
 ): Promise<JobRecommendationsResponse> {
   const diagnosis = await repository.vocationalDiagnosis.findUnique({
     where: { userId },
-    select: { areaPrincipal: true },
+    select: { areaPrincipal: true, tecnologiasSugeridas: true },
   });
   const areaPrincipal = diagnosis?.areaPrincipal.trim() ?? "";
   const hasDiagnosis = areaPrincipal.length > 0;
+  const userTechnologies = asStringArray(diagnosis?.tecnologiasSugeridas);
 
   const jobs = await repository.job.findMany({
     where: {
@@ -100,12 +168,21 @@ export async function getJobRecommendations(
       salary: true,
       link: true,
       category: true,
+      tags: true,
       updatedAt: true,
     },
   }).then((items) =>
     items
       .map((job) => ({
         ...job,
+        matchPercentage: calculateJobMatch({
+          areaPrincipal,
+          userTechnologies,
+          category: job.category,
+          tags: job.tags ?? [],
+          title: job.title,
+          description: job.description,
+        }),
         contractType: getContractType(`${job.title} ${job.description}`),
       }))
       .filter(

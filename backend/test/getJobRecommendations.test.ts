@@ -1,7 +1,34 @@
 import { describe, expect, it, vi } from "vitest";
-import { getJobRecommendations } from "../src/modules/jobs/services/getJobRecommendations.service";
+import {
+  calculateJobMatch,
+  getJobRecommendations,
+} from "../src/modules/jobs/services/getJobRecommendations.service";
 
 describe("getJobRecommendations", () => {
+  it("calcula match pela área e pelas tecnologias do diagnóstico", () => {
+    expect(
+      calculateJobMatch({
+        areaPrincipal: "Desenvolvimento de Software",
+        userTechnologies: ["Java", "Spring"],
+        category: "Backend",
+        tags: ["Java", "Spring"],
+        title: "Desenvolvedor Backend Java",
+        description: "APIs com Spring",
+      }),
+    ).toBe(100);
+
+    expect(
+      calculateJobMatch({
+        areaPrincipal: "Desenvolvimento de Software",
+        userTechnologies: ["Java", "React"],
+        category: "Backend",
+        tags: ["Java"],
+        title: "Desenvolvedor Backend Java",
+        description: "APIs",
+      }),
+    ).toBe(70);
+  });
+
   it("retorna vagas técnicas da área, priorizando estágio e júnior", async () => {
     const findMany = vi.fn().mockResolvedValue([
       {
@@ -81,6 +108,7 @@ describe("getJobRecommendations", () => {
       vocationalDiagnosis: {
         findUnique: vi.fn().mockResolvedValue({
           areaPrincipal: "Desenvolvimento de Software",
+          tecnologiasSugeridas: ["Java"],
         }),
       },
       job: { findMany },
@@ -93,6 +121,7 @@ describe("getJobRecommendations", () => {
       ["junior", "Júnior"],
       ["senior", "Sênior"],
     ]);
+    expect(result.jobs.every((job) => typeof job.matchPercentage === "number")).toBe(true);
   });
 
   it("filtra vagas pela área do diagnóstico e pela RMR", async () => {
