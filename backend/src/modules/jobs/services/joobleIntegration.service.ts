@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "../../../lib/auth";
+import { categorizeJob } from "./categorizeJob.service";
 
 const JOOBLE_API_URL = "https://br.jooble.org/api";
 const RMR_LOCATION = "Recife, Pernambuco";
@@ -151,6 +152,7 @@ export class JoobleIntegrationService {
       await Promise.all(batch.map((job) => this.repository.job.upsert({
         where: { externalId: String(job.id) },
         create: {
+          ...categorizeJob(job.title, job.snippet ?? ""),
           externalId: String(job.id),
           title: job.title,
           company: job.company ?? "Empresa não informada",
@@ -158,18 +160,17 @@ export class JoobleIntegrationService {
           description: job.snippet ?? "",
           salary: job.salary ?? null,
           link: job.link,
-          category,
           isExpired: false,
           updatedAt: parseUpdatedAt(job.updated),
         },
         update: {
+          ...categorizeJob(job.title, job.snippet ?? ""),
           title: job.title,
           company: job.company ?? "Empresa não informada",
           location: job.location,
           description: job.snippet ?? "",
           salary: job.salary ?? null,
           link: job.link,
-          category,
           isExpired: false,
           updatedAt: parseUpdatedAt(job.updated),
         },

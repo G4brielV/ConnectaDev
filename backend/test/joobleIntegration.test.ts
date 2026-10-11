@@ -98,6 +98,7 @@ describe("JoobleIntegrationService", () => {
         create: expect.objectContaining({
           externalId: "123",
           category: "Backend",
+          tags: ["Backend", "API"],
           isExpired: false,
         }),
       }),
