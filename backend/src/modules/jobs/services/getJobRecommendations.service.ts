@@ -5,15 +5,16 @@ import { categorizeJob } from "./categorizeJob.service";
 const RMR_CITIES = ["Recife", "Olinda", "Jaboatão", "Jaboatao", "Paulista", "Camaragibe", "São Lourenço", "Sao Lourenco", "Igarassu", "Abreu e Lima", "Cabo de Santo Agostinho"];
 const EMPTY_JOBS_MESSAGE = "Não foi possível atualizar as vagas no momento. Volte em breve!";
 const AREA_CATEGORIES: Record<string, string[]> = {
-  "Desenvolvimento de Software": ["Desenvolvimento de Software", "Backend", "Frontend", "Mobile"],
-  "Dados e Inteligência Artificial": ["Dados e Inteligência Artificial", "Dados"],
-  "Cibersegurança": ["Cibersegurança", "Segurança"],
-  "Infraestrutura e Redes": ["Infraestrutura e Redes", "Infraestrutura", "Redes", "DevOps"],
-  "Design e Experiência do Usuário": ["Design e Experiência do Usuário", "Design", "UX", "UI"],
+  "Desenvolvimento de Software": ["Desenvolvimento de Software", "Backend", "Frontend", "Mobile", "TECNOLOGIA_GERAL"],
+  "Dados e Inteligência Artificial": ["Dados e Inteligência Artificial", "Dados", "TECNOLOGIA_GERAL"],
+  "Cibersegurança": ["Cibersegurança", "Segurança", "TECNOLOGIA_GERAL"],
+  "Infraestrutura e Redes": ["Infraestrutura e Redes", "Infraestrutura", "Redes", "DevOps", "TECNOLOGIA_GERAL"],
+  "Design e Experiência do Usuário": ["Design e Experiência do Usuário", "Design", "UX", "UI", "TECNOLOGIA_GERAL"],
   "Gestão de Produtos de Tecnologia": [
     "Gestão de Produtos de Tecnologia",
     "Produto",
     "Product Management",
+    "TECNOLOGIA_GERAL",
   ],
 };
 const TECH_CATEGORIES = new Set(Object.values(AREA_CATEGORIES).flat());
@@ -106,6 +107,10 @@ export interface JobRecommendationsResponse {
 }
 
 function matchesArea(areaPrincipal: string, category: string): boolean {
+  if (category === "TECNOLOGIA_GERAL") {
+    return false;
+  }
+
   const categories = AREA_CATEGORIES[areaPrincipal] ?? [areaPrincipal];
   return categories.some((candidate) => normalize(candidate) === normalize(category));
 }
@@ -188,7 +193,7 @@ export async function getJobRecommendations(
       .filter(
         (job) =>
           TECH_CATEGORIES.has(job.category) &&
-          hasTechTerm(job.title) &&
+          (job.category === "TECNOLOGIA_GERAL" || hasTechTerm(job.title)) &&
           !hasExcludedNonTechRole(`${job.title} ${job.description}`),
       )
       .sort((left, right) => {

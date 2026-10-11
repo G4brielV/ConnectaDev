@@ -29,6 +29,41 @@ describe("getJobRecommendations", () => {
     ).toBe(70);
   });
 
+  it("inclui vagas de Tecnologia Geral para usuários com diagnóstico", async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        id: "generic",
+        externalId: "generic",
+        title: "Estágio em TI",
+        company: "Tech",
+        location: "Recife",
+        description: "Apoio à equipe",
+        salary: null,
+        link: "https://example.com/generic",
+        category: "TECNOLOGIA_GERAL",
+        tags: ["TI"],
+        updatedAt: new Date("2026-09-24T12:00:00Z"),
+      },
+    ]);
+    const repository = {
+      vocationalDiagnosis: {
+        findUnique: vi.fn().mockResolvedValue({
+          areaPrincipal: "Desenvolvimento de Software",
+          tecnologiasSugeridas: [],
+        }),
+      },
+      job: { findMany },
+    };
+
+    const result = await getJobRecommendations("user-1", repository);
+
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]).toMatchObject({
+      category: "TECNOLOGIA_GERAL",
+      matchPercentage: 0,
+    });
+  });
+
   it("retorna vagas técnicas da área, priorizando estágio e júnior", async () => {
     const findMany = vi.fn().mockResolvedValue([
       {

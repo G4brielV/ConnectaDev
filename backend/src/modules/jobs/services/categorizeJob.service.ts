@@ -7,6 +7,7 @@ export const JOB_CATEGORIES = [
   "Infraestrutura",
   "QA",
   "Produto",
+  "TECNOLOGIA_GERAL",
 ] as const;
 
 export type JobCategory = (typeof JOB_CATEGORIES)[number];
@@ -122,6 +123,14 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
   },
 ];
 
+const GENERIC_KEYWORDS = [
+  { keyword: "ti", tag: "TI" },
+  { keyword: "tecnologia", tag: "Tecnologia" },
+  { keyword: "suporte tecnico", tag: "Suporte Técnico" },
+  { keyword: "help desk", tag: "Help Desk" },
+  { keyword: "informatica", tag: "Informática" },
+] as const;
+
 export interface JobCategorization {
   category: JobCategory;
   tags: string[];
@@ -143,7 +152,12 @@ export function categorizeJob(title: string, description: string): JobCategoriza
   );
 
   if (!primaryRule) {
-    return { category: "Produto", tags: [] };
+    return {
+      category: "TECNOLOGIA_GERAL",
+      tags: GENERIC_KEYWORDS
+        .filter(({ keyword }) => includesKeyword(searchableText, keyword))
+        .map(({ tag }) => tag),
+    };
   }
 
   return {
