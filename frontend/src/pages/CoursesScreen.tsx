@@ -207,33 +207,87 @@ function CoursesScreenContent() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={styles.listHeader}>
-            <XpProgressBar />
-
-            <View style={styles.navBar}>
-              {canGoBack ? (
-                <Pressable
-                  accessibilityLabel="Voltar"
-                  accessibilityRole="button"
-                  onPress={() => navigation.goBack()}
-                  style={styles.backButton}
-                  hitSlop={6}
-                >
-                  <Feather name="chevron-left" size={20} color={colors.textPrimary} />
-                </Pressable>
-              ) : (
-                <View style={styles.navSpacer} />
-              )}
-              <View style={styles.brand}>
-                <View style={styles.brandDot} />
-                <Text style={styles.brandText}>CONNECTADEV</Text>
+          <View style={styles.titleSection}>
+            <Text style={styles.matchBadge}>✪ SEU MATCH PERFEITO</Text>
+            <Text style={styles.heading}>Cursos sugeridos para o seu perfil</Text>
+            <Text style={styles.subtitle}>
+              Selecionamos {courses.length} curso{courses.length === 1 ? "" : "s"} com base em{" "}
+              {areaPrincipal || "suas preferências"}.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Pressable
+              accessibilityLabel={`Abrir curso ${item.title}`}
+              accessibilityRole="button"
+              onPress={() => {
+                void openCourse(item.external_url);
+              }}
+            >
+              <View style={styles.banner}>
+                <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+                <Text style={styles.matchOverlay}>👍 MATCH</Text>
+                <Text style={styles.providerOverlay}>{item.provider}</Text>
               </View>
-              <Pressable
-                accessibilityLabel="Meu Perfil"
-                accessibilityRole="button"
-                onPress={() => navigation.navigate("Home", { tab: "profile" })}
-                style={styles.avatar}
-                hitSlop={6}
+              <View style={styles.cardContent}>
+                <Text style={styles.category}>
+                  {item.tags.slice(0, 2).join(" & ").toUpperCase()}
+                </Text>
+                <Text style={styles.title}>{item.title}</Text>
+                <View style={styles.metaChips}>
+                  <Text style={styles.metaChip}>📊 {item.level}</Text>
+                  <Text style={styles.metaChip}>🎓 Curso gratuito</Text>
+                </View>
+                <Text style={styles.tags}>{item.tags.join(" • ")}</Text>
+                {item.userRating && (
+                  <Text style={styles.ratingStatus}>★ Avaliado por você: {item.userRating.rating}/5</Text>
+                )}
+                <Text style={styles.ctaText}>Começar Curso Grátis  →</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Fazer revisão com IA do curso ${item.title}`}
+              accessibilityRole="button"
+              onPress={() => {
+                navigation.navigate("KnowledgeReview", {
+                  topicId: `course-topic-${item.id}`,
+                  topicTitle: `Revisão: ${item.title}`,
+                });
+              }}
+              style={styles.aiReviewButton}
+            >
+              <Text style={styles.aiReviewButtonText}>Fazer Revisão com IA (até +50 XP) 🧠</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Avaliar curso ${item.title}`}
+              accessibilityRole="button"
+              disabled={isRating}
+              onPress={() => {
+                if (!isRating) setRatingCourse(item);
+              }}
+              style={[styles.ratingButton, isRating && styles.disabledButton]}
+            >
+              <Text style={styles.ratingButtonText}>★ Avaliar Curso</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={
+                savedCourseIds.has(item.id)
+                  ? `Curso ${item.title} salvo`
+                  : `Salvar curso ${item.title}`
+              }
+              accessibilityRole="button"
+              disabled={savingCourseId === item.id}
+              onPress={() => {
+                void saveCourse(item.id);
+              }}
+              style={styles.bookmarkButton}
+            >
+              <Text
+                style={[
+                  styles.bookmarkIcon,
+                  savedCourseIds.has(item.id) && styles.bookmarkIconActive,
+                ]}
               >
                 <Text style={styles.avatarText}>{userInitials(user?.name, user?.email)}</Text>
                 <View style={styles.onlineDot} />

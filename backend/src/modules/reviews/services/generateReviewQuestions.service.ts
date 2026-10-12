@@ -367,6 +367,7 @@ async function requestQuestions({
       error instanceof AiRequestError ? error.retryAfterMs : null,
     );
   }
+
 }
 
 export async function generateQuestionsForCourse(

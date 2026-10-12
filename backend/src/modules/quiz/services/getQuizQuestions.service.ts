@@ -6,6 +6,7 @@ import {
   QuizQuestionType,
   QuizValidation,
 } from "../schemas/quiz.schemas";
+import { SUPPORTED_AREAS } from "../constants/areas";
 
 function parseOptions(value: unknown): QuizOption[] | undefined {
   if (!Array.isArray(value)) {
@@ -13,13 +14,18 @@ function parseOptions(value: unknown): QuizOption[] | undefined {
   }
 
   const options = value.filter(
-    (option): option is { id: string; label: string } =>
+    (option): option is { id: string; label: string; targetArea?: string } =>
       typeof option === "object" &&
       option !== null &&
       "id" in option &&
       "label" in option &&
       typeof option.id === "string" &&
-      typeof option.label === "string",
+      typeof option.label === "string" &&
+      (!("targetArea" in option) ||
+        (typeof option.targetArea === "string" &&
+          SUPPORTED_AREAS.includes(
+            option.targetArea as (typeof SUPPORTED_AREAS)[number],
+          ))),
   );
 
   return options.length > 0 ? options : undefined;
