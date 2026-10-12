@@ -1,8 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGamification } from "@/entities/gamification";
+import { colors, fonts, radius, shadow } from "@/shared/config/theme";
 
 const XP_PER_LEVEL = 100;
 
+// Cartão de nível do Stitch ("Cursos Recomendados - ConnectaDev").
 export function XpProgressBar() {
   const { totalXp, currentLevel, isLoading } = useGamification();
   const levelStartXp = (currentLevel - 1) * XP_PER_LEVEL;
@@ -11,62 +14,101 @@ export function XpProgressBar() {
     1,
     Math.max(0, (totalXp - levelStartXp) / (nextLevelXp - levelStartXp)),
   );
+  const missingXp = Math.max(0, nextLevelXp - totalXp);
 
   return (
-    <View accessibilityLabel="Progresso de experiência" style={styles.container}>
+    <View accessibilityLabel="Progresso de experiência" style={styles.card}>
       <View style={styles.heading}>
-        <Text style={styles.level}>Nível {currentLevel}</Text>
-        <Text style={styles.xp}>
-          {isLoading ? "Carregando XP..." : `${totalXp} XP`}
-        </Text>
+        <View style={styles.levelGroup}>
+          <View style={styles.levelIcon}>
+            <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.primary} />
+          </View>
+          <View>
+            <Text style={styles.eyebrow}>ESTUDANTE</Text>
+            <Text style={styles.level}>Nível {currentLevel}</Text>
+          </View>
+        </View>
+        <View style={styles.xpPill}>
+          <Text style={styles.xpText}>{isLoading ? "Carregando XP…" : `${totalXp} XP`}</Text>
+        </View>
       </View>
-      <View accessibilityRole="progressbar" style={styles.track}>
+
+      <View
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}
+        style={styles.track}
+      >
         <View style={[styles.value, { width: `${progress * 100}%` }]} />
       </View>
-      <Text style={styles.caption}>
-        {Math.max(0, nextLevelXp - totalXp)} XP para o nível {currentLevel + 1}
-      </Text>
+
+      <View style={styles.footer}>
+        <Text style={styles.caption}>{currentLevel === 1 ? "Início da jornada" : "Em evolução"}</Text>
+        <Text style={styles.goal}>
+          Faltam {missingXp} XP para o <Text style={styles.goalLevel}>Nível {currentLevel + 1}</Text>
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E8DDCB",
-    borderRadius: 10,
+  card: {
+    backgroundColor: colors.surface,
+    borderColor: colors.light,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
+    ...shadow.card,
   },
   heading: {
+    alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  level: {
-    color: "#033649",
-    fontSize: 13,
-    fontWeight: "800",
+  levelGroup: { alignItems: "center", flexDirection: "row", gap: 8 },
+  levelIcon: {
+    alignItems: "center",
+    backgroundColor: `${colors.primaryTint}55`,
+    borderRadius: 8,
+    height: 28,
+    justifyContent: "center",
+    width: 28,
   },
-  xp: {
-    color: "#B46B00",
-    fontSize: 13,
-    fontWeight: "800",
+  eyebrow: {
+    color: colors.textMuted,
+    fontFamily: fonts.sans.extraBold,
+    fontSize: 10,
+    letterSpacing: 0.8,
   },
+  level: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 14 },
+  xpPill: {
+    backgroundColor: `${colors.primaryTint}40`,
+    borderColor: `${colors.primarySoft}80`,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  xpText: { color: colors.primary, fontFamily: fonts.sans.bold, fontSize: 12 },
   track: {
-    backgroundColor: "#E8DDCB",
-    borderRadius: 999,
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
     height: 8,
     overflow: "hidden",
   },
   value: {
-    backgroundColor: "#036564",
-    borderRadius: 999,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
     height: "100%",
   },
-  caption: {
-    color: "#60717A",
-    fontSize: 11,
+  footer: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 6,
   },
+  caption: { color: colors.textMuted, fontFamily: fonts.sans.medium, fontSize: 11 },
+  goal: { color: colors.textBody, fontFamily: fonts.sans.semiBold, fontSize: 11 },
+  goalLevel: { color: colors.primary, fontFamily: fonts.sans.bold },
 });
