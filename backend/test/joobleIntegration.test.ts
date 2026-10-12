@@ -220,9 +220,32 @@ describe("JoobleIntegrationService", () => {
       },
     });
 
-    await expect(service.synchronize()).resolves.toEqual({
-      fetched: 0,
-      synchronized: 0,
+    await expect(service.synchronize()).rejects.toThrow(
+      "Jooble retornou HTTP 429 para QA",
+    );
+  });
+
+  it("propaga falha transacional sem executar a expiração", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ jobs: [{ id: "job-1", title: "QA", location: "Recife" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const upsert = vi.fn().mockRejectedValue(new Error("database unavailable"));
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const transaction = vi.fn(async (callback: (repository: {
+      job: { upsert: typeof upsert; updateMany: typeof updateMany };
+    }) => Promise<void>) => callback({ job: { upsert, updateMany } }));
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["QA"],
+      repository: { job: { upsert, updateMany }, $transaction: transaction },
     });
+
+    await expect(service.synchronize()).rejects.toThrow("database unavailable");
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

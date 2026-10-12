@@ -52,6 +52,9 @@ interface JobsRepository {
     PrismaClient["job"],
     "upsert" | "updateMany"
   >;
+  $transaction?: <T>(
+    callback: (transactionRepository: JobsRepository) => Promise<T>,
+  ) => Promise<T>;
 }
 
 export interface JoobleIntegrationOptions {
@@ -100,35 +103,58 @@ export class JoobleIntegrationService {
     let fetched = 0;
     let synchronized = 0;
     const seenExternalIds = new Set<string>();
-    let failedCategories = 0;
+    const jobsByCategory: Array<{ category: JobCategory; jobs: JoobleJob[] }> = [];
 
     for (const category of this.categories) {
+      let jobs: JoobleJob[];
       try {
-        const jobs = (await this.search(category)).filter((job) =>
+        jobs = (await this.search(category)).filter((job) =>
           isRelevantJob(category, job),
         );
-        fetched += jobs.length;
-        synchronized += await this.persist(category, jobs);
-        for (const job of jobs) {
-          seenExternalIds.add(String(job.id));
-        }
       } catch (error) {
-        failedCategories += 1;
-        this.logger.error("Falha ao sincronizar categoria de vagas via Jooble.", {
+        throw new JobSyncError(
+          `Falha ao consultar a categoria ${category}.`,
+          "provider",
           category,
           error,
-        });
+        );
+      }
+      fetched += jobs.length;
+      jobsByCategory.push({ category, jobs });
+      for (const job of jobs) {
+        seenExternalIds.add(String(job.id));
       }
     }
 
-    if (failedCategories === 0) {
-      await this.expireUnavailableJobs(seenExternalIds);
+    const applyChanges = async (transactionRepository: JobsRepository): Promise<void> => {
+      for (const { category, jobs } of jobsByCategory) {
+        try {
+          synchronized += await this.persist(category, jobs, transactionRepository);
+        } catch (error) {
+          throw new JobSyncError(
+            `Falha ao persistir a categoria ${category}.`,
+            "database",
+            category,
+            error,
+          );
+        }
+      }
+      try {
+        await this.expireUnavailableJobs(seenExternalIds, transactionRepository);
+      } catch (error) {
+        throw new JobSyncError(
+          "Falha ao expirar vagas descontinuadas.",
+          "database",
+          undefined,
+          error,
+        );
+      }
+    };
+
+    if (this.repository.$transaction) {
+      await this.repository.$transaction(applyChanges);
     } else {
-      this.logger.info(JSON.stringify({
-        event: "JOB_EXPIRATION_SKIPPED",
-        reason: "incomplete_provider_sync",
-        failedCategories,
-      }));
+      await applyChanges(this.repository);
     }
 
     return { fetched, synchronized };
@@ -166,13 +192,17 @@ export class JoobleIntegrationService {
     return jobs;
   }
 
-  private async persist(category: JobCategory, jobs: JoobleJob[]): Promise<number> {
+  private async persist(
+    category: JobCategory,
+    jobs: JoobleJob[],
+    repository: JobsRepository,
+  ): Promise<number> {
     const uniqueJobs = deduplicateJobs(jobs);
     const externalIds = uniqueJobs.map((job) => String(job.id));
 
     for (let index = 0; index < uniqueJobs.length; index += this.batchSize) {
       const batch = uniqueJobs.slice(index, index + this.batchSize);
-      await Promise.all(batch.map((job) => this.repository.job.upsert({
+      await Promise.all(batch.map((job) => repository.job.upsert({
         where: { externalId: String(job.id) },
         create: {
           ...categorizeJob(job.title, job.snippet ?? ""),
@@ -203,7 +233,10 @@ export class JoobleIntegrationService {
     return uniqueJobs.length;
   }
 
-  private async expireUnavailableJobs(seenExternalIds: ReadonlySet<string>): Promise<void> {
+  private async expireUnavailableJobs(
+    seenExternalIds: ReadonlySet<string>,
+    repository: JobsRepository,
+  ): Promise<void> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - this.maxJobAgeDays);
     const rmrFilter = [
@@ -220,7 +253,7 @@ export class JoobleIntegrationService {
       "Cabo de Santo Agostinho",
     ].map((city) => ({ location: { contains: city } }));
 
-    const result = await this.repository.job.updateMany({
+    const result = await repository.job.updateMany({
       where: {
         isExpired: false,
         OR: rmrFilter,
@@ -307,6 +340,18 @@ function normalize(value: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+class JobSyncError extends Error {
+  constructor(
+    message: string,
+    readonly stage: "provider" | "database",
+    readonly category: JobCategory | undefined,
+    cause: unknown,
+  ) {
+    super(`${message} ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = "JobSyncError";
+  }
+}
+
 export function startJobsSynchronization(
   service = new JoobleIntegrationService(),
   logger: Pick<Console, "error" | "info"> = console,
@@ -365,11 +410,14 @@ export function startJobsSynchronization(
         event: "CRON_JOB_SYNC_ERROR",
         timestamp: new Date().toISOString(),
         location: RMR_LOCATION,
+        stage: error instanceof JobSyncError ? error.stage : "unknown",
+        category: error instanceof JobSyncError ? error.category : undefined,
         error: error instanceof Error ? { name: error.name, message: error.message } : error,
       }));
     } finally {
       isRunning = false;
     }
+
   };
 
   const task = cron.schedule(cronExpression, () => void synchronize(), {
