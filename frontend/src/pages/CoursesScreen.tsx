@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Linking,
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Feather } from "@expo/vector-icons";
 import {
   bookmarkCourse,
   fetchCourseRecommendations,
@@ -23,11 +23,14 @@ import { useAuth } from "../entities/session";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { Toast } from "../shared/ui/Toast";
 import { CourseRatingModal } from "../features/courses/ui/CourseRatingModal";
+import { CourseCard } from "../features/courses/ui/CourseCard";
+import { userInitials } from "../features/courses/lib/courseCardView";
 import { useGamification } from "../entities/gamification";
 import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
+import { colors, fonts, radius, shadow, chunky } from "../shared/config/theme";
 
 function CoursesScreenContent() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { refresh } = useGamification();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Courses">>();
@@ -146,19 +149,24 @@ function CoursesScreenContent() {
   }, [loadRecommendations]);
 
   if (isLoading) {
-    return <ActivityIndicator style={styles.centered} color="#036564" />;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   if (errorMessage) {
     return (
       <View style={styles.centered}>
+        <Feather name="wifi-off" size={28} color={colors.textMuted} />
         <Text style={styles.errorText}>{errorMessage}</Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => {
             void loadRecommendations();
           }}
-          style={styles.primaryButton}
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
         >
           <Text style={styles.primaryButtonText}>Tentar Novamente</Text>
         </Pressable>
@@ -170,13 +178,16 @@ function CoursesScreenContent() {
     return (
       <View style={styles.centered}>
         <View style={styles.emptyStateCard}>
+          <View style={styles.emptyStateIcon}>
+            <Feather name="compass" size={26} color={colors.primary} />
+          </View>
           <Text style={styles.emptyStateTitle}>
             Descubra seu perfil na tecnologia para receber indicações personalizadas
           </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.navigate("Quiz")}
-            style={styles.primaryButton}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
           >
             <Text style={styles.primaryButtonText}>Fazer Teste Vocacional</Text>
           </Pressable>
@@ -185,26 +196,11 @@ function CoursesScreenContent() {
     );
   }
 
+  // Pela aba não há para onde voltar; pelo "Meus cursos" do Perfil, há.
+  const canGoBack = navigation.canGoBack();
+
   return (
     <View style={styles.container}>
-      <XpProgressBar />
-      {/* Topo Fixo e Compacto */}
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.headerButton}
-        >
-          <Text style={styles.headerButtonText}>‹</Text>
-        </Pressable>
-        <Text style={styles.logo}>CONNECTADEV</Text>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>◯</Text>
-        </View>
-      </View>
-
-      {/* Lista com o título dentro do ListHeaderComponent (rola junto) */}
       <FlatList
         data={courses}
         keyExtractor={(course) => course.id}
@@ -293,10 +289,46 @@ function CoursesScreenContent() {
                   savedCourseIds.has(item.id) && styles.bookmarkIconActive,
                 ]}
               >
-                🔖
+                <Text style={styles.avatarText}>{userInitials(user?.name, user?.email)}</Text>
+                <View style={styles.onlineDot} />
+              </Pressable>
+            </View>
+
+            <View style={styles.titleSection}>
+              <View style={styles.sectionPill}>
+                <Text style={styles.sectionPillText}>Recomendados para Você</Text>
+              </View>
+              <Text style={styles.subtitle}>
+                {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
+                {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
               </Text>
-            </Pressable>
+            </View>
           </View>
+        }
+        renderItem={({ item, index }) => (
+          <CourseCard
+            course={item}
+            featured={index === 0}
+            areaLabel={areaPrincipal}
+            saved={savedCourseIds.has(item.id)}
+            saving={savingCourseId === item.id}
+            ratingDisabled={isRating}
+            onOpen={() => {
+              void openCourse(item.external_url);
+            }}
+            onReview={() =>
+              navigation.navigate("KnowledgeReview", {
+                topicId: `course-topic-${item.id}`,
+                topicTitle: `Revisão: ${item.title}`,
+              })
+            }
+            onRate={() => {
+              if (!isRating) setRatingCourse(item);
+            }}
+            onSave={() => {
+              void saveCourse(item.id);
+            }}
+          />
         )}
         ListEmptyComponent={
           <Text style={styles.empty}>Nenhum curso recomendado disponível.</Text>
@@ -336,262 +368,132 @@ function CoursesScreenContent() {
 
 export function CoursesScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <CoursesScreenContent />
     </SafeAreaView>
   );
 }
 
+// Layout da tela "Cursos Recomendados - ConnectaDev" do Stitch (sem as abas
+// "Em andamento" e "Concluídos", que ainda não têm dados).
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9F8F5",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#F9F8F5",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.canvas },
+  container: { flex: 1, backgroundColor: colors.canvas },
   centered: {
     flex: 1,
-    textAlign: "center",
-    textAlignVertical: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
     padding: 24,
   },
-  header: {
-    alignItems: "center",
+  listContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
+  listHeader: { gap: 12, marginBottom: 16 },
+  navBar: {
     flexDirection: "row",
-    height: 32,
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    paddingVertical: 4,
   },
-  headerButton: {
-    padding: 2,
-    width: 28,
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.light,
   },
-  headerButtonText: {
-    color: "#033649",
-    fontSize: 22,
-    lineHeight: 22,
-  },
-  logo: {
-    color: "#036564",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.8,
+  navSpacer: { width: 36 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 6 },
+  brandDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  brandText: {
+    fontFamily: fonts.sans.extraBold,
+    fontSize: 14,
+    letterSpacing: 2.4,
+    color: colors.primary,
   },
   avatar: {
+    width: 36,
+    height: 36,
     alignItems: "center",
-    backgroundColor: "#036564",
-    borderRadius: 12,
-    height: 24,
     justifyContent: "center",
-    width: 24,
-  },
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-  },
-  listContent: {
-    paddingBottom: 24,
-  },
-  titleSection: {
-    alignItems: "center",
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  matchBadge: {
-    backgroundColor: "#E5F1F7",
-    borderRadius: 999,
-    color: "#033649",
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  heading: {
-    color: "#031634",
-    fontSize: 18,
-    fontWeight: "800",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  subtitle: {
-    color: "#60717A",
-    fontSize: 12,
-    marginTop: 2,
-    textAlign: "center",
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 18,
-    elevation: 2,
-    marginBottom: 16,
-    overflow: "hidden",
-    position: "relative",
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
-  banner: {
-    height: 150,
-    position: "relative",
-  },
-  thumbnail: {
-    height: "100%",
-    width: "100%",
-  },
-  matchOverlay: {
-    backgroundColor: "#036564",
-    borderRadius: 999,
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "800",
-    left: 10,
-    overflow: "hidden",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+  avatarText: { fontFamily: fonts.sans.semiBold, fontSize: 12, color: colors.textOnPrimary },
+  onlineDot: {
     position: "absolute",
-    top: 10,
+    right: -1,
+    bottom: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#10B981",
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
-  providerOverlay: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 999,
-    bottom: 10,
-    color: "#033649",
-    fontSize: 10,
-    fontWeight: "700",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    position: "absolute",
-    right: 10,
-  },
-  cardContent: {
-    padding: 14,
-  },
-  category: {
-    color: "#60717A",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  title: {
-    color: "#031634",
-    fontSize: 16,
-    fontWeight: "800",
-    marginTop: 4,
-  },
-  metaChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 8,
-  },
-  metaChip: {
-    backgroundColor: "#F2EEE5",
-    borderRadius: 999,
-    color: "#033649",
-    fontSize: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  tags: {
-    color: "#036564",
-    fontSize: 11,
-    marginTop: 8,
-  },
-  ctaText: {
-    backgroundColor: "#036564",
-    borderRadius: 10,
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 12,
-    padding: 11,
-    textAlign: "center",
-  },
-  aiReviewButton: {
-    backgroundColor: "#F0FDFA",
-    borderColor: "#036564",
-    borderWidth: 1.5,
-    borderRadius: 10,
-    marginTop: 8,
-    padding: 10,
-    alignItems: "center",
-  },
-  aiReviewButtonText: {
-    color: "#036564",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  ratingButton: {
+  titleSection: { gap: 8 },
+  sectionPill: {
     alignSelf: "flex-start",
-    marginLeft: 14,
-    marginBottom: 10,
-    paddingVertical: 4,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  ratingButtonText: {
-    color: "#B46B00",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  ratingStatus: {
-    color: "#B46B00",
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 8,
-  },
-  bookmarkButton: {
-    padding: 8,
-    position: "absolute",
-    right: 8,
-    top: 8,
-  },
-  bookmarkIcon: {
-    fontSize: 20,
-    opacity: 0.45,
-  },
-  bookmarkIconActive: {
-    opacity: 1,
-  },
+  sectionPillText: { fontFamily: fonts.sans.bold, fontSize: 12, color: colors.textOnPrimary },
+  subtitle: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.textMuted },
   empty: {
-    color: "#60717A",
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.textMuted,
     textAlign: "center",
     marginTop: 20,
   },
   errorText: {
-    color: "#8B1E1E",
+    fontFamily: fonts.sans.medium,
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.textPrimary,
     textAlign: "center",
-    fontSize: 16,
   },
   emptyStateCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E8DDCB",
-    borderRadius: 16,
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+    backgroundColor: colors.surface,
+    borderColor: colors.light,
+    borderRadius: radius.lg,
     borderWidth: 1,
     padding: 24,
-    width: "100%",
+    ...shadow.card,
+  },
+  emptyStateIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.creamSoft,
   },
   emptyStateTitle: {
-    color: "#033649",
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 26,
+    fontFamily: fonts.sans.bold,
+    fontSize: 17,
+    lineHeight: 24,
+    color: colors.secondary,
     textAlign: "center",
   },
   primaryButton: {
-    alignSelf: "center",
-    backgroundColor: "#036564",
-    borderRadius: 8,
-    marginTop: 24,
+    marginTop: 8,
+    backgroundColor: colors.primary,
+    borderBottomWidth: chunky.ctaDepth,
+    borderBottomColor: colors.primaryDeepest,
+    borderRadius: 12,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  primaryButtonPressed: { borderBottomWidth: chunky.pressedDepth, transform: [{ translateY: 2 }] },
+  primaryButtonText: { fontFamily: fonts.sans.bold, fontSize: 14, color: colors.textOnPrimary },
 });
