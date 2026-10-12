@@ -147,10 +147,11 @@ export class JoobleIntegrationService {
   }
 
   private async persist(category: JobCategory, jobs: JoobleJob[]): Promise<number> {
-    const externalIds = jobs.map((job) => String(job.id));
+    const uniqueJobs = deduplicateJobs(jobs);
+    const externalIds = uniqueJobs.map((job) => String(job.id));
 
-    for (let index = 0; index < jobs.length; index += this.batchSize) {
-      const batch = jobs.slice(index, index + this.batchSize);
+    for (let index = 0; index < uniqueJobs.length; index += this.batchSize) {
+      const batch = uniqueJobs.slice(index, index + this.batchSize);
       await Promise.all(batch.map((job) => this.repository.job.upsert({
         where: { externalId: String(job.id) },
         create: {
@@ -188,8 +189,16 @@ export class JoobleIntegrationService {
       data: { isExpired: true },
     });
 
-    return jobs.length;
+    return uniqueJobs.length;
   }
+}
+
+function deduplicateJobs(jobs: readonly JoobleJob[]): JoobleJob[] {
+  const uniqueJobs = new Map<string, JoobleJob>();
+  for (const job of jobs) {
+    uniqueJobs.set(String(job.id), job);
+  }
+  return [...uniqueJobs.values()];
 }
 
 function parseUpdatedAt(value: string | undefined): Date {

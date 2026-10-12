@@ -114,6 +114,61 @@ describe("JoobleIntegrationService", () => {
     );
   });
 
+  it("insere uma vaga nova e atualiza a existente pelo mesmo externalId", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({
+        jobs: [{
+          id: "same-job",
+          title: "Estágio Backend",
+          location: "Recife",
+          snippet: "Desenvolvimento de APIs",
+          link: "https://example.com/job/same-job",
+        }],
+      }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await service.synchronize();
+
+    expect(upsert.mock.calls[0]?.[0]).toMatchObject({
+      where: { externalId: "same-job" },
+      create: { externalId: "same-job", isExpired: false },
+      update: { title: "Estágio Backend", isExpired: false },
+    });
+  });
+
+  it("deduplica o mesmo externalId repetido no retorno do provedor", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({
+        jobs: [
+          { id: 42, title: "Estágio Backend", location: "Recife", snippet: "Desenvolvimento de APIs", link: "https://example.com/job/42" },
+          { id: 42, title: "Estágio Backend atualizado", location: "Recife", snippet: "Desenvolvimento de APIs", link: "https://example.com/job/42" },
+        ],
+      }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await expect(service.synchronize()).resolves.toMatchObject({
+      fetched: 2,
+      synchronized: 1,
+    });
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
   it("falha explicitamente quando a API retorna erro", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response("rate limit", { status: 429 }),
