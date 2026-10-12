@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import type { StreakMilestoneReward, StreakStatus, XpBreakdownItem } from "./gamificationApi";
 
 export interface PracticeQuestion {
   id: string;
@@ -32,7 +33,11 @@ export interface PracticeAnswerResult {
 export interface DailyPracticeResult {
   correctCount: number;
   totalQuestions: number;
+  /** Maior sequência de acertos seguidos da prática. */
+  bestCombo: number;
+  /** Total ganho nesta prática, bônus inclusos; o detalhe está em `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   /** Esta foi a prática do dia que valeu XP; false = treino livre. */
   rewarded: boolean;
   totalXp: number;
@@ -42,6 +47,8 @@ export interface DailyPracticeResult {
   currentStreak: number;
   longestStreak: number;
   streakIncremented: boolean;
+  streakStatus: StreakStatus;
+  streakMilestone: StreakMilestoneReward | null;
 }
 
 export class PracticeError extends Error {

@@ -13,7 +13,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
-import { useGamification } from '@/entities/gamification';
+import {
+  StreakFeedback,
+  StreakMilestoneModal,
+  useGamification,
+  XpBreakdown,
+} from '@/entities/gamification';
 import {
   answerPracticeQuestion,
   completeDailyPractice,
@@ -26,6 +31,9 @@ import { colors, fonts, radius, shadow, chunky } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { optionLetter } from '@/pages/trail-phase/phaseExamState';
 import {
+  comboLabel,
+  COMBO_MIN,
+  currentCombo,
   OptionTone,
   optionTone,
   practiceButtonLabel,
@@ -52,6 +60,8 @@ export function DailyPracticePage() {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<PracticeAnswerResult | null>(null);
+  // Acertou ou não, pergunta a pergunta, na ordem: é daqui que sai o combo.
+  const [answers, setAnswers] = useState<boolean[]>([]);
   const [result, setResult] = useState<DailyPracticeResult | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,6 +74,7 @@ export function DailyPracticePage() {
     setIndex(0);
     setSelected(null);
     setFeedback(null);
+    setAnswers([]);
     setResult(null);
     setErrorMessage(null);
 
@@ -126,6 +137,7 @@ export function DailyPracticePage() {
   const total = practice.questions.length;
   const question = practice.questions[index];
   const isLast = index === total - 1;
+  const combo = feedback?.isCorrect ? comboLabel(currentCombo(answers)) : null;
 
   const handlePrimary = async () => {
     if (!token || !question || isBusy) return;
@@ -135,9 +147,9 @@ export function DailyPracticePage() {
       if (!selected) return;
       setIsBusy(true);
       try {
-        setFeedback(
-          await answerPracticeQuestion(token, practice.sessionId, question.id, selected),
-        );
+        const answer = await answerPracticeQuestion(token, practice.sessionId, question.id, selected);
+        setFeedback(answer);
+        setAnswers((current) => [...current, answer.isCorrect]);
       } catch (error) {
         setErrorMessage(errorText(error, 'Não foi possível verificar sua resposta.'));
       } finally {
@@ -252,6 +264,11 @@ export function DailyPracticePage() {
                   >
                     {feedback.isCorrect ? 'Acertou!' : 'Não foi dessa vez'}
                   </Text>
+                  {combo ? (
+                    <View style={styles.comboChip} accessibilityLiveRegion="polite">
+                      <Text style={styles.comboChipText}>{combo}</Text>
+                    </View>
+                  ) : null}
                 </View>
                 {feedback.explanation ? (
                   <Text style={styles.feedbackText}>{feedback.explanation}</Text>
@@ -353,18 +370,22 @@ function Summary({ result, onClose, onTrainMore }: SummaryProps) {
         <Text style={styles.summaryScore}>
           {result.correctCount} de {result.totalQuestions} acertos
         </Text>
-
-        {result.xpEarned > 0 ? (
-          <View style={styles.xpChip}>
-            <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accentInk} />
-            <Text style={styles.xpChipText}>+{result.xpEarned} XP</Text>
-          </View>
+        {result.bestCombo >= COMBO_MIN ? (
+          <Text style={styles.bestCombo}>Melhor combo: x{result.bestCombo} 🔥</Text>
         ) : null}
+
+        <XpBreakdown items={result.xpBreakdown} />
         <Text style={styles.summaryMessage}>{practiceRewardMessage(result)}</Text>
+        <StreakFeedback
+          status={result.streakStatus}
+          currentStreak={result.currentStreak}
+          items={result.xpBreakdown}
+        />
         {result.leveledUp ? (
           <Text style={styles.levelUp}>Você subiu para o nível {result.currentLevel}!</Text>
         ) : null}
       </ScrollView>
+      <StreakMilestoneModal milestone={result.streakMilestone} />
 
       <View style={styles.footer}>
         <Pressable
@@ -510,6 +531,14 @@ const styles = StyleSheet.create({
   feedbackWrong: { backgroundColor: '#FDF3F2', borderColor: colors.danger },
   feedbackHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   feedbackTitle: { fontFamily: fonts.sans.extraBold, fontSize: 15 },
+  comboChip: {
+    marginLeft: 'auto',
+    backgroundColor: colors.flameSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  comboChipText: { fontFamily: fonts.sans.extraBold, fontSize: 12, color: colors.flame },
   feedbackText: { fontFamily: fonts.sans.regular, fontSize: 13, lineHeight: 19, color: colors.textBody },
   banner: {
     flexDirection: 'row',
@@ -575,17 +604,7 @@ const styles = StyleSheet.create({
   streakCount: { fontFamily: fonts.mono.medium, fontSize: 13, color: colors.flame, marginTop: 6 },
   summaryTitle: { fontFamily: fonts.sans.extraBold, fontSize: 26, color: colors.textPrimary },
   summaryScore: { fontFamily: fonts.sans.semiBold, fontSize: 15, color: colors.secondary },
-  xpChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.accentFixed,
-    borderRadius: radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginTop: 6,
-  },
-  xpChipText: { fontFamily: fonts.sans.extraBold, fontSize: 16, color: colors.accentInk },
+  bestCombo: { fontFamily: fonts.sans.bold, fontSize: 13, color: colors.flame },
   summaryMessage: {
     fontFamily: fonts.sans.regular,
     fontSize: 13,

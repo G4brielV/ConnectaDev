@@ -455,7 +455,9 @@ function MilestonesCard({ overview }: { overview: StreakOverview }) {
                 />
               </View>
               <View style={styles.milestoneTexts}>
-                <Text style={styles.milestoneDays}>{milestone.days} DIAS</Text>
+                <Text style={styles.milestoneDays}>
+                  {milestone.days} DIAS · +{milestone.xp} XP
+                </Text>
                 <Text style={[styles.milestoneTitle, locked && styles.milestoneTitleLocked]} numberOfLines={1}>
                   {milestone.title}
                 </Text>

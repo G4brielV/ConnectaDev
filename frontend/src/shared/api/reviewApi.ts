@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import type { StreakMilestoneReward, StreakStatus, XpBreakdownItem } from "./gamificationApi";
 
 export interface ReviewOption {
   id: string;
@@ -44,13 +45,17 @@ export interface ReviewSubmitResponse {
   score: number;
   totalQuestions: number;
   percentage: number;
+  /** Total earned in this submission, bonuses included; details in `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   /** False when the topic had already been completed by this user (training mode, 0 XP). */
   isFirstCompletion: boolean;
   totalXp: number;
   currentStreak: number;
   longestStreak: number;
   streakIncremented: boolean;
+  streakStatus: StreakStatus;
+  streakMilestone: StreakMilestoneReward | null;
   results: QuestionResultItem[];
 }
 
