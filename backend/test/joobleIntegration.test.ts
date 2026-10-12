@@ -79,9 +79,12 @@ describe("JoobleIntegrationService", () => {
       repository: { job: { upsert, updateMany } },
     });
 
-    await expect(service.synchronize()).resolves.toEqual({
+    await expect(service.synchronize()).resolves.toMatchObject({
       fetched: 1,
       synchronized: 1,
+      inserted: 1,
+      updated: 0,
+      deactivated: 0,
     });
 
     expect(fetcher).toHaveBeenCalledWith(

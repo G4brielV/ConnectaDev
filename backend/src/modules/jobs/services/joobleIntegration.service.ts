@@ -48,10 +48,8 @@ interface JoobleRequest {
 }
 
 interface JobsRepository {
-  job: Pick<
-    PrismaClient["job"],
-    "upsert" | "updateMany"
-  >;
+  job: Pick<PrismaClient["job"], "upsert" | "updateMany"> &
+    Partial<Pick<PrismaClient["job"], "findMany">>;
   $transaction?: <T>(
     callback: (transactionRepository: JobsRepository) => Promise<T>,
   ) => Promise<T>;
@@ -95,7 +93,13 @@ export class JoobleIntegrationService {
     this.logger = options.logger ?? console;
   }
 
-  async synchronize(): Promise<{ fetched: number; synchronized: number }> {
+  async synchronize(): Promise<{
+    fetched: number;
+    synchronized: number;
+    inserted: number;
+    updated: number;
+    deactivated: number;
+  }> {
     if (!this.apiKey) {
       throw new Error("JOOBLE_API_KEY não configurada.");
     }
@@ -126,10 +130,27 @@ export class JoobleIntegrationService {
       }
     }
 
+    const allExternalIds = [...new Set(
+      jobsByCategory.flatMap(({ jobs }) => jobs.map((job) => String(job.id))),
+    )];
+    const existingJobs = this.repository.job.findMany
+      ? await this.repository.job.findMany({
+        where: { externalId: { in: allExternalIds } },
+        select: { externalId: true },
+      })
+      : [];
+    const existingExternalIds = new Set(existingJobs.map((job) => job.externalId));
+    let inserted = 0;
+    let updated = 0;
+    let deactivated = 0;
+
     const applyChanges = async (transactionRepository: JobsRepository): Promise<void> => {
       for (const { category, jobs } of jobsByCategory) {
         try {
-          synchronized += await this.persist(category, jobs, transactionRepository);
+          const result = await this.persist(category, jobs, transactionRepository);
+          synchronized += result.processed;
+          inserted += result.inserted;
+          updated += result.updated;
         } catch (error) {
           throw new JobSyncError(
             `Falha ao persistir a categoria ${category}.`,
@@ -140,7 +161,7 @@ export class JoobleIntegrationService {
         }
       }
       try {
-        await this.expireUnavailableJobs(seenExternalIds, transactionRepository);
+        deactivated = await this.expireUnavailableJobs(seenExternalIds, transactionRepository);
       } catch (error) {
         throw new JobSyncError(
           "Falha ao expirar vagas descontinuadas.",
@@ -157,7 +178,7 @@ export class JoobleIntegrationService {
       await applyChanges(this.repository);
     }
 
-    return { fetched, synchronized };
+    return { fetched, synchronized, inserted, updated, deactivated };
   }
 
   private async search(category: JobCategory): Promise<JoobleJob[]> {
@@ -196,12 +217,20 @@ export class JoobleIntegrationService {
     category: JobCategory,
     jobs: JoobleJob[],
     repository: JobsRepository,
-  ): Promise<number> {
+  ): Promise<{ processed: number; inserted: number; updated: number }> {
     const uniqueJobs = deduplicateJobs(jobs);
-    const externalIds = uniqueJobs.map((job) => String(job.id));
+    let inserted = 0;
+    let updated = 0;
 
     for (let index = 0; index < uniqueJobs.length; index += this.batchSize) {
       const batch = uniqueJobs.slice(index, index + this.batchSize);
+      for (const job of batch) {
+        if (await this.jobExists(repository, String(job.id))) {
+          updated += 1;
+        } else {
+          inserted += 1;
+        }
+      }
       await Promise.all(batch.map((job) => repository.job.upsert({
         where: { externalId: String(job.id) },
         create: {
@@ -230,13 +259,25 @@ export class JoobleIntegrationService {
       })));
     }
 
-    return uniqueJobs.length;
+    return { processed: uniqueJobs.length, inserted, updated };
+  }
+
+  private async jobExists(repository: JobsRepository, externalId: string): Promise<boolean> {
+    if (repository.job.findMany) {
+      const jobs = await repository.job.findMany({
+        where: { externalId },
+        select: { externalId: true },
+        take: 1,
+      });
+      return jobs.length > 0;
+    }
+    return false;
   }
 
   private async expireUnavailableJobs(
     seenExternalIds: ReadonlySet<string>,
     repository: JobsRepository,
-  ): Promise<void> {
+  ): Promise<number> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - this.maxJobAgeDays);
     const rmrFilter = [
@@ -277,6 +318,7 @@ export class JoobleIntegrationService {
       maxAgeDays: this.maxJobAgeDays,
       deactivated: result.count,
     }));
+    return result.count;
   }
 }
 
@@ -429,4 +471,19 @@ export function startJobsSynchronization(
   }
 
   return task;
+}
+
+export async function synchronizeJobsManually(
+  service = new JoobleIntegrationService(),
+): Promise<{
+  inserted: number;
+  updated: number;
+  deactivated: number;
+}> {
+  const result = await service.synchronize();
+  return {
+    inserted: result.inserted,
+    updated: result.updated,
+    deactivated: result.deactivated,
+  };
 }
