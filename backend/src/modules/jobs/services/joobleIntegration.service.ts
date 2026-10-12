@@ -1,10 +1,12 @@
+import cron, { type ScheduledTask } from "node-cron";
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "../../../lib/auth";
 import { categorizeJob } from "./categorizeJob.service";
 
 const JOOBLE_API_URL = "https://br.jooble.org/api";
 const RMR_LOCATION = "Recife, Pernambuco";
-const DEFAULT_SYNC_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_CRON_EXPRESSION = "0 3 * * *";
+const DEFAULT_TIMEZONE = "America/Recife";
 const DEFAULT_MAX_PAGES = 2;
 const DEFAULT_BATCH_SIZE = 10;
 
@@ -244,23 +246,76 @@ function normalize(value: string): string {
 
 export function startJobsSynchronization(
   service = new JoobleIntegrationService(),
-  intervalMs = Number(process.env.JOBS_SYNC_INTERVAL_MS ?? DEFAULT_SYNC_INTERVAL_MS),
   logger: Pick<Console, "error" | "info"> = console,
-): NodeJS.Timeout | undefined {
+  options: {
+    cronExpression?: string;
+    timezone?: string;
+    runOnStart?: boolean;
+  } = {},
+): ScheduledTask | undefined {
   if (!process.env.JOOBLE_API_KEY) {
     logger.info("Sincronização de vagas desabilitada: JOOBLE_API_KEY não configurada.");
     return undefined;
   }
 
+  const cronExpression = options.cronExpression ?? process.env.JOBS_SYNC_CRON ?? DEFAULT_CRON_EXPRESSION;
+  const timezone = options.timezone ?? process.env.JOBS_SYNC_TIMEZONE ?? DEFAULT_TIMEZONE;
+  if (!cron.validate(cronExpression)) {
+    throw new Error(`Expressão cron inválida para sincronização de vagas: ${cronExpression}`);
+  }
+
+  let isRunning = false;
   const synchronize = async (): Promise<void> => {
+    if (isRunning) {
+      logger.info(JSON.stringify({
+        event: "CRON_JOB_SYNC_SKIPPED",
+        reason: "previous_cycle_running",
+        timestamp: new Date().toISOString(),
+      }));
+      return;
+    }
+
+    isRunning = true;
+    logger.info(JSON.stringify({
+      event: "CRON_JOB_SYNC_STARTED",
+      timestamp: new Date().toISOString(),
+      schedule: cronExpression,
+      timezone,
+      location: RMR_LOCATION,
+      radius: "40",
+      categories: Object.entries(CATEGORY_KEYWORDS).map(([category, keywords]) => ({
+        category,
+        keywords,
+      })),
+    }));
+
     try {
       const result = await service.synchronize();
-      logger.info(`Vagas sincronizadas: ${result.synchronized}.`);
+      logger.info(JSON.stringify({
+        event: "CRON_JOB_SYNC_COMPLETED",
+        timestamp: new Date().toISOString(),
+        fetched: result.fetched,
+        synchronized: result.synchronized,
+      }));
     } catch (error) {
-      logger.error("Falha na sincronização de vagas via Jooble.", error);
+      logger.error(JSON.stringify({
+        event: "CRON_JOB_SYNC_ERROR",
+        timestamp: new Date().toISOString(),
+        location: RMR_LOCATION,
+        error: error instanceof Error ? { name: error.name, message: error.message } : error,
+      }));
+    } finally {
+      isRunning = false;
     }
   };
 
-  void synchronize();
-  return setInterval(() => void synchronize(), intervalMs);
+  const task = cron.schedule(cronExpression, () => void synchronize(), {
+    timezone,
+  });
+
+  if (options.runOnStart ?? process.env.JOBS_SYNC_RUN_ON_START !== "false") {
+    void synchronize();
+  }
+
+  return task;
 }
