@@ -9,6 +9,7 @@ const DEFAULT_CRON_EXPRESSION = "0 3 * * *";
 const DEFAULT_TIMEZONE = "America/Recife";
 const DEFAULT_MAX_PAGES = 2;
 const DEFAULT_BATCH_SIZE = 10;
+const DEFAULT_MAX_JOB_AGE_DAYS = 30;
 
 const CATEGORY_KEYWORDS = {
   Backend: "estágio junior backend tecnologia",
@@ -62,6 +63,7 @@ export interface JoobleIntegrationOptions {
   pageSize?: number;
   maxPages?: number;
   batchSize?: number;
+  maxJobAgeDays?: number;
   logger?: Pick<Console, "error" | "info">;
 }
 
@@ -74,6 +76,7 @@ export class JoobleIntegrationService {
   private readonly pageSize: number;
   private readonly maxPages: number;
   private readonly batchSize: number;
+  private readonly maxJobAgeDays: number;
   private readonly logger: Pick<Console, "error" | "info">;
 
   constructor(options: JoobleIntegrationOptions = {}) {
@@ -85,6 +88,7 @@ export class JoobleIntegrationService {
     this.pageSize = options.pageSize ?? 20;
     this.maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
     this.batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
+    this.maxJobAgeDays = options.maxJobAgeDays ?? DEFAULT_MAX_JOB_AGE_DAYS;
     this.logger = options.logger ?? console;
   }
 
@@ -95,6 +99,8 @@ export class JoobleIntegrationService {
 
     let fetched = 0;
     let synchronized = 0;
+    const seenExternalIds = new Set<string>();
+    let failedCategories = 0;
 
     for (const category of this.categories) {
       try {
@@ -103,12 +109,26 @@ export class JoobleIntegrationService {
         );
         fetched += jobs.length;
         synchronized += await this.persist(category, jobs);
+        for (const job of jobs) {
+          seenExternalIds.add(String(job.id));
+        }
       } catch (error) {
+        failedCategories += 1;
         this.logger.error("Falha ao sincronizar categoria de vagas via Jooble.", {
           category,
           error,
         });
       }
+    }
+
+    if (failedCategories === 0) {
+      await this.expireUnavailableJobs(seenExternalIds);
+    } else {
+      this.logger.info(JSON.stringify({
+        event: "JOB_EXPIRATION_SKIPPED",
+        reason: "incomplete_provider_sync",
+        failedCategories,
+      }));
     }
 
     return { fetched, synchronized };
@@ -180,16 +200,50 @@ export class JoobleIntegrationService {
       })));
     }
 
-    await this.repository.job.updateMany({
+    return uniqueJobs.length;
+  }
+
+  private async expireUnavailableJobs(seenExternalIds: ReadonlySet<string>): Promise<void> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - this.maxJobAgeDays);
+    const rmrFilter = [
+      "Recife",
+      "Olinda",
+      "Jaboatão",
+      "Jaboatao",
+      "Paulista",
+      "Camaragibe",
+      "São Lourenço",
+      "Sao Lourenco",
+      "Igarassu",
+      "Abreu e Lima",
+      "Cabo de Santo Agostinho",
+    ].map((city) => ({ location: { contains: city } }));
+
+    const result = await this.repository.job.updateMany({
       where: {
-        category,
-        location: { contains: "Recife" },
-        ...(externalIds.length > 0 ? { externalId: { notIn: externalIds } } : {}),
+        isExpired: false,
+        OR: rmrFilter,
+        AND: [
+          {
+            OR: [
+              { updatedAt: { lt: cutoff } },
+              ...(seenExternalIds.size > 0
+                ? [{ externalId: { notIn: [...seenExternalIds] } }]
+                : []),
+            ],
+          },
+        ],
       },
       data: { isExpired: true },
     });
 
-    return uniqueJobs.length;
+    this.logger.info(JSON.stringify({
+      event: "JOB_EXPIRATION_COMPLETED",
+      timestamp: new Date().toISOString(),
+      maxAgeDays: this.maxJobAgeDays,
+      deactivated: result.count,
+    }));
   }
 }
 

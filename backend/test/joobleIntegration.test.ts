@@ -106,12 +106,47 @@ describe("JoobleIntegrationService", () => {
     expect(updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          category: "Backend",
-          location: { contains: "Recife" },
+          isExpired: false,
+          OR: expect.arrayContaining([
+            { location: { contains: "Recife" } },
+          ]),
         }),
         data: { isExpired: true },
       }),
     );
+  });
+
+  it("inativa vagas que não retornaram no ciclo completo", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ jobs: [{
+        id: "current-job",
+        title: "Estágio Backend",
+        location: "Recife",
+        snippet: "Desenvolvimento de APIs",
+        link: "https://example.com/job/current",
+      }] }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 3 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await service.synchronize();
+
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        AND: [{
+          OR: expect.arrayContaining([
+            { externalId: { notIn: ["current-job"] } },
+          ]),
+        }],
+      }),
+      data: { isExpired: true },
+    }));
   });
 
   it("insere uma vaga nova e atualiza a existente pelo mesmo externalId", async () => {
