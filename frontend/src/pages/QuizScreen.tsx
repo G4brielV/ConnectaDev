@@ -129,6 +129,14 @@ function QuizScreenContent() {
     return () => subscription.remove();
   }, [currentIndex, isLoading, isSubmitting]);
 
+  function leaveQuiz(): void {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("Home");
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -151,6 +159,15 @@ function QuizScreenContent() {
             style={styles.retryButton}
           >
             <Text style={styles.nextText}>Tentar Novamente</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sair do quiz"
+            hitSlop={8}
+            onPress={leaveQuiz}
+            style={styles.backLink}
+          >
+            <Text style={styles.backLinkText}>Voltar</Text>
           </Pressable>
         </View>
       </View>
@@ -181,7 +198,17 @@ function QuizScreenContent() {
   if (!question) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Nenhuma pergunta disponível.</Text>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>Nenhuma pergunta disponível.</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sair do quiz"
+            onPress={leaveQuiz}
+            style={styles.retryButton}
+          >
+            <Text style={styles.nextText}>Voltar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -229,11 +256,7 @@ function QuizScreenContent() {
       setCurrentIndex((index) => index - 1);
       return;
     }
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate("Home");
-    }
+    leaveQuiz();
   }
 
   async function goToNextQuestion(): Promise<void> {
@@ -646,6 +669,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 14,
+  },
+  backLink: {
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  backLinkText: {
+    color: "#60717A",
+    fontSize: 14,
+    fontWeight: "700",
   },
   textInput: {
     borderColor: "#036564",
