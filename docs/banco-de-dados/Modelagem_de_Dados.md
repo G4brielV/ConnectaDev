@@ -112,6 +112,23 @@ A prática do dia grava eventos com `source = TRAIL_PRACTICE` e
 estudo (dia de Recife), garantido pelo unique `(user_id, rewarded_day)` de
 `trail_practice_sessions` — ver 7.8.
 
+#### Bônus
+
+Os bônus são eventos próprios em `xp_events`, para o extrato da tela de
+resultado mostrar cada linha separada. Nenhum exige coluna nova:
+
+| `source` | `reference_id` | Quando paga | Quanto |
+|---|---|---|---|
+| `TRAIL_LESSON_PERFECT` | id da lição | Primeira tentativa com 100% de acertos (`user_trail_progress.best_percentage` anterior < 100) | Metade do `xp_reward` da fase |
+| `TRAIL_PRACTICE_COMBO` | id da sessão | Prática premiada do dia com 3+ acertos seguidos | +1 por acerto do maior combo |
+| `STREAK_DAILY` | dia de estudo (`YYYY-MM-DD`) | Primeira atividade do dia que faz a ofensiva subir (dia 2 em diante) | +5 |
+| `STREAK_MILESTONE` | dias do marco (`3`, `7`, `14`, `30`) | Ofensiva chega ao marco pela primeira vez (`longest_streak` anterior abaixo dele) | 10 / 30 / 50 / 100 |
+
+Os bônus de ofensiva valem para qualquer atividade que acende a chama (fase,
+prática do dia ou revisão de conhecimento). A trava contra pagamento duplo é o
+unique `(user_id, day)` de `user_activity_days`: só a atividade que insere o
+dia leva o bônus diário e o de marco.
+
 ---
 
 ## 3. Convenções e Regras

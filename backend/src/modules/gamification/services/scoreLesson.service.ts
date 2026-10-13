@@ -1,6 +1,15 @@
 import { prisma } from "../../../lib/auth";
 import { LEVEL_NAME } from "../constants/xpLevel";
 import { applyStudyActivity } from "./gamification.service";
+import {
+  isPerfect,
+  perfectBonus,
+  StreakMilestoneReward,
+  StreakStatus,
+  sumXp,
+  XpBreakdownItem,
+  xpBreakdown,
+} from "./bonusRules";
 import { calculatePercentage, calculateStars, isPhaseUnlocked } from "./trailMapRules";
 import { loadPhaseGate } from "./getTrailMap.service";
 import {
@@ -12,6 +21,7 @@ import {
 } from "./phaseExam";
 
 const TRAIL_LESSON_SOURCE = "TRAIL_LESSON";
+const TRAIL_LESSON_PERFECT_SOURCE = "TRAIL_LESSON_PERFECT";
 
 export class PhaseLockedError extends Error {
   constructor() {
@@ -35,7 +45,11 @@ export interface ScoreLessonResult {
   passingScore: number;
   passed: boolean;
   stars: number;
+  /** Acertou todas nesta tentativa — o selo "Perfeito!", mesmo que o bônus já tenha sido pago. */
+  perfect: boolean;
+  /** Total ganho nesta tentativa, bônus inclusos; o detalhe está em `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   totalXp: number;
   currentLevel: number;
   levelName: string;
@@ -43,6 +57,9 @@ export interface ScoreLessonResult {
   alreadyRewarded: boolean;
   currentStreak: number;
   longestStreak: number;
+  streakStatus: StreakStatus;
+  /** Marco da ofensiva batido hoje com esta tentativa — a tela comemora. */
+  streakMilestone: StreakMilestoneReward | null;
   /** Correção pergunta a pergunta, com a explicação — o feedback da tela de resultado. */
   review: ExamReviewItem[];
   /** @deprecated use `passed` — mantido para o cliente antigo */
@@ -97,6 +114,7 @@ export async function scoreLesson(
   const percentage = calculatePercentage(correctCount, totalQuestions);
   const passed = percentage >= lesson.passingScore;
   const stars = calculateStars(percentage, lesson.passingScore);
+  const perfect = isPerfect(correctCount, totalQuestions);
 
   return prisma.$transaction(async (transaction) => {
     const previousProgress = await transaction.userTrailProgress.findUnique({
@@ -152,9 +170,27 @@ export async function scoreLesson(
       });
     }
 
+    // Bônus de gabarito: só na primeira vez que a fase sai com 100%.
+    const perfectXp = perfectBonus(lesson.xpReward, perfect, previousProgress?.bestPercentage ?? 0);
+    if (perfectXp > 0) {
+      await transaction.xpEvent.create({
+        data: {
+          userId,
+          source: TRAIL_LESSON_PERFECT_SOURCE,
+          referenceId: lessonId,
+          amount: perfectXp,
+        },
+      });
+    }
+
     // A ofensiva conta a tentativa mesmo sem XP novo — é o que registra a
     // atividade do dia, do mesmo jeito que a revisão de conhecimento faz.
-    const activity = await applyStudyActivity(transaction, userId, earnedXp);
+    const activity = await applyStudyActivity(transaction, userId, earnedXp + perfectXp);
+    const breakdown = xpBreakdown(
+      { kind: "LESSON", amount: earnedXp },
+      { kind: "PERFECT", amount: perfectXp },
+      ...activity.bonuses,
+    );
 
     return {
       correctCount,
@@ -163,7 +199,9 @@ export async function scoreLesson(
       passingScore: lesson.passingScore,
       passed,
       stars: progress.stars,
-      xpEarned: earnedXp,
+      perfect,
+      xpEarned: sumXp(breakdown),
+      xpBreakdown: breakdown,
       totalXp: activity.totalXp,
       currentLevel: activity.currentLevel,
       levelName: LEVEL_NAME,
@@ -171,6 +209,8 @@ export async function scoreLesson(
       alreadyRewarded: earnedXp === 0 && progress.passed,
       currentStreak: activity.currentStreak,
       longestStreak: activity.longestStreak,
+      streakStatus: activity.streakStatus,
+      streakMilestone: activity.milestone,
       review,
       completed: progress.passed,
     };

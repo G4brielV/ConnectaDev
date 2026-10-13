@@ -207,15 +207,48 @@ function CoursesScreenContent() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={styles.titleSection}>
-            <View style={styles.sectionPill}>
-              <Text style={styles.sectionPillText}>Recomendados para Você</Text>
+          <View style={styles.listHeader}>
+            <XpProgressBar />
+
+            <View style={styles.navBar}>
+              {canGoBack ? (
+                <Pressable
+                  accessibilityLabel="Voltar"
+                  accessibilityRole="button"
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}
+                  hitSlop={6}
+                >
+                  <Feather name="chevron-left" size={20} color={colors.textPrimary} />
+                </Pressable>
+              ) : (
+                <View style={styles.navSpacer} />
+              )}
+              <View style={styles.brand}>
+                <View style={styles.brandDot} />
+                <Text style={styles.brandText}>CONNECTADEV</Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Meu Perfil"
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("Home", { tab: "profile" })}
+                style={styles.avatar}
+                hitSlop={6}
+              >
+                <Text style={styles.avatarText}>{userInitials(user?.name, user?.email)}</Text>
+                <View style={styles.onlineDot} />
+              </Pressable>
             </View>
-            <Text style={styles.subtitle}>
-              {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
-              {courses.length === 1 ? "" : "s"} para{" "}
-              {areaPrincipal || "suas preferências"}
-            </Text>
+
+            <View style={styles.titleSection}>
+              <View style={styles.sectionPill}>
+                <Text style={styles.sectionPillText}>Recomendados para Você</Text>
+              </View>
+              <Text style={styles.subtitle}>
+                {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
+                {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
+              </Text>
+            </View>
           </View>
         }
         renderItem={({ item, index }) => (
@@ -236,9 +269,7 @@ function CoursesScreenContent() {
               })
             }
             onRate={() => {
-              if (!isRating) {
-                setRatingCourse(item);
-              }
+              if (!isRating) setRatingCourse(item);
             }}
             onSave={() => {
               void saveCourse(item.id);
@@ -246,9 +277,7 @@ function CoursesScreenContent() {
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            Nenhum curso recomendado disponível.
-          </Text>
+          <Text style={styles.empty}>Nenhum curso recomendado disponível.</Text>
         }
       />
       <Toast

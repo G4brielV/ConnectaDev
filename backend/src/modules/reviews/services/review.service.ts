@@ -2,6 +2,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { awardGamificationPoints } from "../../gamification/services/gamification.service";
+import {
+  StreakMilestoneReward,
+  StreakStatus,
+  sumXp,
+  XpBreakdownItem,
+  xpBreakdown,
+} from "../../gamification/services/bonusRules";
 
 export interface ReviewQuestionDTO {
   id: string;
@@ -43,13 +50,18 @@ export interface SubmitReviewResponse {
   score: number;
   totalQuestions: number;
   percentage: number;
+  /** Total earned in this submission, bonuses included; details in `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   /** False when the topic had already been completed by this user (training mode, 0 XP). */
   isFirstCompletion: boolean;
   totalXp: number;
   currentStreak: number;
   longestStreak: number;
   streakIncremented: boolean;
+  streakStatus: StreakStatus;
+  /** Streak milestone reached today with this review — the screen celebrates it. */
+  streakMilestone: StreakMilestoneReward | null;
   results: QuestionResultDTO[];
 }
 
@@ -418,6 +430,7 @@ export async function submitReviewService(
     userId,
     xpEarned,
   });
+  const breakdown = xpBreakdown({ kind: "REVIEW", amount: xpEarned }, ...gamificationResult.bonuses);
 
   await repository.updateSession(sessionId, {
     status: "COMPLETED",
@@ -435,12 +448,15 @@ export async function submitReviewService(
     score,
     totalQuestions,
     percentage,
-    xpEarned,
+    xpEarned: sumXp(breakdown),
+    xpBreakdown: breakdown,
     isFirstCompletion,
     totalXp: gamificationResult.totalXp,
     currentStreak: gamificationResult.currentStreak,
     longestStreak: gamificationResult.longestStreak,
     streakIncremented: gamificationResult.streakIncremented,
+    streakStatus: gamificationResult.streakStatus,
+    streakMilestone: gamificationResult.milestone,
     results,
   };
 }

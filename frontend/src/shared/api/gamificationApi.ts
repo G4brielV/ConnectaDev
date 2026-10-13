@@ -10,6 +10,34 @@ export interface GamificationSummary {
   completedReviews: number;
 }
 
+/** Linhas do extrato de XP de uma atividade (XP base e bônus). */
+export type XpItemKind =
+  | "LESSON"
+  | "PRACTICE"
+  | "REVIEW"
+  | "PERFECT"
+  | "COMBO"
+  | "STREAK_DAILY"
+  | "STREAK_MILESTONE";
+
+export interface XpBreakdownItem {
+  kind: XpItemKind;
+  amount: number;
+}
+
+/**
+ * O que a atividade fez com a ofensiva: começou do zero, subiu, recomeçou
+ * depois de perder dias, ou já tinha sido garantida hoje.
+ */
+export type StreakStatus = "STARTED" | "INCREMENTED" | "RESTARTED" | "KEPT";
+
+/** Marco da ofensiva batido hoje (3, 7, 14 ou 30 dias). */
+export interface StreakMilestoneReward {
+  days: number;
+  title: string;
+  xp: number;
+}
+
 export interface ExamReviewItem {
   questionId: string;
   statement: string;
@@ -27,7 +55,9 @@ export interface ScoreLessonResult {
   levelName?: string;
   correctCount: number;
   totalQuestions: number;
+  /** Total ganho nesta tentativa, bônus inclusos; o detalhe está em `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   leveledUp: boolean;
   alreadyRewarded: boolean;
   /** Percentual de acerto e nota de corte da fase */
@@ -36,8 +66,12 @@ export interface ScoreLessonResult {
   /** Aprovado no gate: libera a fase seguinte */
   passed: boolean;
   stars: number;
+  /** Acertou todas nesta tentativa: selo "Perfeito! 🎯". */
+  perfect: boolean;
   currentStreak: number;
   longestStreak: number;
+  streakStatus: StreakStatus;
+  streakMilestone: StreakMilestoneReward | null;
   /** Correção pergunta a pergunta, com explicação */
   review: ExamReviewItem[];
   /** @deprecated use `passed` */

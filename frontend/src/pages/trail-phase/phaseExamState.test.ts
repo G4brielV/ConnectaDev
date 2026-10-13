@@ -39,7 +39,7 @@ test("a manchete do resultado acompanha aprovação e estrelas", () => {
   assert.equal(buildResultHeadline(false, 0), "Quase lá!");
   assert.equal(buildResultHeadline(true, 1), "Fase concluída!");
   assert.equal(buildResultHeadline(true, 2), "Muito bem!");
-  assert.equal(buildResultHeadline(true, 3), "Perfeito!");
+  assert.equal(buildResultHeadline(true, 3), "Perfeito! 🎯");
 });
 
 test("o botão principal cobra resposta, avança e finaliza na última", () => {

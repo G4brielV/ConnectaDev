@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { StreakFeedback, StreakMilestoneModal, XpBreakdown } from "../entities/gamification";
 import { QuestionResultItem, ReviewSubmitResponse } from "../shared/api/reviewApi";
 import { getWrongAnswers } from "./knowledgeReviewState";
 
@@ -130,6 +131,15 @@ export function ReviewResultScreen() {
           </View>
         </View>
 
+        <View style={styles.bonusSection}>
+          <XpBreakdown items={result.xpBreakdown} />
+          <StreakFeedback
+            status={result.streakStatus}
+            currentStreak={result.currentStreak}
+            items={result.xpBreakdown}
+          />
+        </View>
+
         {/* Error Review Collapsible Section (Cenário 6) */}
         {hasErrors && (
           <View style={styles.errorsSection}>
@@ -204,6 +214,7 @@ export function ReviewResultScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <StreakMilestoneModal milestone={result.streakMilestone} />
     </SafeAreaView>
   );
 }
@@ -339,6 +350,10 @@ const styles = StyleSheet.create({
   totalXpSubtext: {
     fontSize: 13,
     color: "#94A3B8",
+  },
+  bonusSection: {
+    gap: 10,
+    marginBottom: 20,
   },
   errorsSection: {
     marginBottom: 24,
