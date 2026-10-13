@@ -79,9 +79,12 @@ describe("JoobleIntegrationService", () => {
       repository: { job: { upsert, updateMany } },
     });
 
-    await expect(service.synchronize()).resolves.toEqual({
+    await expect(service.synchronize()).resolves.toMatchObject({
       fetched: 1,
       synchronized: 1,
+      inserted: 1,
+      updated: 0,
+      deactivated: 0,
     });
 
     expect(fetcher).toHaveBeenCalledWith(
@@ -98,6 +101,7 @@ describe("JoobleIntegrationService", () => {
         create: expect.objectContaining({
           externalId: "123",
           category: "Backend",
+          tags: ["Backend", "API"],
           isExpired: false,
         }),
       }),
@@ -105,12 +109,102 @@ describe("JoobleIntegrationService", () => {
     expect(updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          category: "Backend",
-          location: { contains: "Recife" },
+          isExpired: false,
+          OR: expect.arrayContaining([
+            { location: { contains: "Recife" } },
+          ]),
         }),
         data: { isExpired: true },
       }),
     );
+  });
+
+  it("inativa vagas que não retornaram no ciclo completo", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ jobs: [{
+        id: "current-job",
+        title: "Estágio Backend",
+        location: "Recife",
+        snippet: "Desenvolvimento de APIs",
+        link: "https://example.com/job/current",
+      }] }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 3 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await service.synchronize();
+
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        AND: [{
+          OR: expect.arrayContaining([
+            { externalId: { notIn: ["current-job"] } },
+          ]),
+        }],
+      }),
+      data: { isExpired: true },
+    }));
+  });
+
+  it("insere uma vaga nova e atualiza a existente pelo mesmo externalId", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({
+        jobs: [{
+          id: "same-job",
+          title: "Estágio Backend",
+          location: "Recife",
+          snippet: "Desenvolvimento de APIs",
+          link: "https://example.com/job/same-job",
+        }],
+      }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await service.synchronize();
+
+    expect(upsert.mock.calls[0]?.[0]).toMatchObject({
+      where: { externalId: "same-job" },
+      create: { externalId: "same-job", isExpired: false },
+      update: { title: "Estágio Backend", isExpired: false },
+    });
+  });
+
+  it("deduplica o mesmo externalId repetido no retorno do provedor", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({
+        jobs: [
+          { id: 42, title: "Estágio Backend", location: "Recife", snippet: "Desenvolvimento de APIs", link: "https://example.com/job/42" },
+          { id: 42, title: "Estágio Backend atualizado", location: "Recife", snippet: "Desenvolvimento de APIs", link: "https://example.com/job/42" },
+        ],
+      }), { status: 200 }),
+    );
+    const upsert = vi.fn().mockResolvedValue({});
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["Backend"],
+      repository: { job: { upsert, updateMany } },
+    });
+
+    await expect(service.synchronize()).resolves.toMatchObject({
+      fetched: 2,
+      synchronized: 1,
+    });
+    expect(upsert).toHaveBeenCalledTimes(1);
   });
 
   it("falha explicitamente quando a API retorna erro", async () => {
@@ -129,9 +223,32 @@ describe("JoobleIntegrationService", () => {
       },
     });
 
-    await expect(service.synchronize()).resolves.toEqual({
-      fetched: 0,
-      synchronized: 0,
+    await expect(service.synchronize()).rejects.toThrow(
+      "Jooble retornou HTTP 429 para QA",
+    );
+  });
+
+  it("propaga falha transacional sem executar a expiração", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ jobs: [{ id: "job-1", title: "QA", location: "Recife" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const upsert = vi.fn().mockRejectedValue(new Error("database unavailable"));
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const transaction = vi.fn(async (callback: (repository: {
+      job: { upsert: typeof upsert; updateMany: typeof updateMany };
+    }) => Promise<void>) => callback({ job: { upsert, updateMany } }));
+    const service = new JoobleIntegrationService({
+      apiKey: "test-key",
+      fetcher,
+      categories: ["QA"],
+      repository: { job: { upsert, updateMany }, $transaction: transaction },
     });
+
+    await expect(service.synchronize()).rejects.toThrow("database unavailable");
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ export interface JobRecommendation {
   salary: string | null;
   link: string;
   category: string;
+  matchPercentage: number;
   contractType: JobContractType;
   updatedAt: string;
 }
