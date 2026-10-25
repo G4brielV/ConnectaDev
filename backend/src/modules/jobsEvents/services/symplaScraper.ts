@@ -60,8 +60,9 @@ export async function scrapeSymplaEvents(
         ? href
         : `https://www.sympla.com.br${href}`;
 
-      // externalId = slug final da URL ("/evento/meu-evento-123")
-      const externalId = href.split("/").filter(Boolean).pop() ?? "";
+      // Usa o último segmento do caminho, sem query string, como identificador estável.
+      const externalId =
+        new URL(link).pathname.split("/").filter(Boolean).pop() ?? "";
       if (!externalId || seen.has(externalId)) return;
 
       const title = el
@@ -73,12 +74,12 @@ export async function scrapeSymplaEvents(
 
       // Sympla costuma ter estrutura "25 OUT" + "19:00" ou data por extenso
       const dateText = el
-        .find('[class*="date"], [class*="event-card__date"], time')
+        .find('[class*="date"], [class*="event-card__date"], [class*="qtfy"], time')
         .first()
         .text()
         .trim();
       const locationText = el
-        .find('[class*="location"], [class*="event-card__location"], address')
+        .find('[class*="location"], [class*="event-card__location"], address, p')
         .first()
         .text()
         .trim();
