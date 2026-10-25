@@ -20,7 +20,12 @@ test('formatDistance formata distancias maiores ou iguais a 1 km com virgula', (
   assert.equal(formatDistance(12.0), 'A 12,0 km de você');
 });
 
-test('buildRouteUrl gera link de rota com coordenadas corretas', () => {
+test('buildRouteUrl gera link de rota com coordenadas corretas no Google Maps por padrao', () => {
   const url = buildRouteUrl(-8.0573, -34.8824);
   assert.equal(url, 'https://www.google.com/maps/dir/?api=1&destination=-8.0573,-34.8824');
+});
+
+test('buildRouteUrl gera link do Apple Maps quando a plataforma for ios', () => {
+  const url = buildRouteUrl(-8.0573, -34.8824, 'ios');
+  assert.equal(url, 'https://maps.apple.com/?daddr=-8.0573,-34.8824');
 });
