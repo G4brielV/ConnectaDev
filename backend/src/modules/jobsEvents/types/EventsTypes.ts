@@ -9,11 +9,13 @@ export interface EventItem {
   day: string;       // "25"
   month: string;     // "Out"
   time: string;      // "19:00"
+  startsAt: Date;
   title: string;
   category: string;  // "Tecnologia" ou mais específico ("IA", "Frontend", ...)
   location: string;  // "Recife, PE" | "Online"
   format: string;    // "Presencial" | "Online" | "Híbrido" (label de exibição)
   filter: Exclude<EventFilter, "Todos">; // chave usada nos filtros da UI
+  link: string;
 }
 
 export interface ScrapedEvent {
