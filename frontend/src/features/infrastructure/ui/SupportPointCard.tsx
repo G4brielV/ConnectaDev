@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, radius } from '@/shared/config/theme';
 import { SupportPoint, formatDistance, buildRouteUrl } from '@/shared/api/infrastructureApi';
@@ -11,9 +11,19 @@ interface SupportPointCardProps {
 export function SupportPointCard({ point }: SupportPointCardProps) {
   const distanceText = formatDistance(point.distanceKm);
 
-  const handleOpenRoute = () => {
-    const url = buildRouteUrl(point.latitude, point.longitude);
-    Linking.openURL(url).catch(() => undefined);
+  const handleOpenRoute = async () => {
+    const url = buildRouteUrl(point.latitude, point.longitude, Platform.OS);
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${point.latitude},${point.longitude}`;
+        await Linking.openURL(fallbackUrl);
+      }
+    } catch {
+      Linking.openURL(url).catch(() => undefined);
+    }
   };
 
   const getTypeLabel = (type: string): string => {
@@ -50,12 +60,17 @@ export function SupportPointCard({ point }: SupportPointCardProps) {
       <Text style={styles.title}>{point.name}</Text>
 
       {/* Endereço */}
-      <View style={styles.locationRow}>
+      <Pressable
+        style={styles.locationRow}
+        onPress={handleOpenRoute}
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir localização de ${point.name} no mapa`}
+      >
         <Feather name="navigation" size={13} color={colors.textMuted} style={styles.iconOffset} />
         <Text style={styles.addressText} numberOfLines={2}>
           {point.address} • {point.neighborhood}, {point.city}
         </Text>
-      </View>
+      </Pressable>
 
       {/* Badges de Infraestrutura */}
       <View style={styles.badgesContainer}>

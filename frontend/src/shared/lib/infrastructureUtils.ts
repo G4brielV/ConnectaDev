@@ -14,8 +14,13 @@ export function formatDistance(distanceKm?: number | null): string | null {
 }
 
 /**
- * Gera URL de rota para abertura no Google Maps / Apple Maps.
+ * Gera URL de rota para abertura no Google Maps / Apple Maps conforme o sistema operacional.
+ * No iOS, utiliza maps.apple.com para abrir o Apple Maps nativo sem erro de redirecionamento no Safari.
+ * No Android/Web, utiliza o Google Maps universal.
  */
-export function buildRouteUrl(latitude: number, longitude: number): string {
+export function buildRouteUrl(latitude: number, longitude: number, platform?: string): string {
+  if (platform === 'ios') {
+    return `https://maps.apple.com/?daddr=${latitude},${longitude}`;
+  }
   return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
 }
