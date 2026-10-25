@@ -3,6 +3,7 @@ import { auth, prisma } from "../lib/auth";
 import { Resend } from "resend";
 import { hashPassword } from "better-auth/crypto";
 import { createHash, randomInt } from "crypto";
+import { sanitizeName } from "../shared/utils/sanitization";
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.all("/api/auth/*", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -59,7 +60,10 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ message: "Preenchimento obrigatório" });
     }
 
-    const sanitizedName = String(name).trim();
+    const sanitizedName = sanitizeName(name);
+    if (!sanitizedName) {
+      return reply.status(400).send({ message: "Preenchimento obrigatório" });
+    }
     const sanitizedEmail = String(email).trim().toLowerCase();
 
     // Verificação de duplicidade de e-mail (TT-59)

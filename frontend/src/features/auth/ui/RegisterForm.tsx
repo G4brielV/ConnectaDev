@@ -6,6 +6,7 @@ import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { Toast } from '@/shared/ui/Toast/Toast';
 import { colors, fonts, radius } from '@/shared/config/theme';
+import { sanitizeName } from '@/shared/lib/sanitization';
 import { AuthError } from '../api/authService';
 import { PasswordRequirements, checkPasswordComplexity } from './PasswordRequirements';
 import { ConflictModal } from './ConflictModal';
@@ -64,8 +65,9 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
   const validateForm = (): boolean => {
     const newErrors: { name?: string; email?: string; password?: string } = {};
 
-    // Validação de Nome (Cenário 2)
-    if (!name.trim()) {
+    // Validação de Nome (Cenário 2 com sanitização de tags HTML/scripts)
+    const cleanName = sanitizeName(name);
+    if (!cleanName) {
       newErrors.name = 'Preenchimento obrigatório';
     }
 
@@ -97,9 +99,9 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Cenário 1: Sanitizar campos (trim nos espaços)
+      // Cenário 1: Sanitizar campos (remover tags HTML/scripts e trim)
       await register({
-        name: name.trim(),
+        name: sanitizeName(name),
         email: email.trim(),
         password,
       });
