@@ -1,7 +1,6 @@
 // src/modules/events/events.routes.ts
 import type { FastifyInstance } from "fastify";
 import { getEventsController } from "../controllers/getEvents.controller";
-import { startEventsSynchronization } from "../services/eventsScheduler";
 import { SymplaIntegrationService } from "../services/symplaIntegration.service";
 import { hasValidAdminToken } from "../../jobs/routes/jobs.routes";
 
@@ -20,7 +19,4 @@ export async function eventsRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: "Falha ao sincronizar eventos." });
     }
   });
-
-  // 3) liga o cron neste processo
-  startEventsSynchronization();
 }
