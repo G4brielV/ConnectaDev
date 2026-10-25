@@ -1,71 +1,67 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, radius, shadow, spacing } from '@/shared/config/theme';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
+import { fetchEvents } from '@/shared/api/eventsApi';
+import type { EventItem } from '@/shared/api/eventsApi';
 
 type EventFilter = 'Todos' | 'Hoje' | 'Esta semana';
-
-interface EventItem {
-  id: string;
-  day: string;
-  month: string;
-  time: string;
-  title: string;
-  category: string;
-  location: string;
-  format: string;
-  filter: Exclude<EventFilter, 'Todos'>;
-}
-
-const EVENTS: EventItem[] = [
-  {
-    id: 'recife-tech-week',
-    day: '24',
-    month: 'OUT',
-    time: '09:00',
-    title: 'Recife Tech Week',
-    category: 'CONFERÊNCIA',
-    location: 'Porto Digital, Recife',
-    format: 'Presencial',
-    filter: 'Hoje',
-  },
-  {
-    id: 'frontend-community',
-    day: '26',
-    month: 'OUT',
-    time: '19:00',
-    title: 'Encontro Front-end Community',
-    category: 'COMUNIDADE',
-    location: 'Online',
-    format: 'Ao vivo',
-    filter: 'Esta semana',
-  },
-  {
-    id: 'career-tech',
-    day: '02',
-    month: 'NOV',
-    time: '14:00',
-    title: 'Carreira e oportunidades em tecnologia',
-    category: 'PALESTRA',
-    location: 'CESAR School, Recife',
-    format: 'Presencial',
-    filter: 'Esta semana',
-  },
-];
 
 const FILTERS: EventFilter[] = ['Todos', 'Hoje', 'Esta semana'];
 
 export function EventsPage() {
   const [selectedFilter, setSelectedFilter] = useState<EventFilter>('Todos');
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const loadEvents = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetchEvents();
+      setEvents(response.events);
+    } catch (error: unknown) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar os eventos.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
+
   const visibleEvents = useMemo(
-    () =>
-      selectedFilter === 'Todos'
-        ? EVENTS
-        : EVENTS.filter((event) => event.filter === selectedFilter),
-    [selectedFilter],
+    () => events.filter((event) => matchesFilter(event, selectedFilter)),
+    [events, selectedFilter],
   );
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Buscando eventos...</Text>
+      </View>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{errorMessage}</Text>
+        <Pressable accessibilityRole="button" onPress={() => void loadEvents()} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -139,8 +135,21 @@ export function EventsPage() {
 }
 
 function EventCard({ event }: { event: EventItem }) {
+  const openEvent = async () => {
+    try {
+      await Linking.openURL(event.link);
+    } catch {
+      Alert.alert('Não foi possível abrir o evento', 'Tente novamente em alguns instantes.');
+    }
+  };
+
   return (
-    <View style={styles.eventCard}>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Abrir evento ${event.title}`}
+      onPress={() => void openEvent()}
+      style={styles.eventCard}
+    >
       <View style={styles.dateBlock}>
         <Text style={styles.dateDay}>{event.day}</Text>
         <Text style={styles.dateMonth}>{event.month}</Text>
@@ -159,14 +168,62 @@ function EventCard({ event }: { event: EventItem }) {
         </View>
       </View>
       <Feather name="chevron-right" size={18} color={colors.primary} />
-    </View>
+    </Pressable>
   );
+}
+
+function matchesFilter(event: EventItem, filter: EventFilter): boolean {
+  if (filter === 'Todos') return true;
+
+  const eventDate = new Date(event.startsAt);
+  const now = new Date();
+  if (filter === 'Hoje') {
+    return eventDate.getFullYear() === now.getFullYear()
+      && eventDate.getMonth() === now.getMonth()
+      && eventDate.getDate() === now.getDate();
+  }
+
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+  endOfWeek.setHours(23, 59, 59, 999);
+  return eventDate >= now && eventDate <= endOfWeek;
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.canvas,
+  },
+  centered: {
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  loadingText: {
+    color: colors.textMuted,
+    fontFamily: fonts.sans.regular,
+    fontSize: 13,
+    marginTop: spacing.md,
+  },
+  errorText: {
+    color: colors.secondary,
+    fontFamily: fonts.sans.medium,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  retryButtonText: {
+    color: colors.textOnPrimary,
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 12,
   },
   content: {
     padding: spacing.lg,
