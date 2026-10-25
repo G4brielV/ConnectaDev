@@ -196,6 +196,55 @@ describe("POST /auth/register", () => {
     expect(m.authHandler).not.toHaveBeenCalled();
   });
 
+  it("400 quando o campo name excede 100 caracteres", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: {
+        name: "A".repeat(101),
+        email: "maria@example.com",
+        password: "Sup3rSecret!",
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toBe("O nome deve conter no máximo 100 caracteres");
+    expect(m.authHandler).not.toHaveBeenCalled();
+  });
+
+  it("400 quando o campo email excede 254 caracteres", async () => {
+    const longEmail = `${"a".repeat(245)}@example.com`;
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: {
+        name: "Maria Clara",
+        email: longEmail,
+        password: "Sup3rSecret!",
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toBe("O e-mail deve conter no máximo 254 caracteres");
+    expect(m.authHandler).not.toHaveBeenCalled();
+  });
+
+  it("400 quando o campo password excede 128 caracteres", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: {
+        name: "Maria Clara",
+        email: "maria@example.com",
+        password: "A".repeat(129),
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toBe("A senha deve conter no máximo 128 caracteres");
+    expect(m.authHandler).not.toHaveBeenCalled();
+  });
+
   it("409 quando o próprio Better Auth reporta e-mail já existente", async () => {
     m.authHandler.mockResolvedValueOnce(
       jsonResponse(422, { code: "USER_ALREADY_EXISTS", message: "user exists" }),
