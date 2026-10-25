@@ -15,8 +15,8 @@ export async function getEvents(
     orderBy: [{ startsAt: "asc" }, { updatedAt: "desc" }],
     select: {
       id: true, day: true, month: true, time: true,
-      title: true, category: true, location: true,
-      format: true, filter: true,
+      startsAt: true, title: true, category: true, location: true,
+      format: true, filter: true, link: true,
     },
   });
 
@@ -25,11 +25,13 @@ export async function getEvents(
     day: r.day,
     month: r.month,
     time: r.time,
+    startsAt: r.startsAt,
     title: r.title,
     category: r.category,
     location: r.location,
     format: r.format,
     filter: r.filter as EventItem["filter"],
+    link: r.link,
   }));
 
   return {
