@@ -239,3 +239,84 @@ test("groq aponta para o endpoint compatível com OpenAI", async () => {
   expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
   expect(JSON.parse(init.body as string).model).toBe("openai/gpt-oss-120b");
 });
+
+// ---------- fallback transparente ----------
+
+test("generateJson usa gemini como fallback quando groq falha com HTTP 503", async () => {
+  const previous = {
+    groq: process.env.GROQ_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    provider: process.env.AI_PROVIDER,
+  };
+  process.env.GROQ_API_KEY = "chave-groq";
+  process.env.GEMINI_API_KEY = "chave-gemini";
+  delete process.env.AI_PROVIDER;
+
+  try {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ error: "groq unavailable" }, 503))
+      .mockResolvedValueOnce(
+        jsonResponse({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
+      );
+
+    const result = await generateJson(params, { fetchImpl: fetchImpl as never });
+    expect(result).toEqual({ ok: true });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toMatch(/api\.groq\.com/);
+    expect((fetchImpl.mock.calls[1] as [string])[0]).toMatch(/generativelanguage\.googleapis\.com/);
+  } finally {
+    restoreEnv("GROQ_API_KEY", previous.groq);
+    restoreEnv("GEMINI_API_KEY", previous.gemini);
+    restoreEnv("AI_PROVIDER", previous.provider);
+  }
+});
+
+test("generateJson usa gemini como fallback quando GROQ_API_KEY não está configurada", async () => {
+  const previous = {
+    groq: process.env.GROQ_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    provider: process.env.AI_PROVIDER,
+  };
+  delete process.env.GROQ_API_KEY;
+  process.env.GEMINI_API_KEY = "chave-gemini";
+  delete process.env.AI_PROVIDER;
+
+  try {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      jsonResponse({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
+    );
+
+    const result = await generateJson(params, { fetchImpl: fetchImpl as never });
+    expect(result).toEqual({ ok: true });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toMatch(/generativelanguage\.googleapis\.com/);
+  } finally {
+    restoreEnv("GROQ_API_KEY", previous.groq);
+    restoreEnv("GEMINI_API_KEY", previous.gemini);
+    restoreEnv("AI_PROVIDER", previous.provider);
+  }
+});
+
+test("generateJson respeita fallbackProvider: null e propaga erro sem acionar fallback", async () => {
+  const previous = {
+    groq: process.env.GROQ_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    provider: process.env.AI_PROVIDER,
+  };
+  process.env.GROQ_API_KEY = "chave-groq";
+  process.env.GEMINI_API_KEY = "chave-gemini";
+  delete process.env.AI_PROVIDER;
+
+  try {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(jsonResponse({ error: "groq unavailable" }, 503));
+
+    await expect(
+      generateJson(params, { fetchImpl: fetchImpl as never, fallbackProvider: null }),
+    ).rejects.toBeInstanceOf(AiRequestError);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  } finally {
+    restoreEnv("GROQ_API_KEY", previous.groq);
+    restoreEnv("GEMINI_API_KEY", previous.gemini);
+    restoreEnv("AI_PROVIDER", previous.provider);
+  }
+});
