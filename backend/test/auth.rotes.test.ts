@@ -157,6 +157,45 @@ describe("POST /auth/register", () => {
     expect(json.user.id).toBe("u1");
   });
 
+  it("sanitiza tags HTML e scripts no campo name antes de chamar o Better Auth", async () => {
+    m.authHandler.mockImplementationOnce(async (req) => {
+      const body = await req.json();
+      expect(body.name).toBe("Maria Clara");
+      return jsonResponse(200, {
+        token: "tok_safe",
+        user: { id: "u2", email: "maria@example.com" },
+      });
+    });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: {
+        name: "<script>alert('xss')</script><b>Maria Clara</b>",
+        email: "maria@example.com",
+        password: "Sup3rSecret!",
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("400 quando o campo name contém apenas tags ou scripts e fica vazio após sanitização", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: {
+        name: "<script>alert('xss')</script>   <style>body{}</style>",
+        email: "maria@example.com",
+        password: "Sup3rSecret!",
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toBe("Preenchimento obrigatório");
+    expect(m.authHandler).not.toHaveBeenCalled();
+  });
+
   it("409 quando o próprio Better Auth reporta e-mail já existente", async () => {
     m.authHandler.mockResolvedValueOnce(
       jsonResponse(422, { code: "USER_ALREADY_EXISTS", message: "user exists" }),
