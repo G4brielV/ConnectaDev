@@ -142,7 +142,7 @@ async function requestAnalysis(
   userPrompt: string,
   userId: string,
   correctiveRequest = false,
-  provider: AiProviderName = "gemini",
+  provider: AiProviderName = "groq",
   clientOptions?: AiClientOptions,
 ): Promise<unknown> {
   const prompt = `${SYSTEM_PROMPT}${
@@ -209,28 +209,19 @@ export async function submitQuiz(
     configuredProvider === "xai" ||
     configuredProvider === "gemini"
       ? configuredProvider
-      : "gemini");
+      : "groq");
   let parsedResult: unknown;
   try {
     parsedResult = await requestAnalysis(userPrompt, userId, false, provider, clientOptions);
   } catch (error) {
-    if (
-      provider === "gemini" &&
-      (error instanceof AiNotConfiguredError ||
-        error instanceof AiRequestError ||
-        error instanceof AiGatewayRequestError)
-    ) {
-      parsedResult = await requestAnalysis(userPrompt, userId, false, "groq", clientOptions);
-    } else {
-      if (error instanceof AiNotConfiguredError) {
-        throw new Error("A integração com a IA não está configurada.");
-      }
-      if (!(error instanceof MalformedAiResponseError)) {
-        throw error;
-      }
-
-      parsedResult = await requestAnalysis(userPrompt, userId, true, provider, clientOptions);
+    if (error instanceof AiNotConfiguredError) {
+      throw new Error("A integração com a IA não está configurada.");
     }
+    if (!(error instanceof MalformedAiResponseError)) {
+      throw error;
+    }
+
+    parsedResult = await requestAnalysis(userPrompt, userId, true, provider, clientOptions);
   }
   const initialArea =
     parsedResult && typeof parsedResult === "object"
