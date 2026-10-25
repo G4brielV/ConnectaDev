@@ -1,3 +1,9 @@
+export const AUTH_INPUT_LIMITS = {
+  NAME_MAX_LENGTH: 100,
+  EMAIL_MAX_LENGTH: 254,
+  PASSWORD_MAX_LENGTH: 128,
+} as const;
+
 /**
  * Sanitiza o campo de nome, removendo scripts executáveis, estilos,
  * tags HTML, entidades maliciosas e caracteres de controle,
