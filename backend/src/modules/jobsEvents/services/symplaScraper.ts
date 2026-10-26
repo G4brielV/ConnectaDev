@@ -5,7 +5,7 @@ import { detectFormat, toFilter } from "../utils/formatEvent";
 import { ScrapedEvent } from "../types/EventsTypes";
 import { parseDateAndTime } from "../utils/parseDate";
 import { isInRecifeMetro } from "../utils/geo";
-import { inferCategory } from "../utils/category";
+import { inferCategory, isTechnologyEvent } from "../utils/category";
 
 // Sites bloqueam requisições "vazias". Simular um Chrome real evita bloqueio.
 const SYMPLA_URL =
@@ -119,6 +119,7 @@ export async function scrapeSymplaEvents(
           .text()
           .trim();
         if (!title) return;
+        if (!isTechnologyEvent(title)) return;
 
         // Sympla costuma ter estrutura "25 OUT" + "19:00" ou data por extenso
         const dateText = el
