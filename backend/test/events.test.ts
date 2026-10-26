@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isInRecifeMetro } from "../src/modules/jobsEvents/utils/geo";
 import { parseDateAndTime } from "../src/modules/jobsEvents/utils/parseDate";
+import { isTechnologyEvent } from "../src/modules/jobsEvents/utils/category";
 
 describe("event utilities", () => {
   it("interpreta corretamente data e horário exibidos pela Sympla", () => {
@@ -28,5 +29,12 @@ describe("event utilities", () => {
     expect(isInRecifeMetro("Porto Digital, Recife, PE")).toBe(true);
     expect(isInRecifeMetro("Olinda, PE")).toBe(true);
     expect(isInRecifeMetro("São Paulo, SP")).toBe(false);
+  });
+
+  it("rejeita eventos sem sinais de tecnologia no título", () => {
+    expect(isTechnologyEvent("Qiskit Fall Fest Brazil 2026")).toBe(true);
+    expect(isTechnologyEvent("Recife Data Saturday")).toBe(true);
+    expect(isTechnologyEvent("Tour - Ilha do Retiro")).toBe(false);
+    expect(isTechnologyEvent("IMERSÃO BEAUTY 360 paradise")).toBe(false);
   });
 });
