@@ -7,7 +7,8 @@ import { parseDateAndTime } from "../utils/parseDate";
 import { isInRecifeMetro } from "../utils/geo";
 import { inferCategory } from "../utils/category";
 
-const SYMPLA_URL = "https://www.sympla.com.br/eventos/recife-pe/tecnologia";
+const SYMPLA_URL =
+  "https://www.sympla.com.br/eventos/recife-pe/tecnologia?category=collection";
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -27,90 +28,86 @@ export async function scrapeSymplaEvents(
 
     await page.goto(url, { waitUntil: "networkidle2", timeout: 30_000 });
 
-    // 1) Rola para carregar lazy-loaded
-    await page.evaluate(async () => {
-      await new Promise<void>((resolve) => {
-        let total = 0;
-        const timer = setInterval(() => {
-          window.scrollBy(0, 800);
-          total += 800;
-          if (total >= document.body.scrollHeight) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, 120);
-      });
-    });
-
-    // 2) Espera os cards de evento
+    // A listagem é dinâmica e substitui os cards anteriores durante a rolagem.
+    // Por isso, cada lote precisa ser preservado antes de avançar.
     await page.waitForSelector('a[href*="/evento/"]', { timeout: 15_000 });
 
-    const html = await page.content();
-    const $ = cheerio.load(html);
+    const snapshots: string[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      snapshots.push(await page.content());
+      await page.evaluate(() => {
+        window.scrollBy(0, Math.max(window.innerHeight * 0.8, 600));
+      });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     const events: ScrapedEvent[] = [];
     const seen = new Set<string>();
 
-    $('a[href*="/evento/"]').each((_, element) => {
-      const el = $(element);
-      const href = el.attr("href")?.trim();
-      if (!href) return;
+    for (const snapshot of snapshots) {
+      const $ = cheerio.load(snapshot);
 
-      const link = href.startsWith("http")
-        ? href
-        : `https://www.sympla.com.br${href}`;
+      $('a[href*="/evento/"]').each((_, element) => {
+        const el = $(element);
+        const href = el.attr("href")?.trim();
+        if (!href) return;
 
-      // Usa o último segmento do caminho, sem query string, como identificador estável.
-      const externalId =
-        new URL(link).pathname.split("/").filter(Boolean).pop() ?? "";
-      if (!externalId || seen.has(externalId)) return;
+        const link = href.startsWith("http")
+          ? href
+          : `https://www.sympla.com.br${href}`;
 
-      const title = el
-        .find('h3, [class*="event-card__title"], [class*="event-name"]')
-        .first()
-        .text()
-        .trim();
-      if (!title) return;
+        // Usa o último segmento do caminho, sem query string, como identificador estável.
+        const externalId =
+          new URL(link).pathname.split("/").filter(Boolean).pop() ?? "";
+        if (!externalId || seen.has(externalId)) return;
 
-      // Sympla costuma ter estrutura "25 OUT" + "19:00" ou data por extenso
-      const dateText = el
-        .find('[class*="date"], [class*="event-card__date"], [class*="qtfy"], time')
-        .first()
-        .text()
-        .trim();
-      const locationText = el
-        .find('[class*="location"], [class*="event-card__location"], address, p')
-        .first()
-        .text()
-        .trim();
+        const title = el
+          .find('h3, [class*="event-card__title"], [class*="event-name"]')
+          .first()
+          .text()
+          .trim();
+        if (!title) return;
 
-      const parsed = parseDateAndTime(dateText);
-      if (!parsed) return; // descarta se não conseguir data
+        // Sympla costuma ter estrutura "25 OUT" + "19:00" ou data por extenso
+        const dateText = el
+          .find('[class*="date"], [class*="event-card__date"], [class*="qtfy"], time')
+          .first()
+          .text()
+          .trim();
+        const locationText = el
+          .find('[class*="location"], [class*="event-card__location"], address, p')
+          .first()
+          .text()
+          .trim();
 
-      const format = detectFormat(`${el.text()} ${locationText}`);
+        const parsed = parseDateAndTime(dateText);
+        if (!parsed) return; // descarta se não conseguir data
 
-      // Categoria derivada do título (rápido e sem chamar API)
-      const category = inferCategory(title);
+        const format = detectFormat(`${el.text()} ${locationText}`);
 
-      // Só mantém RMR (ou Online, que não tem restrição geográfica)
-      const isOnline = format === "Online";
-      if (!isOnline && !isInRecifeMetro(locationText)) return;
+        // Categoria derivada do título (rápido e sem chamar API)
+        const category = inferCategory(title);
 
-      seen.add(externalId);
-      events.push({
-        externalId,
-        day: parsed.day,
-        month: parsed.month,
-        time: parsed.time,
-        startsAt: parsed.startsAt,
-        title,
-        category,
-        location: locationText || (isOnline ? "Online" : "Recife, PE"),
-        format,
-        filter: toFilter(format),
-        link,
+        // Só mantém RMR (ou Online, que não tem restrição geográfica)
+        const isOnline = format === "Online";
+        if (!isOnline && !isInRecifeMetro(locationText)) return;
+
+        seen.add(externalId);
+        events.push({
+          externalId,
+          day: parsed.day,
+          month: parsed.month,
+          time: parsed.time,
+          startsAt: parsed.startsAt,
+          title,
+          category,
+          location: locationText || (isOnline ? "Online" : "Recife, PE"),
+          format,
+          filter: toFilter(format),
+          link,
+        });
       });
-    });
+    }
 
     return events;
   } finally {
