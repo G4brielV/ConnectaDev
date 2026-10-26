@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/auth";
 import { scrapeSymplaEvents } from "./symplaScraper";
 import type { EventsRepository } from "../types/EventsTypes";
+import { isTechnologyEvent } from "../utils/category";
 
 export class SymplaIntegrationService {
   constructor(
@@ -11,7 +12,9 @@ export class SymplaIntegrationService {
 
   async synchronize() {
     const scraped = await this.scraper();
-    const ids = new Set(scraped.map((e) => e.externalId));
+    if (scraped.length === 0) {
+      throw new Error("Sympla returned no events; synchronization was aborted.");
+    }
 
     let inserted = 0;
     let updated = 0;
@@ -35,19 +38,31 @@ export class SymplaIntegrationService {
         });
       }
 
-      // 2) expira: (a) eventos passados OU (b) sumidos da Sympla
+      // 2) Expira somente eventos passados. A listagem da Sympla é paginada
+      // e pode retornar apenas parte dos eventos durante uma instabilidade.
       const now = new Date();
       const expiredResult = await tx.event.updateMany({
         where: {
           isExpired: false,
-          OR: [
-            { startsAt: { lt: now } },                     // já aconteceu
-            { externalId: { notIn: [...ids] } },           // não está mais na lista
-          ],
+          startsAt: { lt: now },
         },
         data: { isExpired: true },
       });
       deactivated = expiredResult.count;
+
+      const activeEvents = await tx.event.findMany({
+        where: { isExpired: false },
+        select: { externalId: true, title: true },
+      });
+      for (const event of activeEvents) {
+        if (!isTechnologyEvent(event.title)) {
+          await tx.event.updateMany({
+            where: { externalId: event.externalId },
+            data: { isExpired: true },
+          });
+          deactivated += 1;
+        }
+      }
     };
 
     if (this.repository.$transaction) {
