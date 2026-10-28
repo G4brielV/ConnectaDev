@@ -12,6 +12,8 @@ import { KnowledgeReviewScreen } from '@/pages/KnowledgeReviewScreen';
 import { ReviewResultScreen } from '@/pages/ReviewResultScreen';
 import { TrailsScreen } from '@/pages/TrailsScreen';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
+import { ForumTopicScreen } from '@/pages/ForumTopicScreen';
+import { ForumPostScreen } from '@/pages/ForumPostScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import { MainTabNavigator } from './MainTabNavigator';
 
@@ -26,6 +28,8 @@ export type RootStackParamList = {
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
   Trails: undefined;
   TrailLesson: { lessonId: string };
+  ForumTopic: { topicSlug: string; topicTitle: string };
+  ForumPost: { postId: string; topicTitle?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -59,6 +63,8 @@ export function RootNavigator() {
             <Stack.Screen name="ReviewResult" component={ReviewResultScreen} />
             <Stack.Screen name="Trails" component={TrailsScreen} />
             <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
+            <Stack.Screen name="ForumTopic" component={ForumTopicScreen} />
+            <Stack.Screen name="ForumPost" component={ForumPostScreen} />
           </>
         ) : (
           <>
