@@ -26,6 +26,8 @@ model User {
   trailProgress   UserTrailProgress[]
   xpEvents        XpEvent[]
   courseRatings   CourseRating[]
+  forumPosts      ForumPost[]
+  forumComments   ForumComment[]
 
   @@map("user")
 }
@@ -341,4 +343,42 @@ model UserCourseBookmark {
   @@unique([userId, courseId])
   @@index([userId])
   @@map("user_course_bookmarks")
+}
+
+model ForumPost {
+  id         String          @id @default(uuid())
+  authorId   String          @map("author_id")
+  topicSlug  String          @map("topic_slug")
+  title      String
+  content    String
+  status     String          @default("PUBLISHED")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  deletedAt  DateTime?       @map("deleted_at")
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments   ForumComment[]
+
+  @@index([topicSlug])
+  @@index([createdAt])
+  @@index([authorId])
+  @@index([status])
+  @@map("forum_posts")
+}
+
+model ForumComment {
+  id         String     @id @default(uuid())
+  postId     String     @map("post_id")
+  authorId   String     @map("author_id")
+  content    String
+  status     String     @default("PUBLISHED")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  deletedAt  DateTime?  @map("deleted_at")
+  post       ForumPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([status])
+  @@map("forum_comments")
 }

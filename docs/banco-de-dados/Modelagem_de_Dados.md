@@ -40,8 +40,10 @@ As tabelas de negócio atualmente implementadas são:
 - `user_gamification`
 - `xp_events`
 - `user_trail_progress`
+- `forum_posts`
+- `forum_comments`
 
-Não fazem parte do schema atual tabelas de desafios de código, fórum, eventos, vagas ou
+Não fazem parte do schema atual tabelas de desafios de código, eventos, vagas ou
 infraestrutura pública.
 
 ---
@@ -67,12 +69,28 @@ erDiagram
     user ||--o{ knowledge_review_sessions : "realiza"
     topics ||--o{ knowledge_review_questions : "contém"
     topics ||--o{ knowledge_review_sessions : "é avaliado"
+    user ||--o{ forum_posts : "publica"
+    user ||--o{ forum_comments : "comenta"
+    forum_posts ||--o{ forum_comments : "recebe"
 ```
 
 `quiz_questions`, `verification` e `jwks` são tabelas independentes no schema
 atual. O diagnóstico é associado ao usuário por uma relação 1:1, e os favoritos
 formam uma relação N:N entre `user` e `courses`, materializada por
 `user_course_bookmarks`.
+
+### Fórum
+
+`forum_posts` e `forum_comments` usam `status` (`PUBLISHED` ou `REMOVED`) e
+`deleted_at` para exclusão lógica. Posts e comentários removidos não aparecem
+nas consultas públicas. O autor é o único usuário autorizado a editar ou
+remover seu conteúdo; a remoção de um post também marca seus comentários como
+removidos. Comentários são diretos, sem relação de resposta aninhada.
+
+Os slugs fixos são `desenvolvimento-de-sistemas`, `ia-e-dados`,
+`seguranca-cibernetica`, `devops-e-cloud`, `ux-ui-e-produto` e
+`carreira-e-estudos`. Os índices cobrem tópico, data de criação, autor, post e
+status para suportar filtro e paginação por posts mais recentes.
 
 As perguntas de trilha ficam em `trail_questions`, seguindo a mesma estrutura
 de `quiz_questions`, mas com `correct_answer` para a correção no backend. Essa

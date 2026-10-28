@@ -7,6 +7,7 @@ import { quizRoutes } from "./modules/quiz/routes/quiz.routes";
 import { courseRoutes } from "./modules/courses/routes/course.routes";
 import { reviewRoutes } from "./modules/reviews/routes/review.routes";
 import { gamificationRoutes } from "./modules/gamification/routes/gamification.routes";
+import { forumRoutes } from "./modules/forum/routes/forum.routes";
 
 const app = fastify({ logger: true });
 
@@ -15,7 +16,7 @@ app.register(cors, {
   origin: true, // Allow all origins for mobile dev
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 // Setup Error Handler
@@ -27,6 +28,7 @@ app.register(quizRoutes);
 app.register(courseRoutes);
 app.register(reviewRoutes);
 app.register(gamificationRoutes);
+app.register(forumRoutes);
 
 // Health check
 app.get("/health", async () => {
