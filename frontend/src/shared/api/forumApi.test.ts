@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createForumComment, createForumPost } from "./forumApi";
+import { createForumComment, createForumPost, reactToForumPost } from "./forumApi";
 
 const originalFetch = globalThis.fetch;
 
@@ -89,4 +89,21 @@ test("createForumPost sends the selected topic and post content", async () => {
   }));
   assert.equal(post.topicSlug, "ia-e-dados");
   assert.equal(post.title, "Primeiro post");
+});
+
+test("reactToForumPost sends the selected reaction", async () => {
+  let receivedInit: RequestInit | undefined;
+
+  globalThis.fetch = async (_input, init) => {
+    receivedInit = init;
+    return new Response(JSON.stringify({ likes: 3, dislikes: 1, myReaction: "LIKE" }), { status: 200 });
+  };
+
+  const result = await reactToForumPost("mock-token", "post-1", "LIKE");
+  const headers = receivedInit?.headers as Record<string, string>;
+
+  assert.equal(receivedInit?.method, "POST");
+  assert.equal(headers.Authorization, "Bearer mock-token");
+  assert.equal(receivedInit?.body, JSON.stringify({ value: "LIKE" }));
+  assert.deepEqual(result, { likes: 3, dislikes: 1, myReaction: "LIKE" });
 });

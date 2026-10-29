@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,11 +9,11 @@ import {
   Text,
   View,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { useAuth } from "../entities/session";
-import { fetchForumPosts, ForumPost } from "../shared/api/forumApi";
+import { fetchForumPosts, ForumPost, ForumReactionValue, reactToForumPost } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
 function truncateContent(content: string, maxLength = 140): string {
@@ -33,6 +33,7 @@ export function ForumTopicScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reactingPostId, setReactingPostId] = useState<string | null>(null);
 
   const loadPosts = useCallback(async (nextPage = 1, refresh = false): Promise<void> => {
     if (!token) {
@@ -59,9 +60,25 @@ export function ForumTopicScreen() {
     }
   }, [token, topicSlug]);
 
-  useEffect(() => {
-    void loadPosts();
-  }, [loadPosts]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadPosts();
+    }, [loadPosts]),
+  );
+
+  async function handleReaction(postId: string, value: ForumReactionValue): Promise<void> {
+    if (!token || reactingPostId) return;
+
+    setReactingPostId(postId);
+    try {
+      const reaction = await reactToForumPost(token, postId, value);
+      setPosts((current) => current.map((post) => post.id === postId
+        ? { ...post, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes } }
+        : post));
+    } finally {
+      setReactingPostId(null);
+    }
+  }
 
   if (isLoading) return <ActivityIndicator style={styles.centered} color="#036564" />;
 
@@ -105,22 +122,44 @@ export function ForumTopicScreen() {
         }
         ListFooterComponent={isLoadingMore ? <ActivityIndicator color="#036564" style={styles.footerLoader} /> : null}
         renderItem={({ item }) => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Abrir post ${item.title}`}
-            onPress={() => navigation.navigate("ForumPost", { postId: item.id, topicTitle })}
-            style={({ pressed }) => [styles.postCard, pressed && styles.postCardPressed]}
-          >
-            <Text style={styles.author}>{item.author.name || "Usuário ConnectaDev"}</Text>
-            <Text style={styles.postTitle}>{item.title}</Text>
-            <Text style={styles.postContent}>{truncateContent(item.content)}</Text>
+          <View style={styles.postCard}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Abrir post ${item.title}`}
+              onPress={() => navigation.navigate("ForumPost", { postId: item.id, topicTitle })}
+              style={({ pressed }) => [styles.postContentPressable, pressed && styles.postCardPressed]}
+            >
+              <Text style={styles.author}>{item.author.name || "Usuário ConnectaDev"}</Text>
+              <Text style={styles.postTitle}>{item.title}</Text>
+              <Text style={styles.postContent}>{truncateContent(item.content)}</Text>
+            </Pressable>
             <View style={styles.postMeta}>
+              <Pressable
+                accessibilityLabel={`Curtir post. ${item.reactionCounts.likes} curtidas`}
+                accessibilityRole="button"
+                disabled={reactingPostId !== null}
+                onPress={() => void handleReaction(item.id, "LIKE")}
+                style={styles.reactionButton}
+              >
+                <Text style={styles.reactionIcon}>👍</Text>
+                <Text style={styles.metaText}>{item.reactionCounts.likes}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Não curtir post. ${item.reactionCounts.dislikes} avaliações negativas`}
+                accessibilityRole="button"
+                disabled={reactingPostId !== null}
+                onPress={() => void handleReaction(item.id, "DISLIKE")}
+                style={styles.reactionButton}
+              >
+                <Text style={styles.reactionIcon}>👎</Text>
+                <Text style={styles.metaText}>{item.reactionCounts.dislikes}</Text>
+              </Pressable>
               <View accessibilityLabel={`${item._count.comments} comentários`} style={styles.commentCount}>
                 <Text style={styles.commentIcon}>💬</Text>
                 <Text style={styles.metaText}>{item._count.comments}</Text>
               </View>
             </View>
-          </Pressable>
+          </View>
         )}
       />
       <View pointerEvents="box-none" style={styles.createDock}>
@@ -144,11 +183,14 @@ const styles = StyleSheet.create({
   backText: { color: "#036564", fontSize: 14, fontWeight: "700", marginBottom: 18 },
   title: { color: "#0F172A", fontSize: 26, fontWeight: "800", marginBottom: 8 },
   subtitle: { color: "#64748B", fontSize: 14, lineHeight: 20 },
-  postCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, elevation: 2, marginBottom: 12, padding: 18, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  postCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, elevation: 2, marginBottom: 12, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  postContentPressable: { padding: 18 },
   postCardPressed: { backgroundColor: "#F0FDFA" },
   postTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", lineHeight: 23 },
   postContent: { color: "#64748B", fontSize: 13, lineHeight: 19, marginTop: 8 },
-  postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "flex-start", marginTop: 14, paddingTop: 10 },
+  postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 14, paddingHorizontal: 18, paddingVertical: 10 },
+  reactionButton: { alignItems: "center", flexDirection: "row", gap: 4 },
+  reactionIcon: { fontSize: 14 },
   commentCount: { alignItems: "center", flexDirection: "row", gap: 5 },
   commentIcon: { fontSize: 14 },
   author: { color: "#32504C", fontSize: 13, fontWeight: "700", marginBottom: 6 },

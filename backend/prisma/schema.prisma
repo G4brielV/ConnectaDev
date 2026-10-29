@@ -28,6 +28,7 @@ model User {
   courseRatings   CourseRating[]
   forumPosts      ForumPost[]
   forumComments   ForumComment[]
+  forumReactions  ForumPostReaction[]
 
   @@map("user")
 }
@@ -357,6 +358,7 @@ model ForumPost {
   deletedAt  DateTime?       @map("deleted_at")
   author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments   ForumComment[]
+  reactions  ForumPostReaction[]
 
   @@index([topicSlug])
   @@index([createdAt])
@@ -381,4 +383,20 @@ model ForumComment {
   @@index([authorId])
   @@index([status])
   @@map("forum_comments")
+}
+
+model ForumPostReaction {
+  id        String    @id @default(uuid())
+  postId    String    @map("post_id")
+  userId    String    @map("user_id")
+  value     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId, value])
+  @@index([userId])
+  @@map("forum_post_reactions")
 }

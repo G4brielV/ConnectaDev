@@ -10,6 +10,7 @@ import {
   removePostController,
   updateCommentController,
   updatePostController,
+  reactToPostController,
 } from "../controllers/forum.controller";
 
 export async function forumRoutes(fastify: FastifyInstance) {
@@ -21,6 +22,7 @@ export async function forumRoutes(fastify: FastifyInstance) {
   fastify.delete("/api/forum/posts/:postId", removePostController);
   fastify.get("/api/forum/posts/:postId/comments", listCommentsController);
   fastify.post("/api/forum/posts/:postId/comments", createCommentController);
+  fastify.post("/api/forum/posts/:postId/reactions", reactToPostController);
   fastify.patch("/api/forum/comments/:commentId", updateCommentController);
   fastify.delete("/api/forum/comments/:commentId", removeCommentController);
 }

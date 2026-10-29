@@ -1,7 +1,7 @@
 import { prisma } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { FORUM_CONTENT_STATUS, FORUM_TOPICS, isForumTopic } from "../constants/forumTopics";
-import type { CreateCommentBody, CreatePostBody, UpdatePostBody } from "../schemas/forum.schema";
+import type { CreateCommentBody, CreatePostBody, PostReactionBody, UpdatePostBody } from "../schemas/forum.schema";
 
 const authorSelect = { id: true, name: true, image: true } as const;
 
@@ -21,17 +21,57 @@ export async function listPosts(topicSlug: string | undefined, page: number, lim
     status: FORUM_CONTENT_STATUS.PUBLISHED,
     ...(topicSlug ? { topicSlug } : {}),
   };
-  const [posts, total] = await prisma.$transaction([
-    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
+  const [postsWithReactions, total] = await prisma.$transaction([
+    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, reactions: { select: { value: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
     prisma.forumPost.count({ where }),
   ]);
+  const posts = postsWithReactions.map(({ reactions, ...post }) => ({
+    ...post,
+    reactionCounts: {
+      likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
+      dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
+    },
+  }));
   return { data: posts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
 export async function getPost(postId: string) {
-  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
+  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, reactions: { select: { value: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
+  if (!postWithReactions) throw new AppError("Post não encontrado.", 404);
+  const { reactions, ...post } = postWithReactions;
+  return {
+    ...post,
+    reactionCounts: {
+      likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
+      dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
+    },
+  };
+}
+
+export async function reactToPost(postId: string, userId: string, input: PostReactionBody) {
+  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, select: { id: true } });
   if (!post) throw new AppError("Post não encontrado.", 404);
-  return post;
+
+  const existingReaction = await prisma.forumPostReaction.findUnique({
+    where: { postId_userId: { postId, userId } },
+  });
+
+  let myReaction: PostReactionBody["value"] | null = input.value;
+  if (existingReaction?.value === input.value) {
+    await prisma.forumPostReaction.delete({ where: { id: existingReaction.id } });
+    myReaction = null;
+  } else if (existingReaction) {
+    await prisma.forumPostReaction.update({ where: { id: existingReaction.id }, data: { value: input.value } });
+  } else {
+    await prisma.forumPostReaction.create({ data: { postId, userId, value: input.value } });
+  }
+
+  const reactions = await prisma.forumPostReaction.findMany({ where: { postId }, select: { value: true } });
+  return {
+    likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
+    dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
+    myReaction,
+  };
 }
 
 export async function createPost(authorId: string, input: CreatePostBody) {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { FORUM_TOPICS, isForumTopic } from "../src/modules/forum/constants/forumTopics";
-import { createCommentBodySchema, createPostBodySchema } from "../src/modules/forum/schemas/forum.schema";
+import { createCommentBodySchema, createPostBodySchema, postReactionBodySchema } from "../src/modules/forum/schemas/forum.schema";
 
 test("forum exposes the six stable topics", () => {
   assert.equal(FORUM_TOPICS.length, 6);
@@ -30,4 +30,8 @@ test("forum validates post and comment limits", () => {
   }).success, false);
 
   assert.equal(createCommentBodySchema.safeParse({ content: "a".repeat(2001) }).success, false);
+
+  assert.equal(postReactionBodySchema.safeParse({ value: "LIKE" }).success, true);
+  assert.equal(postReactionBodySchema.safeParse({ value: "DISLIKE" }).success, true);
+  assert.equal(postReactionBodySchema.safeParse({ value: "LOVE" }).success, false);
 });

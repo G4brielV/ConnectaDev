@@ -24,6 +24,8 @@ import {
   fetchForumPost,
   ForumComment,
   ForumPost,
+  ForumReactionValue,
+  reactToForumPost,
   updateForumComment,
   updateForumPost,
 } from "../shared/api/forumApi";
@@ -64,6 +66,7 @@ export function ForumPostScreen() {
     { type: "post" } | { type: "comment"; id: string } | null
   >(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReacting, setIsReacting] = useState(false);
 
   const loadPost = useCallback(async (refresh = false): Promise<void> => {
     if (!token) {
@@ -93,6 +96,22 @@ export function ForumPostScreen() {
   useEffect(() => {
     void loadPost();
   }, [loadPost]);
+
+  async function handleReaction(value: ForumReactionValue): Promise<void> {
+    if (!token || !post || isReacting) return;
+
+    setIsReacting(true);
+    try {
+      const reaction = await reactToForumPost(token, post.id, value);
+      setPost((current) => current
+        ? { ...current, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes } }
+        : current);
+    } catch (error: unknown) {
+      setActionError(error instanceof Error ? error.message : "Não foi possível registrar sua avaliação.");
+    } finally {
+      setIsReacting(false);
+    }
+  }
 
   async function handleSubmitComment(): Promise<void> {
     const content = commentDraft.trim();
@@ -230,6 +249,28 @@ export function ForumPostScreen() {
                 </View>
               </View>
               <Text style={styles.content}>{post.content}</Text>
+              <View style={styles.reactionActions}>
+                <Pressable
+                  accessibilityLabel={`Curtir post. ${post.reactionCounts.likes} curtidas`}
+                  accessibilityRole="button"
+                  disabled={isReacting}
+                  onPress={() => void handleReaction("LIKE")}
+                  style={styles.reactionButton}
+                >
+                  <Text style={styles.reactionIcon}>👍</Text>
+                  <Text style={styles.reactionCount}>{post.reactionCounts.likes}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Não curtir post. ${post.reactionCounts.dislikes} avaliações negativas`}
+                  accessibilityRole="button"
+                  disabled={isReacting}
+                  onPress={() => void handleReaction("DISLIKE")}
+                  style={styles.reactionButton}
+                >
+                  <Text style={styles.reactionIcon}>👎</Text>
+                  <Text style={styles.reactionCount}>{post.reactionCounts.dislikes}</Text>
+                </Pressable>
+              </View>
               {user?.id === post.author.id ? (
                 <Pressable
                   accessibilityLabel="Abrir ações do post"
@@ -323,7 +364,7 @@ export function ForumPostScreen() {
               <View style={styles.composerPlusWrap}>
                 <Text style={styles.composerPlus}>+</Text>
               </View>
-              <Text style={styles.composerPrompt}>Entre na conversa.</Text>
+              <Text style={styles.composerPrompt}>Entre na conversa</Text>
             </Pressable>
           )}
         </View>
@@ -477,6 +518,10 @@ const styles = StyleSheet.create({
   author: { color: "#32504C", fontSize: 13, fontWeight: "700" },
   date: { color: "#7A8986", fontSize: 12, marginTop: 3 },
   content: { color: "#334155", fontSize: 16, lineHeight: 25, marginTop: 22 },
+  reactionActions: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 18, marginTop: 20, paddingTop: 12 },
+  reactionButton: { alignItems: "center", flexDirection: "row", gap: 5 },
+  reactionIcon: { fontSize: 15 },
+  reactionCount: { color: "#64748B", fontSize: 13, fontWeight: "700" },
   commentsTitle: { color: "#0F172A", fontSize: 18, fontWeight: "700", marginBottom: 12, marginTop: 26 },
   commentCard: { borderLeftColor: "#D7E0E5", borderLeftWidth: 2, marginBottom: 18, paddingLeft: 14, paddingVertical: 2 },
   commentHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },

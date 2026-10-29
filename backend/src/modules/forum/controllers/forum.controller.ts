@@ -9,6 +9,7 @@ import {
   postIdParamsSchema,
   updateCommentBodySchema,
   updatePostBodySchema,
+  postReactionBodySchema,
 } from "../schemas/forum.schema";
 import {
   createComment,
@@ -21,6 +22,7 @@ import {
   removePost,
   updateComment,
   updatePost,
+  reactToPost,
 } from "../services/forum.service";
 
 type PostParams = { Params: { postId: string } };
@@ -102,6 +104,14 @@ export async function createCommentController(request: FastifyRequest<PostBodyRe
   return reply.status(201).send(await createComment(params.data.postId, authorId, body.data));
 }
 
+export async function reactToPostController(request: FastifyRequest<PostBodyRequest<unknown>>, reply: FastifyReply) {
+  const userId = await authenticatedUser(request);
+  const params = postIdParamsSchema.safeParse(request.params);
+  const body = postReactionBodySchema.safeParse(request.body);
+  if (!params.success) throw new AppError(validationMessage(params.error), 400);
+  if (!body.success) throw new AppError(validationMessage(body.error), 400);
+  return reply.send(await reactToPost(params.data.postId, userId, body.data));
+}
 export async function updateCommentController(request: FastifyRequest<CommentBodyRequest<unknown>>, reply: FastifyReply) {
   const authorId = await authenticatedUser(request);
   const params = commentIdParamsSchema.safeParse(request.params);

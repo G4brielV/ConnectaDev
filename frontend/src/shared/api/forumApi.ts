@@ -22,7 +22,13 @@ export interface ForumPost {
   _count: {
     comments: number;
   };
+  reactionCounts: {
+    likes: number;
+    dislikes: number;
+  };
 }
+
+export type ForumReactionValue = "LIKE" | "DISLIKE";
 
 export interface ForumComment {
   id: string;
@@ -199,4 +205,27 @@ export async function deleteForumComment(token: string, commentId: string): Prom
     const body = (await response.json().catch(() => null)) as { message?: string } | null;
     throw new Error(body?.message || "Não foi possível excluir o comentário.");
   }
+}
+
+export async function reactToForumPost(
+  token: string,
+  postId: string,
+  value: ForumReactionValue,
+): Promise<{ likes: number; dislikes: number; myReaction: ForumReactionValue | null }> {
+  const response = await fetch(`${API_URL}/api/forum/posts/${postId}/reactions`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ value }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message || "Não foi possível registrar sua avaliação.");
+  }
+
+  return (await response.json()) as { likes: number; dislikes: number; myReaction: ForumReactionValue | null };
 }

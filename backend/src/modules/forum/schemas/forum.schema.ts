@@ -25,6 +25,10 @@ export const createCommentBodySchema = z.object({
 
 export const updateCommentBodySchema = createCommentBodySchema;
 
+export const postReactionBodySchema = z.object({
+  value: z.enum(["LIKE", "DISLIKE"]),
+});
+
 export const listPostsQuerySchema = z.object({
   topic: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -34,3 +38,4 @@ export const listPostsQuerySchema = z.object({
 export type CreatePostBody = z.infer<typeof createPostBodySchema>;
 export type UpdatePostBody = z.infer<typeof updatePostBodySchema>;
 export type CreateCommentBody = z.infer<typeof createCommentBodySchema>;
+export type PostReactionBody = z.infer<typeof postReactionBodySchema>;
