@@ -16,8 +16,9 @@ import { useAuth } from "../entities/session";
 import { fetchForumPosts, ForumPost } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(value));
+function truncateContent(content: string, maxLength = 140): string {
+  if (content.length <= maxLength) return content;
+  return `${content.slice(0, maxLength).trimEnd()}...`;
 }
 
 export function ForumTopicScreen() {
@@ -110,22 +111,35 @@ export function ForumTopicScreen() {
             onPress={() => navigation.navigate("ForumPost", { postId: item.id, topicTitle })}
             style={({ pressed }) => [styles.postCard, pressed && styles.postCardPressed]}
           >
+            <Text style={styles.author}>{item.author.name || "Usuário ConnectaDev"}</Text>
             <Text style={styles.postTitle}>{item.title}</Text>
-            <Text numberOfLines={3} style={styles.postContent}>{item.content}</Text>
+            <Text style={styles.postContent}>{truncateContent(item.content)}</Text>
             <View style={styles.postMeta}>
-              <Text style={styles.author}>{item.author.name || "Usuário ConnectaDev"}</Text>
-              <Text style={styles.metaText}>{formatDate(item.createdAt)} · {item._count.comments} comentário{item._count.comments === 1 ? "" : "s"}</Text>
+              <View accessibilityLabel={`${item._count.comments} comentários`} style={styles.commentCount}>
+                <Text style={styles.commentIcon}>💬</Text>
+                <Text style={styles.metaText}>{item._count.comments}</Text>
+              </View>
             </View>
           </Pressable>
         )}
       />
+      <View pointerEvents="box-none" style={styles.createDock}>
+        <Pressable
+          accessibilityLabel="Criar novo post"
+          accessibilityRole="button"
+          onPress={() => navigation.navigate("ForumCreatePost", { topicSlug, topicTitle })}
+          style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
+        >
+          <Text style={styles.createButtonText}>+</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  listContent: { padding: 20, paddingBottom: 32 },
+  listContent: { padding: 20, paddingBottom: 96 },
   header: { marginBottom: 20 },
   backText: { color: "#036564", fontSize: 14, fontWeight: "700", marginBottom: 18 },
   title: { color: "#0F172A", fontSize: 26, fontWeight: "800", marginBottom: 8 },
@@ -134,8 +148,10 @@ const styles = StyleSheet.create({
   postCardPressed: { backgroundColor: "#F0FDFA" },
   postTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", lineHeight: 23 },
   postContent: { color: "#64748B", fontSize: 13, lineHeight: 19, marginTop: 8 },
-  postMeta: { borderTopColor: "#E2E8F0", borderTopWidth: 1, marginTop: 14, paddingTop: 10 },
-  author: { color: "#036564", fontSize: 13, fontWeight: "700" },
+  postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "flex-start", marginTop: 14, paddingTop: 10 },
+  commentCount: { alignItems: "center", flexDirection: "row", gap: 5 },
+  commentIcon: { fontSize: 14 },
+  author: { color: "#32504C", fontSize: 13, fontWeight: "700", marginBottom: 6 },
   metaText: { color: "#64748B", fontSize: 12, marginTop: 4 },
   centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
   errorText: { color: "#8B3434", fontSize: 15, lineHeight: 22, marginBottom: 16, textAlign: "center" },
@@ -145,4 +161,8 @@ const styles = StyleSheet.create({
   emptyTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700" },
   emptyText: { color: "#64748B", fontSize: 14, lineHeight: 21, marginTop: 6, textAlign: "center" },
   footerLoader: { marginVertical: 16 },
+  createDock: { bottom: 16, position: "absolute", right: 20 },
+  createButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 999, height: 50, justifyContent: "center", width: 50 },
+  createButtonPressed: { opacity: 0.82 },
+  createButtonText: { color: "#FFFFFF", fontSize: 26, fontWeight: "300", includeFontPadding: false, lineHeight: 30, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
 });

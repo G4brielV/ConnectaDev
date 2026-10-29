@@ -71,10 +71,12 @@ export function ForumScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadTopics(true)} tintColor="#036564" />}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.eyebrow}>COMUNIDADE CONNECTADEV</Text>
-            <Text style={styles.title}>Fórum</Text>
-            <Text style={styles.subtitle}>Encontre conversas sobre tecnologia, carreira e aprendizado.</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.header}>
+              <Text style={styles.eyebrow}>COMUNIDADE CONNECTADEV</Text>
+              <Text style={styles.title}>Fórum</Text>
+              <Text style={styles.subtitle}>Encontre conversas sobre tecnologia, carreira e aprendizado.</Text>
+            </View>
           </View>
         }
         ListEmptyComponent={
@@ -88,144 +90,53 @@ export function ForumScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Abrir tópico ${item.title}`}
             onPress={() => navigation.navigate("ForumTopic", { topicSlug: item.slug, topicTitle: item.title })}
-            style={({ pressed }) => [styles.topicCard, pressed && styles.topicCardPressed]}
+            style={({ pressed }) => [styles.topicRow, pressed && styles.topicRowPressed]}
           >
-            <View style={styles.topicIcon}><Text style={styles.topicIconText}>#</Text></View>
             <View style={styles.topicContent}>
               <Text style={styles.topicTitle}>{item.title}</Text>
-              <Text style={styles.topicAction}>Ver posts</Text>
+              <Text style={styles.topicAction}>Explorar conversas</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
         )}
       />
+      <View pointerEvents="box-none" style={styles.createDock}>
+        <Pressable
+          accessibilityLabel="Criar novo post"
+          accessibilityRole="button"
+          onPress={() => navigation.navigate("ForumCreatePost")}
+          style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
+        >
+          <Text style={styles.createButtonText}>+</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  listContent: {
-    padding: 20,
-    paddingBottom: 32,
-  },
-  header: {
-    marginBottom: 20,
-  },
-  eyebrow: {
-    alignSelf: "flex-start",
-    backgroundColor: "#E0F2F1",
-    borderRadius: 999,
-    color: "#036564",
-    fontSize: 11,
-    fontWeight: "800",
-    marginBottom: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    textTransform: "uppercase",
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: "#64748B",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  topicCard: {
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E2E8F0",
-    borderRadius: 16,
-    borderWidth: 1,
-    elevation: 2,
-    flexDirection: "row",
-    marginBottom: 12,
-    minHeight: 82,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
-  topicCardPressed: {
-    backgroundColor: "#F0FDFA",
-  },
-  topicIcon: {
-    alignItems: "center",
-    backgroundColor: "#E0F2F1",
-    borderRadius: 8,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-  },
-  topicIconText: {
-    color: "#036564",
-    fontSize: 23,
-    fontWeight: "700",
-  },
-  topicContent: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  topicTitle: {
-    color: "#0F172A",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  topicAction: {
-    color: "#64748B",
-    fontSize: 13,
-    marginTop: 5,
-  },
-  chevron: {
-    color: "#036564",
-    fontSize: 28,
-    fontWeight: "300",
-    marginLeft: 12,
-  },
-  centered: {
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-  errorText: {
-    color: "#8B3434",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  primaryButton: {
-    backgroundColor: "#036564",
-    borderRadius: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 48,
-  },
-  emptyTitle: {
-    color: "#183B3A",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  emptyText: {
-    color: "#61716F",
-    fontSize: 14,
-    marginTop: 6,
-  },
+  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
+  listContent: { paddingBottom: 96 },
+  headerRow: { alignItems: "center", flexDirection: "row", paddingHorizontal: 20, paddingTop: 20 },
+  header: { flex: 1, marginBottom: 20, paddingRight: 16 },
+  eyebrow: { alignSelf: "flex-start", backgroundColor: "#E0F2F1", borderRadius: 999, color: "#036564", fontSize: 11, fontWeight: "800", marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, textTransform: "uppercase" },
+  title: { color: "#0F172A", fontSize: 26, fontWeight: "800", marginBottom: 8 },
+  createDock: { bottom: 16, position: "absolute", right: 20 },
+  createButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 999, height: 50, justifyContent: "center", width: 50 },
+  createButtonPressed: { opacity: 0.82 },
+  createButtonText: { color: "#FFFFFF", fontSize: 26, fontWeight: "300", includeFontPadding: false, lineHeight: 30, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
+  subtitle: { color: "#64748B", fontSize: 14, lineHeight: 20 },
+  topicRow: { alignItems: "center", borderBottomColor: "#E2E8F0", borderBottomWidth: 1, flexDirection: "row", minHeight: 76, paddingHorizontal: 20, paddingVertical: 14 },
+  topicRowPressed: { backgroundColor: "#F0FDFA" },
+  topicContent: { flex: 1 },
+  topicTitle: { color: "#0F172A", fontSize: 15, fontWeight: "700" },
+  topicAction: { color: "#64748B", fontSize: 13, marginTop: 4 },
+  chevron: { color: "#036564", fontSize: 24, fontWeight: "300", marginLeft: 12 },
+  centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
+  errorText: { color: "#8B3434", fontSize: 15, lineHeight: 22, marginBottom: 16, textAlign: "center" },
+  primaryButton: { backgroundColor: "#036564", borderRadius: 8, paddingHorizontal: 18, paddingVertical: 12 },
+  primaryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  emptyState: { alignItems: "center", paddingVertical: 48 },
+  emptyTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700" },
+  emptyText: { color: "#64748B", fontSize: 14, marginTop: 6 },
 });

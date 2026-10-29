@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User, LoginCredentials, RegisterCredentials } from './types';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
-import { loginRequest, registerRequest, logoutRequest, recoveryPasswordRequest, resetPasswordRequest } from '@/features/auth/api/authService';
+import { getCurrentSessionUser, loginRequest, registerRequest, logoutRequest, recoveryPasswordRequest, resetPasswordRequest } from '@/features/auth/api/authService';
 import { registerSessionExpiredCallback } from '@/shared/api/apiClient';
 import { configureAuthToken } from '@/shared/lib/authSession';
 
@@ -36,8 +36,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (storedToken) {
           setToken(storedToken);
           configureAuthToken(storedToken);
-          // Usuário recuperado ou placeholder até a rota /me
-          setUser({ id: 'current-user', email: '' });
+          const storedUser = await getCurrentSessionUser();
+          setUser(storedUser);
         }
       } catch {
         // Falha ao recuperar token

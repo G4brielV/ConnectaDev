@@ -14,6 +14,7 @@ import { TrailsScreen } from '@/pages/TrailsScreen';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import { ForumTopicScreen } from '@/pages/ForumTopicScreen';
 import { ForumPostScreen } from '@/pages/ForumPostScreen';
+import { ForumCreatePostScreen } from '@/pages/ForumCreatePostScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import { MainTabNavigator } from './MainTabNavigator';
 
@@ -30,6 +31,7 @@ export type RootStackParamList = {
   TrailLesson: { lessonId: string };
   ForumTopic: { topicSlug: string; topicTitle: string };
   ForumPost: { postId: string; topicTitle?: string };
+  ForumCreatePost: { topicSlug?: string; topicTitle?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -65,6 +67,7 @@ export function RootNavigator() {
             <Stack.Screen name="TrailLesson" component={TrailLessonScreen} />
             <Stack.Screen name="ForumTopic" component={ForumTopicScreen} />
             <Stack.Screen name="ForumPost" component={ForumPostScreen} />
+            <Stack.Screen name="ForumCreatePost" component={ForumCreatePostScreen} />
           </>
         ) : (
           <>

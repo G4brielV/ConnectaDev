@@ -23,7 +23,6 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
       email: credentials.email.trim(),
       password: credentials.password,
     });
-
     const data = response.data;
 
     // Extrai o token e usuário da resposta do Better Auth
@@ -69,6 +68,15 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
     );
 
     throw new AuthError(safeMessage, axiosError.response?.status);
+  }
+}
+
+export async function getCurrentSessionUser(): Promise<AuthResponse["user"] | null> {
+  try {
+    const response = await apiClient.get("/api/auth/get-session");
+    return response.data?.user || null;
+  } catch {
+    return null;
   }
 }
 

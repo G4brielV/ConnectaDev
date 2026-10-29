@@ -17,16 +17,19 @@ export async function listTopics() { return FORUM_TOPICS; }
 
 export async function listPosts(topicSlug: string | undefined, page: number, limit: number) {
   if (topicSlug) assertTopic(topicSlug);
-  const where = { status: FORUM_CONTENT_STATUS.PUBLISHED, ...(topicSlug ? { topicSlug } : {}) };
+  const where = {
+    status: FORUM_CONTENT_STATUS.PUBLISHED,
+    ...(topicSlug ? { topicSlug } : {}),
+  };
   const [posts, total] = await prisma.$transaction([
-    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, _count: { select: { comments: true } } } }),
+    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
     prisma.forumPost.count({ where }),
   ]);
   return { data: posts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
 export async function getPost(postId: string) {
-  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, _count: { select: { comments: true } } } });
+  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
   if (!post) throw new AppError("Post não encontrado.", 404);
   return post;
 }
