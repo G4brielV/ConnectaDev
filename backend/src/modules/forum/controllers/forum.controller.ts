@@ -45,6 +45,11 @@ async function authenticatedUser(request: FastifyRequest): Promise<string> {
   return session.user.id;
 }
 
+async function optionalAuthenticatedUser(request: FastifyRequest): Promise<string | undefined> {
+  const session = await auth.api.getSession({ headers: requestHeaders(request) });
+  return session?.user.id;
+}
+
 function validationMessage(error: { issues: Array<{ message: string }> }): string {
   return error.issues[0]?.message ?? "Dados inválidos.";
 }
@@ -56,13 +61,15 @@ export async function listTopicsController(_request: FastifyRequest, reply: Fast
 export async function listPostsController(request: FastifyRequest, reply: FastifyReply) {
   const parsed = listPostsQuerySchema.safeParse(request.query);
   if (!parsed.success) throw new AppError(validationMessage(parsed.error), 400);
-  return reply.send(await listPosts(parsed.data.topic, parsed.data.page, parsed.data.limit));
+  const userId = await optionalAuthenticatedUser(request);
+  return reply.send(await listPosts(parsed.data.topic, parsed.data.page, parsed.data.limit, userId));
 }
 
 export async function getPostController(request: FastifyRequest<PostParams>, reply: FastifyReply) {
   const parsed = postIdParamsSchema.safeParse(request.params);
   if (!parsed.success) throw new AppError(validationMessage(parsed.error), 400);
-  return reply.send(await getPost(parsed.data.postId));
+  const userId = await optionalAuthenticatedUser(request);
+  return reply.send(await getPost(parsed.data.postId, userId));
 }
 
 export async function createPostController(request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) {

@@ -15,14 +15,14 @@ function assertOwner(authorId: string, ownerId: string): void {
 
 export async function listTopics() { return FORUM_TOPICS; }
 
-export async function listPosts(topicSlug: string | undefined, page: number, limit: number) {
+export async function listPosts(topicSlug: string | undefined, page: number, limit: number, userId?: string) {
   if (topicSlug) assertTopic(topicSlug);
   const where = {
     status: FORUM_CONTENT_STATUS.PUBLISHED,
     ...(topicSlug ? { topicSlug } : {}),
   };
   const [postsWithReactions, total] = await prisma.$transaction([
-    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, reactions: { select: { value: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
+    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
     prisma.forumPost.count({ where }),
   ]);
   const posts = postsWithReactions.map(({ reactions, ...post }) => ({
@@ -31,12 +31,13 @@ export async function listPosts(topicSlug: string | undefined, page: number, lim
       likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
       dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
     },
+    myReaction: reactions.find((reaction) => reaction.userId === userId)?.value || null,
   }));
   return { data: posts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
-export async function getPost(postId: string) {
-  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, reactions: { select: { value: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
+export async function getPost(postId: string, userId?: string) {
+  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
   if (!postWithReactions) throw new AppError("Post não encontrado.", 404);
   const { reactions, ...post } = postWithReactions;
   return {
@@ -45,6 +46,7 @@ export async function getPost(postId: string) {
       likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
       dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
     },
+    myReaction: reactions.find((reaction) => reaction.userId === userId)?.value || null,
   };
 }
 

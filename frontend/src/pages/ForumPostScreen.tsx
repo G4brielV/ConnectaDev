@@ -104,7 +104,7 @@ export function ForumPostScreen() {
     try {
       const reaction = await reactToForumPost(token, post.id, value);
       setPost((current) => current
-        ? { ...current, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes } }
+        ? { ...current, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes }, myReaction: reaction.myReaction }
         : current);
     } catch (error: unknown) {
       setActionError(error instanceof Error ? error.message : "Não foi possível registrar sua avaliação.");
@@ -255,9 +255,9 @@ export function ForumPostScreen() {
                   accessibilityRole="button"
                   disabled={isReacting}
                   onPress={() => void handleReaction("LIKE")}
-                  style={styles.reactionButton}
+                  style={[styles.reactionButton, post.myReaction === "LIKE" && styles.reactionButtonActive]}
                 >
-                  <Text style={styles.reactionIcon}>👍</Text>
+                  <Text style={[styles.reactionIcon, post.myReaction === "LIKE" && styles.reactionIconActive]}>👍︎</Text>
                   <Text style={styles.reactionCount}>{post.reactionCounts.likes}</Text>
                 </Pressable>
                 <Pressable
@@ -265,9 +265,9 @@ export function ForumPostScreen() {
                   accessibilityRole="button"
                   disabled={isReacting}
                   onPress={() => void handleReaction("DISLIKE")}
-                  style={styles.reactionButton}
+                  style={[styles.reactionButton, post.myReaction === "DISLIKE" && styles.reactionButtonActive]}
                 >
-                  <Text style={styles.reactionIcon}>👎</Text>
+                  <Text style={[styles.reactionIcon, post.myReaction === "DISLIKE" && styles.reactionIconActive]}>👎︎</Text>
                   <Text style={styles.reactionCount}>{post.reactionCounts.dislikes}</Text>
                 </Pressable>
               </View>
@@ -520,7 +520,9 @@ const styles = StyleSheet.create({
   content: { color: "#334155", fontSize: 16, lineHeight: 25, marginTop: 22 },
   reactionActions: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 18, marginTop: 20, paddingTop: 12 },
   reactionButton: { alignItems: "center", flexDirection: "row", gap: 5 },
-  reactionIcon: { fontSize: 15 },
+  reactionButtonActive: { opacity: 1 },
+  reactionIcon: { color: "#94A3B8", fontSize: 15 },
+  reactionIconActive: { color: "#036564" },
   reactionCount: { color: "#64748B", fontSize: 13, fontWeight: "700" },
   commentsTitle: { color: "#0F172A", fontSize: 18, fontWeight: "700", marginBottom: 12, marginTop: 26 },
   commentCard: { borderLeftColor: "#D7E0E5", borderLeftWidth: 2, marginBottom: 18, paddingLeft: 14, paddingVertical: 2 },

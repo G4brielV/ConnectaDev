@@ -26,6 +26,7 @@ export interface ForumPost {
     likes: number;
     dislikes: number;
   };
+  myReaction: ForumReactionValue | null;
 }
 
 export type ForumReactionValue = "LIKE" | "DISLIKE";

@@ -73,7 +73,7 @@ export function ForumTopicScreen() {
     try {
       const reaction = await reactToForumPost(token, postId, value);
       setPosts((current) => current.map((post) => post.id === postId
-        ? { ...post, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes } }
+        ? { ...post, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes }, myReaction: reaction.myReaction }
         : post));
     } finally {
       setReactingPostId(null);
@@ -139,9 +139,9 @@ export function ForumTopicScreen() {
                 accessibilityRole="button"
                 disabled={reactingPostId !== null}
                 onPress={() => void handleReaction(item.id, "LIKE")}
-                style={styles.reactionButton}
+                style={[styles.reactionButton, item.myReaction === "LIKE" && styles.reactionButtonActive]}
               >
-                <Text style={styles.reactionIcon}>👍</Text>
+                <Text style={[styles.reactionIcon, item.myReaction === "LIKE" && styles.reactionIconActive]}>👍︎</Text>
                 <Text style={styles.metaText}>{item.reactionCounts.likes}</Text>
               </Pressable>
               <Pressable
@@ -149,9 +149,9 @@ export function ForumTopicScreen() {
                 accessibilityRole="button"
                 disabled={reactingPostId !== null}
                 onPress={() => void handleReaction(item.id, "DISLIKE")}
-                style={styles.reactionButton}
+                style={[styles.reactionButton, item.myReaction === "DISLIKE" && styles.reactionButtonActive]}
               >
-                <Text style={styles.reactionIcon}>👎</Text>
+                <Text style={[styles.reactionIcon, item.myReaction === "DISLIKE" && styles.reactionIconActive]}>👎︎</Text>
                 <Text style={styles.metaText}>{item.reactionCounts.dislikes}</Text>
               </Pressable>
               <View accessibilityLabel={`${item._count.comments} comentários`} style={styles.commentCount}>
@@ -190,7 +190,9 @@ const styles = StyleSheet.create({
   postContent: { color: "#64748B", fontSize: 13, lineHeight: 19, marginTop: 8 },
   postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 14, paddingHorizontal: 18, paddingVertical: 10 },
   reactionButton: { alignItems: "center", flexDirection: "row", gap: 4 },
-  reactionIcon: { fontSize: 14 },
+  reactionButtonActive: { opacity: 1 },
+  reactionIcon: { color: "#94A3B8", fontSize: 14 },
+  reactionIconActive: { color: "#036564" },
   commentCount: { alignItems: "center", flexDirection: "row", gap: 5 },
   commentIcon: { fontSize: 14 },
   author: { color: "#32504C", fontSize: 13, fontWeight: "700", marginBottom: 6 },
