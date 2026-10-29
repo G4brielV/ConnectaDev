@@ -3,6 +3,7 @@ import { apiClient } from '@/shared/api/apiClient';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
 import { AuthResponse, LoginCredentials } from '@/entities/session/model/types';
 import { normalizeApiError } from '@/shared/lib/errors';
+import { sanitizeName } from '@/shared/lib/sanitization';
 
 export class AuthError extends Error {
   public readonly statusCode?: number;
@@ -80,7 +81,7 @@ export async function registerRequest(credentials: {
 }): Promise<AuthResponse> {
   try {
     const response = await apiClient.post('/auth/register', {
-      name: credentials.name.trim(),
+      name: sanitizeName(credentials.name),
       email: credentials.email.trim(),
       password: credentials.password,
     });
@@ -99,7 +100,7 @@ export async function registerRequest(credentials: {
     const user = data?.user || {
       id: data?.id || 'new-user',
       email: credentials.email.trim(),
-      name: credentials.name.trim(),
+      name: sanitizeName(credentials.name),
     };
 
     if (!token) {

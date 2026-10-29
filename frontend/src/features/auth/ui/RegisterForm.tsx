@@ -6,7 +6,14 @@ import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { Toast } from '@/shared/ui/Toast/Toast';
 import { colors, fonts, radius } from '@/shared/config/theme';
+import { sanitizeName } from '@/shared/lib/sanitization';
 import { AuthError } from '../api/authService';
+import {
+  AUTH_INPUT_LIMITS,
+  validateName,
+  validateEmail,
+  validateRegisterPassword,
+} from '../model/validation';
 import { PasswordRequirements, checkPasswordComplexity } from './PasswordRequirements';
 import { ConflictModal } from './ConflictModal';
 
@@ -60,27 +67,23 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
     return EMAIL_REGEX.test(email.trim());
   }, [email]);
 
-  // Cenário 2 & 3 & 5: Validação completa do formulário antes do envio
+  // Cenário 2 & 3 & 5: Validação completa do formulário antes do envio (incluindo limites máximos)
   const validateForm = (): boolean => {
     const newErrors: { name?: string; email?: string; password?: string } = {};
 
-    // Validação de Nome (Cenário 2)
-    if (!name.trim()) {
-      newErrors.name = 'Preenchimento obrigatório';
+    const nameError = validateName(name);
+    if (nameError) {
+      newErrors.name = nameError;
     }
 
-    // Validação de E-mail (Cenários 2 e 3)
-    if (!email.trim()) {
-      newErrors.email = 'Preenchimento obrigatório';
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      newErrors.email = 'Informe um e-mail válido';
+    const emailError = validateEmail(email, 'Preenchimento obrigatório');
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    // Validação de Senha (Cenários 2 e 5)
-    if (!password) {
-      newErrors.password = 'Preenchimento obrigatório';
-    } else if (!passwordValidation.isValid) {
-      newErrors.password = 'A senha não cumpre todos os requisitos de segurança';
+    const passwordError = validateRegisterPassword(password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     setErrors(newErrors);
@@ -97,9 +100,9 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Cenário 1: Sanitizar campos (trim nos espaços)
+      // Cenário 1: Sanitizar campos (remover tags HTML/scripts e trim)
       await register({
-        name: name.trim(),
+        name: sanitizeName(name),
         email: email.trim(),
         password,
       });
@@ -146,10 +149,13 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
     }
   };
 
-  // Botão desabilitado se e-mail estiver com formato inválido ou senha não cumprir requisitos (Cenários 3 e 5)
+  // Botão desabilitado se e-mail estiver com formato inválido, limites excedidos ou senha não cumprir requisitos (Cenários 3 e 5)
   const isSubmitDisabled =
-    (email.trim().length > 0 && !isEmailFormatValid) ||
-    (password.length > 0 && !passwordValidation.isValid);
+    (name.trim().length > 0 && name.trim().length > AUTH_INPUT_LIMITS.NAME_MAX_LENGTH) ||
+    (email.trim().length > 0 &&
+      (!isEmailFormatValid || email.trim().length > AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH)) ||
+    (password.length > 0 &&
+      (!passwordValidation.isValid || password.length > AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH));
 
   return (
     <View style={styles.formContainer}>
@@ -165,6 +171,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         leftIcon="user"
         placeholder="Ex: Maria Clara Silva"
         value={name}
+        maxLength={AUTH_INPUT_LIMITS.NAME_MAX_LENGTH}
         onChangeText={(text) => {
           setName(text);
           if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
@@ -181,6 +188,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         leftIcon="mail"
         placeholder="seu.email@exemplo.com"
         value={email}
+        maxLength={AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH}
         onChangeText={(text) => {
           setEmail(text);
           if (errors.email) {
@@ -204,6 +212,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         leftIcon="lock"
         placeholder="Crie uma senha forte"
         value={password}
+        maxLength={AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH}
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) {

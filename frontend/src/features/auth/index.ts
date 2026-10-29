@@ -1,4 +1,5 @@
 export * from './api/authService';
+export * from './model/validation';
 export * from './ui/LoginForm';
 export * from './ui/RegisterForm';
 export * from './ui/PasswordRequirements';
