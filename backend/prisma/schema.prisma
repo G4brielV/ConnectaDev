@@ -471,6 +471,29 @@ model Job {
   @@index([category, location])
   @@map("jobs")
 }
+model PublicInfrastructure {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // "COMPAZ", "LIBRARY", "INNOVATION_HUB", "PUBLIC_WIFI"
+  address         String
+  neighborhood    String
+  city            String
+  latitude        Float    // DOUBLE PRECISION
+  longitude       Float    // DOUBLE PRECISION
+  hasComputers    Boolean  @default(false) @map("has_computers")
+  hasWifi         Boolean  @default(true)  @map("has_wifi")
+  hasStudyTables  Boolean  @default(true)  @map("has_study_tables")
+  openingHours    String?  @map("opening_hours")
+  accessRules     String?  @map("access_rules")
+  status          String   @default("ACTIVE") // "ACTIVE", "MAINTENANCE", "INACTIVE"
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([city, type])
+  @@index([status])
+  @@map("public_infrastructures")
+}
+
 model Event {
   id         String   @id @default(uuid())
   externalId String   @unique
