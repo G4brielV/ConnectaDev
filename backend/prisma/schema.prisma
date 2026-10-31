@@ -471,7 +471,6 @@ model Job {
   @@index([category, location])
   @@map("jobs")
 }
-
 model PublicInfrastructure {
   id              String   @id @default(uuid())
   name            String
@@ -493,4 +492,25 @@ model PublicInfrastructure {
   @@index([city, type])
   @@index([status])
   @@map("public_infrastructures")
+}
+
+model Event {
+  id         String   @id @default(uuid())
+  externalId String   @unique
+  day        String
+  month      String
+  time       String
+  startsAt   DateTime
+  title      String
+  category   String
+  location   String
+  format     String
+  filter     String
+  link       String
+  isExpired  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isExpired, startsAt])
+  @@index([filter])
 }

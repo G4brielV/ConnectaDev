@@ -27,6 +27,7 @@ import { onboardingStorage } from '@/shared/lib/storage/onboardingStorage';
 import { colors } from '@/shared/config/theme';
 import { MainTabNavigator, MainTabType } from './MainTabNavigator';
 import { checkQuizOnboarding, resolveInitialNavigationState } from './quizOnboarding';
+import { EventsPage } from '@/pages/events/ui/EventsPage';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -47,6 +48,7 @@ export type RootStackParamList = {
   Streak: undefined;
   DailyPractice: undefined;
   SupportPoints: undefined;
+  Events: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -137,6 +139,7 @@ export function RootNavigator() {
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="SupportPoints" component={SupportPointsPage} />
+            <Stack.Screen name="Events" component={EventsPage} />
           </>
         ) : (
           <>

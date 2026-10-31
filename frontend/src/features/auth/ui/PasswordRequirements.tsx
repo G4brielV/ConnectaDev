@@ -2,31 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, radius } from '@/shared/config/theme';
+import {
+  PasswordValidationResult,
+  checkPasswordComplexity,
+} from '../model/validation';
 
-export interface PasswordValidationResult {
-  hasMinLength: boolean;
-  hasUppercase: boolean;
-  hasLowercase: boolean;
-  hasNumber: boolean;
-  isValid: boolean;
-}
-
-export function checkPasswordComplexity(password: string): PasswordValidationResult {
-  const hasMinLength = password.length >= 8;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-
-  const isValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
-
-  return {
-    hasMinLength,
-    hasUppercase,
-    hasLowercase,
-    hasNumber,
-    isValid,
-  };
-}
+export { PasswordValidationResult, checkPasswordComplexity };
 
 interface PasswordRequirementsProps {
   validation: PasswordValidationResult;
