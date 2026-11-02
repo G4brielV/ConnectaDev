@@ -89,12 +89,13 @@ export function ForumScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Abrir tópico ${item.title}`}
-            onPress={() => navigation.navigate("ForumTopic", { topicSlug: item.slug, topicTitle: item.title })}
+            onPress={() => navigation.navigate("ForumTopic", { topicId: item.id, topicTitle: item.title })}
             style={({ pressed }) => [styles.topicRow, pressed && styles.topicRowPressed]}
           >
+            <View style={styles.topicIcon}><Text style={styles.topicIconText}>{item.icon}</Text></View>
             <View style={styles.topicContent}>
               <Text style={styles.topicTitle}>{item.title}</Text>
-              <Text style={styles.topicAction}>Explorar conversas</Text>
+              <Text style={styles.topicAction}>{item.discussionsCount} discussões • {item.repliesCount} respostas</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
@@ -129,6 +130,8 @@ const styles = StyleSheet.create({
   topicRow: { alignItems: "center", borderBottomColor: "#E2E8F0", borderBottomWidth: 1, flexDirection: "row", minHeight: 76, paddingHorizontal: 20, paddingVertical: 14 },
   topicRowPressed: { backgroundColor: "#F0FDFA" },
   topicContent: { flex: 1 },
+  topicIcon: { alignItems: "center", backgroundColor: "#E0F2F1", borderRadius: 12, height: 42, justifyContent: "center", marginRight: 12, width: 42 },
+  topicIconText: { color: "#036564", fontSize: 21, fontWeight: "700" },
   topicTitle: { color: "#0F172A", fontSize: 15, fontWeight: "700" },
   topicAction: { color: "#64748B", fontSize: 13, marginTop: 4 },
   chevron: { color: "#036564", fontSize: 24, fontWeight: "300", marginLeft: 12 },

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+import { FORUM_TOPICS } from "../src/modules/forum/constants/forumTopics";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -575,6 +576,24 @@ const trails = [
 ] as const;
 
 async function main(): Promise<void> {
+  for (const [index, forumTopic] of FORUM_TOPICS.entries()) {
+    const topic = await prisma.forumTopic.upsert({
+      where: { slug: forumTopic.slug },
+      update: {
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+      create: {
+        slug: forumTopic.slug,
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+    });
+
+  }
+
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
       where: { sequence: question.sequence },

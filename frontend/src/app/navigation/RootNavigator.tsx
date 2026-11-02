@@ -29,9 +29,9 @@ export type RootStackParamList = {
   ReviewResult: { result: ReviewSubmitResponse; topicId: string };
   Trails: undefined;
   TrailLesson: { lessonId: string };
-  ForumTopic: { topicSlug: string; topicTitle: string };
+  ForumTopic: { topicId: string; topicTitle: string };
   ForumPost: { postId: string; topicTitle?: string };
-  ForumCreatePost: { topicSlug?: string; topicTitle?: string } | undefined;
+  ForumCreatePost: { topicId?: string; topicTitle?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

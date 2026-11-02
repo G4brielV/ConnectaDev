@@ -62,7 +62,7 @@ export async function listPostsController(request: FastifyRequest, reply: Fastif
   const parsed = listPostsQuerySchema.safeParse(request.query);
   if (!parsed.success) throw new AppError(validationMessage(parsed.error), 400);
   const userId = await optionalAuthenticatedUser(request);
-  return reply.send(await listPosts(parsed.data.topic, parsed.data.page, parsed.data.limit, userId));
+  return reply.send(await listPosts(parsed.data.topicId, parsed.data.topic, parsed.data.page, parsed.data.limit, userId));
 }
 
 export async function getPostController(request: FastifyRequest<PostParams>, reply: FastifyReply) {

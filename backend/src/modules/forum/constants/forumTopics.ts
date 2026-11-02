@@ -1,10 +1,10 @@
 export const FORUM_TOPICS = [
-  { slug: "desenvolvimento-de-sistemas", title: "Desenvolvimento de Sistemas" },
-  { slug: "ia-e-dados", title: "IA e Dados" },
-  { slug: "seguranca-cibernetica", title: "Segurança Cibernética" },
-  { slug: "devops-e-cloud", title: "DevOps e Cloud" },
-  { slug: "ux-ui-e-produto", title: "UX/UI e Produto" },
-  { slug: "carreira-e-estudos", title: "Carreira e Estudos" },
+  { slug: "desenvolvimento-de-sistemas", title: "Desenvolvimento de Sistemas", icon: "⌘" },
+  { slug: "ia-e-dados", title: "IA e Dados", icon: "◈" },
+  { slug: "seguranca-cibernetica", title: "Segurança Cibernética", icon: "◉" },
+  { slug: "devops-e-cloud", title: "DevOps e Cloud", icon: "☁" },
+  { slug: "ux-ui-e-produto", title: "UX/UI e Produto", icon: "✦" },
+  { slug: "carreira-e-estudos", title: "Carreira e Estudos", icon: "↗" },
 ] as const;
 
 export const FORUM_CONTENT_STATUS = {

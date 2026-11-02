@@ -19,17 +19,25 @@ test("forum validates post and comment limits", () => {
 
   assert.equal(createPostBodySchema.safeParse({
     topicSlug: "ia-e-dados",
-    title: "a".repeat(121),
+    title: "a".repeat(101),
     content: "conteúdo",
   }).success, false);
 
   assert.equal(createPostBodySchema.safeParse({
     topicSlug: "ia-e-dados",
     title: "título",
-    content: "a".repeat(5001),
+    content: "a".repeat(2001),
   }).success, false);
 
-  assert.equal(createCommentBodySchema.safeParse({ content: "a".repeat(2001) }).success, false);
+  assert.deepEqual(createPostBodySchema.parse({
+    topicSlug: "ia-e-dados",
+    title: "título",
+    content: "conteúdo",
+    tags: ["#react", "#node"],
+  }).tags, ["#react", "#node"]);
+
+  assert.equal(createCommentBodySchema.safeParse({ content: "a".repeat(1001) }).success, false);
+  assert.equal(createCommentBodySchema.safeParse({ content: " ".repeat(3) }).success, false);
 
   assert.equal(postReactionBodySchema.safeParse({ value: "LIKE" }).success, true);
   assert.equal(postReactionBodySchema.safeParse({ value: "DISLIKE" }).success, true);

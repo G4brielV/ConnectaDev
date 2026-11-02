@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { useAuth } from "../entities/session";
 import { createForumPost, fetchForumTopics, ForumTopic } from "../shared/api/forumApi";
+import { clearForumDraft, getForumDraft, saveForumDraft } from "../shared/lib/storage/forumDraft";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
 export function ForumCreatePostScreen() {
@@ -24,7 +25,9 @@ export function ForumCreatePostScreen() {
   const [selectedTopic, setSelectedTopic] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tagsText, setTagsText] = useState("");
   const [isLoadingTopics, setIsLoadingTopics] = useState(true);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -38,9 +41,9 @@ export function ForumCreatePostScreen() {
       try {
         const availableTopics = await fetchForumTopics(token);
         setTopics(availableTopics);
-        const requestedTopic = route.params?.topicSlug;
-        const requestedTopicExists = availableTopics.some((topic) => topic.slug === requestedTopic);
-        setSelectedTopic(requestedTopicExists ? requestedTopic || "" : availableTopics[0]?.slug || "");
+        const requestedTopic = route.params?.topicId;
+        const requestedTopicExists = availableTopics.some((topic) => topic.id === requestedTopic);
+        setSelectedTopic(requestedTopicExists ? requestedTopic || "" : availableTopics[0]?.id || "");
       } catch (error: unknown) {
         setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar os tópicos.");
       } finally {
@@ -49,15 +52,58 @@ export function ForumCreatePostScreen() {
     }
 
     void loadTopics();
-  }, [route.params?.topicSlug, token]);
+  }, [route.params?.topicId, token]);
+
+  useEffect(() => {
+    async function loadDraft(): Promise<void> {
+      const draft = await getForumDraft();
+      if (draft) {
+        setTitle(draft.title);
+        setContent(draft.content);
+        setTagsText(draft.tagsText);
+        if (draft.topicSlug) {
+          const matchingTopic = topics.find((topic) => topic.slug === draft.topicSlug);
+          setSelectedTopic(matchingTopic?.id || draft.topicSlug);
+        }
+      }
+      setIsDraftLoaded(true);
+    }
+
+    void loadDraft();
+  }, []);
+
+  useEffect(() => {
+    if (!isDraftLoaded) return;
+    void saveForumDraft({ topicSlug: selectedTopic, title, content, tagsText });
+  }, [content, isDraftLoaded, selectedTopic, tagsText, title]);
+
+  function parseTags(value: string): string[] {
+    return [...new Set(value.split(/[\s,]+/).map((tag) => tag.trim()).filter(Boolean))].slice(0, 10);
+  }
 
   async function handleSubmit(): Promise<void> {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
     if (!token || isSubmitting) return;
-    if (!selectedTopic || !trimmedTitle || !trimmedContent) {
-      setErrorMessage("Escolha um tópico e preencha o título e o conteúdo.");
+    if (!selectedTopic) {
+      setErrorMessage("O tópico é obrigatório.");
+      return;
+    }
+    if (!trimmedTitle) {
+      setErrorMessage("O título é obrigatório.");
+      return;
+    }
+    if (trimmedTitle.length > 100) {
+      setErrorMessage("O título deve ter no máximo 100 caracteres.");
+      return;
+    }
+    if (!trimmedContent) {
+      setErrorMessage("O conteúdo é obrigatório.");
+      return;
+    }
+    if (trimmedContent.length > 2000) {
+      setErrorMessage("O conteúdo deve ter no máximo 2000 caracteres.");
       return;
     }
 
@@ -66,12 +112,14 @@ export function ForumCreatePostScreen() {
 
     try {
       await createForumPost(token, {
-        topicSlug: selectedTopic,
+        topicId: selectedTopic,
         title: trimmedTitle,
         content: trimmedContent,
+        tags: parseTags(tagsText),
       });
-      const topicTitle = topics.find((topic) => topic.slug === selectedTopic)?.title || "Fórum";
-      navigation.replace("ForumTopic", { topicSlug: selectedTopic, topicTitle });
+      await clearForumDraft();
+      const topic = topics.find((item) => item.id === selectedTopic);
+      navigation.replace("ForumTopic", { topicId: selectedTopic, topicTitle: topic?.title || "Fórum" });
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : "Não foi possível publicar o post.");
     } finally {
@@ -114,7 +162,7 @@ export function ForumCreatePostScreen() {
         <Text style={styles.label}>Título</Text>
         <TextInput
           accessibilityLabel="Título do post"
-          maxLength={120}
+          maxLength={100}
           onChangeText={setTitle}
           placeholder="Ex.: Como começar com desenvolvimento web?"
           placeholderTextColor="#94A3B8"
@@ -126,13 +174,25 @@ export function ForumCreatePostScreen() {
         <TextInput
           accessibilityLabel="Conteúdo do post"
           multiline
-          maxLength={5000}
+          maxLength={2000}
           onChangeText={setContent}
           placeholder="Escreva os detalhes da sua dúvida ou ideia..."
           placeholderTextColor="#94A3B8"
           style={[styles.input, styles.contentInput]}
           textAlignVertical="top"
           value={content}
+        />
+
+        <Text style={styles.counter}>{content.length}/2000</Text>
+
+        <Text style={styles.label}>Tags (opcional)</Text>
+        <TextInput
+          accessibilityLabel="Tags do post"
+          onChangeText={setTagsText}
+          placeholder="#react #node"
+          placeholderTextColor="#94A3B8"
+          style={styles.input}
+          value={tagsText}
         />
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -145,7 +205,7 @@ export function ForumCreatePostScreen() {
           onPress={() => void handleSubmit()}
           style={({ pressed }) => [styles.submitButton, (isSubmitting || isLoadingTopics) && styles.submitButtonDisabled, pressed && styles.submitButtonPressed]}
         >
-          {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>Publicar post</Text>}
+          {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>Publicar Post</Text>}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -169,6 +229,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, color: "#0F172A", fontSize: 14, minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
   contentInput: { minHeight: 170 },
   errorText: { color: "#B42318", fontSize: 13, lineHeight: 19, marginTop: 14 },
+  counter: { color: "#64748B", fontSize: 12, marginTop: 6, textAlign: "right" },
   submitButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, justifyContent: "center", marginTop: 24, minHeight: 50, paddingHorizontal: 18 },
   submitButtonDisabled: { backgroundColor: "#A7C6C1" },
   submitButtonPressed: { opacity: 0.85 },

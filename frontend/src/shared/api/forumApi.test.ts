@@ -63,6 +63,7 @@ test("createForumPost sends the selected topic and post content", async () => {
         topicSlug: "ia-e-dados",
         title: "Primeiro post",
         content: "Conteúdo do post",
+        tags: [],
         createdAt: "2026-10-28T20:00:00.000Z",
         updatedAt: "2026-10-28T20:00:00.000Z",
         author: { id: "user-1", name: "Usuário Teste", image: null },
@@ -76,6 +77,7 @@ test("createForumPost sends the selected topic and post content", async () => {
     topicSlug: "ia-e-dados",
     title: "Primeiro post",
     content: "Conteúdo do post",
+    tags: [],
   });
   const headers = receivedInit?.headers as Record<string, string>;
 
@@ -86,6 +88,7 @@ test("createForumPost sends the selected topic and post content", async () => {
     topicSlug: "ia-e-dados",
     title: "Primeiro post",
     content: "Conteúdo do post",
+    tags: [],
   }));
   assert.equal(post.topicSlug, "ia-e-dados");
   assert.equal(post.title, "Primeiro post");

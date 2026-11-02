@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -23,6 +24,7 @@ import {
   fetchForumComments,
   fetchForumPost,
   ForumComment,
+  ForumApiError,
   ForumPost,
   ForumReactionValue,
   reactToForumPost,
@@ -115,7 +117,15 @@ export function ForumPostScreen() {
 
   async function handleSubmitComment(): Promise<void> {
     const content = commentDraft.trim();
-    if (!token || !content || isSubmittingComment) return;
+    if (!token || isSubmittingComment) return;
+    if (!content) {
+      setCommentError("O comentário não pode ser vazio.");
+      return;
+    }
+    if (content.length > 1000) {
+      setCommentError("Limite máximo de 1000 caracteres excedido.");
+      return;
+    }
 
     setIsSubmittingComment(true);
     setCommentError(null);
@@ -123,10 +133,17 @@ export function ForumPostScreen() {
     try {
       const comment = await createForumComment(token, postId, content);
       setComments((current) => [...current, comment]);
+      setPost((current) => current
+        ? { ...current, _count: { ...current._count, comments: current._count.comments + 1 } }
+        : current);
       setCommentDraft("");
       setIsComposerExpanded(false);
     } catch (error: unknown) {
-      setCommentError(error instanceof Error ? error.message : "Não foi possível publicar seu comentário.");
+      if (error instanceof ForumApiError && error.status === 404) {
+        Alert.alert("Post indisponível", "Esta postagem não está mais disponível", [{ text: "Voltar", onPress: () => navigation.goBack() }]);
+      } else {
+        setCommentError(error instanceof Error ? error.message : "Não foi possível publicar seu comentário.");
+      }
     } finally {
       setIsSubmittingComment(false);
     }
@@ -198,6 +215,9 @@ export function ForumPostScreen() {
       } else if (deleteTarget.type === "comment") {
         await deleteForumComment(token, deleteTarget.id);
         setComments((current) => current.filter((comment) => comment.id !== deleteTarget.id));
+        setPost((current) => current
+          ? { ...current, _count: { ...current._count, comments: Math.max(0, current._count.comments - 1) } }
+          : current);
         setDeleteTarget(null);
       }
     } catch (error: unknown) {
@@ -325,6 +345,7 @@ export function ForumPostScreen() {
               <TextInput
                 accessibilityLabel="Escreva um comentário"
                 autoFocus
+                maxLength={1100}
                 multiline
                 onChangeText={(value) => {
                   setCommentDraft(value);
@@ -341,12 +362,12 @@ export function ForumPostScreen() {
               <Pressable
                 accessibilityLabel="Publicar comentário"
                 accessibilityRole="button"
-                accessibilityState={{ disabled: !commentDraft.trim() || isSubmittingComment }}
-                disabled={!commentDraft.trim() || isSubmittingComment}
+                accessibilityState={{ disabled: isSubmittingComment }}
+                disabled={isSubmittingComment}
                 onPress={() => void handleSubmitComment()}
                 style={({ pressed }) => [
                   styles.sendButton,
-                  (!commentDraft.trim() || isSubmittingComment) && styles.submitButtonDisabled,
+                  isSubmittingComment && styles.submitButtonDisabled,
                   pressed && styles.submitButtonPressed,
                 ]}
               >
@@ -466,7 +487,7 @@ export function ForumPostScreen() {
               <TextInput
                 accessibilityLabel={isEditingPost ? "Conteúdo do post" : "Conteúdo do comentário"}
                 multiline
-                maxLength={isEditingPost ? 5000 : 2000}
+                maxLength={isEditingPost ? 5000 : 1000}
                 onChangeText={setEditContent}
                 placeholder={isEditingPost ? "Conteúdo do post" : "Conteúdo do comentário"}
                 placeholderTextColor="#94A3B8"

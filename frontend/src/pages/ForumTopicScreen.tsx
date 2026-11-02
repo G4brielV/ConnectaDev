@@ -25,7 +25,7 @@ export function ForumTopicScreen() {
   const { token } = useAuth();
   const route = useRoute<RouteProp<RootStackParamList, "ForumTopic">>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { topicSlug, topicTitle } = route.params;
+  const { topicId, topicTitle } = route.params;
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -47,7 +47,7 @@ export function ForumTopicScreen() {
     setErrorMessage(null);
 
     try {
-      const response = await fetchForumPosts(token, topicSlug, nextPage);
+      const response = await fetchForumPosts(token, topicId, nextPage);
       setPosts((current) => nextPage === 1 ? response.data : [...current, ...response.data]);
       setPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
@@ -58,7 +58,7 @@ export function ForumTopicScreen() {
       setIsRefreshing(false);
       setIsLoadingMore(false);
     }
-  }, [token, topicSlug]);
+  }, [token, topicId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -116,8 +116,14 @@ export function ForumTopicScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Ainda não há posts</Text>
-            <Text style={styles.emptyText}>Este tópico ainda não tem nenhuma conversa publicada.</Text>
+            <Text style={styles.emptyTitle}>Nenhuma conversa iniciada neste tópico ainda. Seja o primeiro a publicar!</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate("ForumCreatePost", { topicId, topicTitle })}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>Criar publicação</Text>
+            </Pressable>
           </View>
         }
         ListFooterComponent={isLoadingMore ? <ActivityIndicator color="#036564" style={styles.footerLoader} /> : null}
@@ -132,6 +138,11 @@ export function ForumTopicScreen() {
               <Text style={styles.author}>{item.author.name || "Usuário ConnectaDev"}</Text>
               <Text style={styles.postTitle}>{item.title}</Text>
               <Text style={styles.postContent}>{truncateContent(item.content)}</Text>
+              {item.tags.length > 0 ? (
+                <View style={styles.tagsRow}>
+                  {item.tags.map((tag) => <Text key={tag} style={styles.tagBadge}>{tag}</Text>)}
+                </View>
+              ) : null}
             </Pressable>
             <View style={styles.postMeta}>
               <Pressable
@@ -166,7 +177,7 @@ export function ForumTopicScreen() {
         <Pressable
           accessibilityLabel="Criar novo post"
           accessibilityRole="button"
-          onPress={() => navigation.navigate("ForumCreatePost", { topicSlug, topicTitle })}
+          onPress={() => navigation.navigate("ForumCreatePost", { topicId, topicTitle })}
           style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
         >
           <Text style={styles.createButtonText}>+</Text>
@@ -188,6 +199,8 @@ const styles = StyleSheet.create({
   postCardPressed: { backgroundColor: "#F0FDFA" },
   postTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", lineHeight: 23 },
   postContent: { color: "#64748B", fontSize: 13, lineHeight: 19, marginTop: 8 },
+  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 },
+  tagBadge: { backgroundColor: "#E0F2F1", borderRadius: 6, color: "#036564", fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4 },
   postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 14, paddingHorizontal: 18, paddingVertical: 10 },
   reactionButton: { alignItems: "center", flexDirection: "row", gap: 4 },
   reactionButtonActive: { opacity: 1 },

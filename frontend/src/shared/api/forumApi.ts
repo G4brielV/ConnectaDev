@@ -1,8 +1,13 @@
 import { API_URL } from "../config/api";
 
 export interface ForumTopic {
+  id: string;
   slug: string;
   title: string;
+  description?: string | null;
+  icon: string;
+  discussionsCount: number;
+  repliesCount: number;
 }
 
 export interface ForumAuthor {
@@ -16,6 +21,7 @@ export interface ForumPost {
   topicSlug: string;
   title: string;
   content: string;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
   author: ForumAuthor;
@@ -38,6 +44,13 @@ export interface ForumComment {
   createdAt: string;
   updatedAt: string;
   author: ForumAuthor;
+}
+
+export class ForumApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ForumApiError";
+  }
 }
 
 export interface ForumPostsResponse {
@@ -71,7 +84,7 @@ export function fetchForumTopics(token: string): Promise<ForumTopic[]> {
 
 export async function createForumPost(
   token: string,
-  input: { topicSlug: string; title: string; content: string },
+  input: { topicId?: string; topicSlug?: string; title: string; content: string; tags: string[] },
 ): Promise<ForumPost> {
   const response = await fetch(`${API_URL}/api/forum/posts`, {
     method: "POST",
@@ -93,11 +106,11 @@ export async function createForumPost(
 
 export function fetchForumPosts(
   token: string,
-  topicSlug: string,
+  topicId: string,
   page = 1,
   limit = 20,
 ): Promise<ForumPostsResponse> {
-  const query = new URLSearchParams({ topic: topicSlug, page: String(page), limit: String(limit) });
+  const query = new URLSearchParams({ topicId, page: String(page), limit: String(limit) });
   return request<ForumPostsResponse>(token, `/api/forum/posts?${query.toString()}`);
 }
 
@@ -126,7 +139,7 @@ export async function createForumComment(
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message || "Não foi possível publicar seu comentário.");
+    throw new ForumApiError(body?.message || "Não foi possível publicar seu comentário.", response.status);
   }
 
   return (await response.json()) as ForumComment;
