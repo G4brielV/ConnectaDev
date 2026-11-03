@@ -130,14 +130,8 @@ export function ForumTopicScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Nenhuma conversa iniciada neste tópico ainda. Seja o primeiro a publicar!</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => navigation.navigate("ForumCreatePost", { topicId, topicTitle })}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Criar publicação</Text>
-            </Pressable>
+            <Text style={styles.emptyTitle}>Ainda não há posts</Text>
+            <Text style={styles.emptyText}>Este tópico ainda não tem nenhuma conversa publicada.</Text>
           </View>
         }
         ListFooterComponent={isLoadingMore ? <ActivityIndicator color="#036564" style={styles.footerLoader} /> : null}

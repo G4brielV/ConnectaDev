@@ -69,6 +69,7 @@ export interface ForumPostsResponse {
 
 async function request<T>(token: string, path: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -251,6 +252,7 @@ export async function reactToForumPost(
 ): Promise<{ likes: number; dislikes: number; myReaction: ForumReactionValue | null }> {
   const response = await fetch(`${API_URL}/api/forum/posts/${postId}/reactions`, {
     method: "POST",
+    credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -276,6 +278,7 @@ export interface ForumVoteResult {
 async function forumVoteRequest(token: string, postId: string, method: "POST" | "DELETE", body?: object): Promise<ForumVoteResult> {
   const response = await fetch(`${API_URL}/api/forum/posts/${postId}/vote`, {
     method,
+    credentials: "include",
     headers: {
       Accept: "application/json",
       ...(body ? { "Content-Type": "application/json" } : {}),
