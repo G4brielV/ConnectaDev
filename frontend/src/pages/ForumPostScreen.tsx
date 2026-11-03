@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -27,6 +28,8 @@ import {
   ForumApiError,
   ForumPost,
   ForumReactionValue,
+  cacheForumPost,
+  getCachedForumPost,
   reactToForumPost,
   updateForumComment,
   updateForumPost,
@@ -69,6 +72,7 @@ export function ForumPostScreen() {
   >(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
+  const [isCached, setIsCached] = useState(false);
 
   const loadPost = useCallback(async (refresh = false): Promise<void> => {
     if (!token) {
@@ -87,8 +91,22 @@ export function ForumPostScreen() {
       ]);
       setPost(postResponse);
       setComments(commentsResponse);
+      setIsCached(false);
+      await cacheForumPost(postResponse, commentsResponse);
     } catch (error: unknown) {
-      setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar o post.");
+      if (error instanceof ForumApiError && error.status === 404) {
+        setErrorMessage("Esta postagem não foi encontrada ou foi removida");
+      } else {
+        const cached = await getCachedForumPost(postId);
+        if (cached) {
+          setPost(cached.post);
+          setComments(cached.comments);
+          setIsCached(true);
+          setErrorMessage(null);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar o post.");
+        }
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -232,9 +250,9 @@ export function ForumPostScreen() {
   if (errorMessage || !post) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{errorMessage || "Post não encontrado."}</Text>
-        <Pressable accessibilityRole="button" onPress={() => void loadPost()} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Tentar novamente</Text>
+        <Text style={styles.errorText}>{errorMessage || "Esta postagem não foi encontrada ou foi removida"}</Text>
+        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Voltar ao fórum</Text>
         </Pressable>
       </View>
     );
@@ -243,6 +261,7 @@ export function ForumPostScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior="padding" style={styles.keyboardContainer}>
+        {isCached ? <Text style={styles.cacheBanner}>Você está visualizando a versão em cache desta postagem</Text> : null}
         {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
         <FlatList
           data={comments}
@@ -259,16 +278,29 @@ export function ForumPostScreen() {
               <Text style={styles.backText}>‹ {topicTitle || "Posts"}</Text>
             </Pressable>
             <View style={styles.postHeader}>
-              <Text style={styles.topicLabel}>{topicTitle || post.topicSlug}</Text>
+              <Text style={styles.topicLabel}>{post.topicTitle || topicTitle || post.topicSlug}</Text>
               <Text style={styles.title}>{post.title}</Text>
               <View style={styles.authorRow}>
-                <View style={styles.avatar}><Text style={styles.avatarText}>{(post.author.name || "U").charAt(0).toUpperCase()}</Text></View>
+                {post.author.image ? (
+                  <Image accessibilityLabel={`Avatar de ${post.author.name || "usuário"}`} source={{ uri: post.author.image }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatar}><Text style={styles.avatarText}>{(post.author.name || "U").charAt(0).toUpperCase()}</Text></View>
+                )}
                 <View>
                   <Text style={styles.author}>{post.author.name || "Usuário ConnectaDev"}</Text>
                   <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
                 </View>
               </View>
               <Text style={styles.content}>{post.content}</Text>
+              <View style={styles.postStats}>
+                <Text style={styles.statText}>💬 {post._count.comments}</Text>
+                <Text style={styles.statText}>👁 {post.viewsCount}</Text>
+              </View>
+              {post.tags.length > 0 ? (
+                <View style={styles.tagsRow}>
+                  {post.tags.map((tag) => <Text key={tag} style={styles.tagBadge}>{tag}</Text>)}
+                </View>
+              ) : null}
               <View style={styles.reactionActions}>
                 <Pressable
                   accessibilityLabel={`Curtir post. ${post.reactionCounts.likes} curtidas`}
@@ -318,7 +350,14 @@ export function ForumPostScreen() {
           renderItem={({ item }) => (
             <View style={styles.commentCard}>
               <View style={styles.commentHeader}>
-                <Text style={styles.commentAuthor}>{item.author.name || "Usuário ConnectaDev"}</Text>
+                <View style={styles.commentAuthorRow}>
+                  {item.author.image ? (
+                    <Image accessibilityLabel={`Avatar de ${item.author.name || "usuário"}`} source={{ uri: item.author.image }} style={styles.commentAvatarImage} />
+                  ) : (
+                    <View style={styles.commentAvatar}><Text style={styles.commentAvatarText}>{(item.author.name || "U").charAt(0).toUpperCase()}</Text></View>
+                  )}
+                  <Text style={styles.commentAuthor}>{item.author.name || "Usuário ConnectaDev"}</Text>
+                </View>
                 <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
               </View>
               <Text style={styles.commentContent}>{item.content}</Text>
@@ -535,10 +574,15 @@ const styles = StyleSheet.create({
   title: { color: "#0F172A", fontSize: 25, fontWeight: "800", lineHeight: 32, marginTop: 8 },
   authorRow: { alignItems: "center", flexDirection: "row", marginTop: 18 },
   avatar: { alignItems: "center", backgroundColor: "#DCEEE9", borderRadius: 18, height: 36, justifyContent: "center", marginRight: 10, width: 36 },
+  avatarImage: { borderRadius: 18, height: 36, marginRight: 10, width: 36 },
   avatarText: { color: "#036564", fontSize: 15, fontWeight: "800" },
   author: { color: "#32504C", fontSize: 13, fontWeight: "700" },
   date: { color: "#7A8986", fontSize: 12, marginTop: 3 },
   content: { color: "#334155", fontSize: 16, lineHeight: 25, marginTop: 22 },
+  postStats: { flexDirection: "row", gap: 16, marginTop: 16 },
+  statText: { color: "#64748B", fontSize: 13, fontWeight: "600" },
+  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 14 },
+  tagBadge: { backgroundColor: "#E0F2F1", borderRadius: 999, color: "#036564", fontSize: 12, fontWeight: "700", paddingHorizontal: 9, paddingVertical: 5 },
   reactionActions: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 18, marginTop: 20, paddingTop: 12 },
   reactionButton: { alignItems: "center", flexDirection: "row", gap: 5 },
   reactionButtonActive: { opacity: 1 },
@@ -548,6 +592,10 @@ const styles = StyleSheet.create({
   commentsTitle: { color: "#0F172A", fontSize: 18, fontWeight: "700", marginBottom: 12, marginTop: 26 },
   commentCard: { borderLeftColor: "#D7E0E5", borderLeftWidth: 2, marginBottom: 18, paddingLeft: 14, paddingVertical: 2 },
   commentHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  commentAuthorRow: { alignItems: "center", flex: 1, flexDirection: "row" },
+  commentAvatar: { alignItems: "center", backgroundColor: "#E2E8F0", borderRadius: 14, height: 28, justifyContent: "center", marginRight: 8, width: 28 },
+  commentAvatarImage: { borderRadius: 14, height: 28, marginRight: 8, width: 28 },
+  commentAvatarText: { color: "#475569", fontSize: 12, fontWeight: "800" },
   commentAuthor: { color: "#64748B", flex: 1, fontSize: 13, fontWeight: "700" },
   commentContent: { color: "#334155", fontSize: 14, lineHeight: 21, marginTop: 8 },
   centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
@@ -572,6 +620,7 @@ const styles = StyleSheet.create({
   submitButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   commentError: { color: "#B42318", fontSize: 12, lineHeight: 18, marginTop: 10 },
   actionError: { backgroundColor: "#FEE4E2", color: "#B42318", fontSize: 13, lineHeight: 18, marginHorizontal: 20, marginTop: 8, padding: 10 },
+  cacheBanner: { backgroundColor: "#FEF3C7", color: "#92400E", fontSize: 12, paddingHorizontal: 20, paddingVertical: 8, textAlign: "center" },
   moreButton: { alignSelf: "flex-end", marginTop: 8, paddingVertical: 1 },
   moreButtonText: { color: "#94A3B8", fontSize: 12, fontWeight: "700", letterSpacing: 1.5 },
   modalOverlay: { backgroundColor: "rgba(3, 22, 52, 0.42)", flex: 1, justifyContent: "flex-end" },

@@ -63,12 +63,18 @@ export async function listPosts(topicId: string | undefined, topicSlug: string |
 }
 
 export async function getPost(postId: string, userId?: string) {
-  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, topic: { select: { slug: true } }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
+  const updated = await prisma.forumPost.updateMany({
+    where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED },
+    data: { viewsCount: { increment: 1 } },
+  });
+  if (updated.count === 0) throw new AppError("Post não encontrado.", 404);
+  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, topic: { select: { slug: true, title: true } }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
   if (!postWithReactions) throw new AppError("Post não encontrado.", 404);
   const { reactions, topic: postTopic, ...post } = postWithReactions;
   return {
     ...post,
     topicSlug: postTopic?.slug || post.topicSlug,
+    topicTitle: postTopic?.title,
     reactionCounts: {
       likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
       dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,

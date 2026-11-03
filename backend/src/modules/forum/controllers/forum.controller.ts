@@ -68,7 +68,7 @@ export async function listPostsController(request: FastifyRequest, reply: Fastif
 export async function getPostController(request: FastifyRequest<PostParams>, reply: FastifyReply) {
   const parsed = postIdParamsSchema.safeParse(request.params);
   if (!parsed.success) throw new AppError(validationMessage(parsed.error), 400);
-  const userId = await optionalAuthenticatedUser(request);
+  const userId = await authenticatedUser(request);
   return reply.send(await getPost(parsed.data.postId, userId));
 }
 

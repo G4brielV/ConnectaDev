@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface ForumTopic {
   id: string;
@@ -19,11 +20,13 @@ export interface ForumAuthor {
 export interface ForumPost {
   id: string;
   topicSlug: string;
+  topicTitle?: string;
   title: string;
   content: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  viewsCount: number;
   author: ForumAuthor;
   _count: {
     comments: number;
@@ -72,7 +75,8 @@ async function request<T>(token: string, path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível carregar o fórum no momento.");
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new ForumApiError(body?.message || "Não foi possível carregar o fórum no momento.", response.status);
   }
 
   return (await response.json()) as T;
@@ -120,6 +124,24 @@ export function fetchForumPost(token: string, postId: string): Promise<ForumPost
 
 export function fetchForumComments(token: string, postId: string): Promise<ForumComment[]> {
   return request<ForumComment[]>(token, `/api/forum/posts/${postId}/comments`);
+}
+
+const forumPostCacheKey = (postId: string): string => `connectadev:forum-post:${postId}`;
+
+export async function cacheForumPost(post: ForumPost, comments: ForumComment[]): Promise<void> {
+  await AsyncStorage.setItem(forumPostCacheKey(post.id), JSON.stringify({ post, comments }));
+}
+
+export async function getCachedForumPost(postId: string): Promise<{ post: ForumPost; comments: ForumComment[] } | null> {
+  const value = await AsyncStorage.getItem(forumPostCacheKey(postId));
+  if (!value) return null;
+  try {
+    const cached = JSON.parse(value) as { post?: ForumPost; comments?: ForumComment[] };
+    if (!cached.post || !Array.isArray(cached.comments)) return null;
+    return { post: cached.post, comments: cached.comments };
+  } catch {
+    return null;
+  }
 }
 
 export async function createForumComment(
