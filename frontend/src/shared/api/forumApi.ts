@@ -39,6 +39,7 @@ export interface ForumPost {
 }
 
 export type ForumReactionValue = "LIKE" | "DISLIKE";
+export type ForumVoteType = "UPVOTE" | "DOWNVOTE";
 
 export interface ForumComment {
   id: string;
@@ -264,4 +265,35 @@ export async function reactToForumPost(
   }
 
   return (await response.json()) as { likes: number; dislikes: number; myReaction: ForumReactionValue | null };
+}
+
+export interface ForumVoteResult {
+  upvotes: number;
+  downvotes: number;
+  myVote: ForumVoteType | null;
+}
+
+async function forumVoteRequest(token: string, postId: string, method: "POST" | "DELETE", body?: object): Promise<ForumVoteResult> {
+  const response = await fetch(`${API_URL}/api/forum/posts/${postId}/vote`, {
+    method,
+    headers: {
+      Accept: "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      Authorization: `******`,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new ForumApiError(data?.message || "Não foi possível registrar seu voto.", response.status);
+  }
+  return (await response.json()) as ForumVoteResult;
+}
+
+export function voteForumPost(token: string, postId: string, voteType: ForumVoteType): Promise<ForumVoteResult> {
+  return forumVoteRequest(token, postId, "POST", { voteType });
+}
+
+export function removeForumPostVote(token: string, postId: string): Promise<ForumVoteResult> {
+  return forumVoteRequest(token, postId, "DELETE");
 }

@@ -1,7 +1,7 @@
 import { prisma } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { FORUM_CONTENT_STATUS, FORUM_TOPICS } from "../constants/forumTopics";
-import type { CreateCommentBody, CreatePostBody, PostReactionBody, UpdatePostBody } from "../schemas/forum.schema";
+import type { CreateCommentBody, CreatePostBody, PostReactionBody, PostVoteBody, UpdatePostBody } from "../schemas/forum.schema";
 
 const authorSelect = { id: true, name: true, image: true } as const;
 
@@ -47,17 +47,19 @@ export async function listPosts(topicId: string | undefined, topicSlug: string |
     ...(topic ? { topicId: topic.id } : {}),
   };
   const [postsWithReactions, total] = await prisma.$transaction([
-    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, topic: { select: { slug: true } }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
+    prisma.forumPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, include: { author: { select: authorSelect }, topic: { select: { slug: true } }, votes: { select: { voteType: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } }),
     prisma.forumPost.count({ where }),
   ]);
-  const posts = postsWithReactions.map(({ reactions, topic: postTopic, ...post }) => ({
+  const posts = postsWithReactions.map(({ votes, topic: postTopic, ...post }) => ({
     ...post,
     topicSlug: postTopic?.slug || post.topicSlug,
     reactionCounts: {
-      likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
-      dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
+      likes: votes.filter((vote) => vote.voteType === "UPVOTE").length,
+      dislikes: votes.filter((vote) => vote.voteType === "DOWNVOTE").length,
     },
-    myReaction: reactions.find((reaction) => reaction.userId === userId)?.value || null,
+    myReaction: votes.find((vote) => vote.userId === userId)?.voteType === "UPVOTE"
+      ? "LIKE"
+      : votes.find((vote) => vote.userId === userId)?.voteType === "DOWNVOTE" ? "DISLIKE" : null,
   }));
   return { data: posts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
@@ -68,19 +70,53 @@ export async function getPost(postId: string, userId?: string) {
     data: { viewsCount: { increment: 1 } },
   });
   if (updated.count === 0) throw new AppError("Post não encontrado.", 404);
-  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, topic: { select: { slug: true, title: true } }, reactions: { select: { value: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
+  const postWithReactions = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, include: { author: { select: authorSelect }, topic: { select: { slug: true, title: true } }, votes: { select: { voteType: true, userId: true } }, _count: { select: { comments: { where: { status: FORUM_CONTENT_STATUS.PUBLISHED } } } } } });
   if (!postWithReactions) throw new AppError("Post não encontrado.", 404);
-  const { reactions, topic: postTopic, ...post } = postWithReactions;
+  const { votes, topic: postTopic, ...post } = postWithReactions;
   return {
     ...post,
     topicSlug: postTopic?.slug || post.topicSlug,
     topicTitle: postTopic?.title,
     reactionCounts: {
-      likes: reactions.filter((reaction) => reaction.value === "LIKE").length,
-      dislikes: reactions.filter((reaction) => reaction.value === "DISLIKE").length,
+      likes: votes.filter((vote) => vote.voteType === "UPVOTE").length,
+      dislikes: votes.filter((vote) => vote.voteType === "DOWNVOTE").length,
     },
-    myReaction: reactions.find((reaction) => reaction.userId === userId)?.value || null,
+    myReaction: votes.find((vote) => vote.userId === userId)?.voteType === "UPVOTE"
+      ? "LIKE"
+      : votes.find((vote) => vote.userId === userId)?.voteType === "DOWNVOTE" ? "DISLIKE" : null,
   };
+}
+
+async function getVoteSummary(postId: string, userId: string) {
+  const votes = await prisma.forumPostVote.findMany({ where: { postId }, select: { voteType: true, userId: true } });
+  return {
+    upvotes: votes.filter((vote) => vote.voteType === "UPVOTE").length,
+    downvotes: votes.filter((vote) => vote.voteType === "DOWNVOTE").length,
+    myVote: (votes.find((vote) => vote.userId === userId)?.voteType ?? null) as PostVoteBody["voteType"] | null,
+  };
+}
+
+export async function votePost(postId: string, userId: string, input: PostVoteBody) {
+  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, select: { id: true } });
+  if (!post) throw new AppError("Post não encontrado.", 404);
+  const existing = await prisma.forumPostVote.findUnique({ where: { postId_userId: { postId, userId } } });
+  if (existing?.voteType === input.voteType) {
+    await prisma.forumPostVote.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.forumPostVote.upsert({
+      where: { postId_userId: { postId, userId } },
+      create: { postId, userId, voteType: input.voteType },
+      update: { voteType: input.voteType },
+    });
+  }
+  return getVoteSummary(postId, userId);
+}
+
+export async function removePostVote(postId: string, userId: string) {
+  const post = await prisma.forumPost.findFirst({ where: { id: postId, status: FORUM_CONTENT_STATUS.PUBLISHED }, select: { id: true } });
+  if (!post) throw new AppError("Post não encontrado.", 404);
+  await prisma.forumPostVote.deleteMany({ where: { postId, userId } });
+  return getVoteSummary(postId, userId);
 }
 
 export async function reactToPost(postId: string, userId: string, input: PostReactionBody) {

@@ -28,8 +28,11 @@ import {
   ForumApiError,
   ForumPost,
   ForumReactionValue,
+  ForumVoteType,
   cacheForumPost,
   getCachedForumPost,
+  removeForumPostVote,
+  voteForumPost,
   reactToForumPost,
   updateForumComment,
   updateForumPost,
@@ -118,16 +121,28 @@ export function ForumPostScreen() {
   }, [loadPost]);
 
   async function handleReaction(value: ForumReactionValue): Promise<void> {
-    if (!token || !post || isReacting) return;
+    if (!token) {
+      Alert.alert("Login necessário", "Entre na sua conta para avaliar uma postagem.");
+      return;
+    }
+    if (!post || isReacting) return;
 
     setIsReacting(true);
     try {
-      const reaction = await reactToForumPost(token, post.id, value);
+      const currentVote = post.myReaction === "LIKE" ? "UPVOTE" : post.myReaction === "DISLIKE" ? "DOWNVOTE" : null;
+      const vote = value === "LIKE" ? "UPVOTE" : "DOWNVOTE";
+      const reaction = currentVote === vote
+        ? await removeForumPostVote(token, post.id)
+        : await voteForumPost(token, post.id, vote as ForumVoteType);
       setPost((current) => current
-        ? { ...current, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes }, myReaction: reaction.myReaction }
+        ? { ...current, reactionCounts: { likes: reaction.upvotes, dislikes: reaction.downvotes }, myReaction: reaction.myVote === "UPVOTE" ? "LIKE" : reaction.myVote === "DOWNVOTE" ? "DISLIKE" : null }
         : current);
     } catch (error: unknown) {
-      setActionError(error instanceof Error ? error.message : "Não foi possível registrar sua avaliação.");
+      if (error instanceof ForumApiError && error.status === 401) {
+        Alert.alert("Sessão expirada", "Faça login novamente para avaliar uma postagem.");
+      } else {
+        setActionError(error instanceof Error ? error.message : "Não foi possível registrar sua avaliação.");
+      }
     } finally {
       setIsReacting(false);
     }

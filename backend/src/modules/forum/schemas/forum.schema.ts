@@ -36,6 +36,10 @@ export const postReactionBodySchema = z.object({
   value: z.enum(["LIKE", "DISLIKE"]),
 });
 
+export const postVoteBodySchema = z.object({
+  voteType: z.enum(["UPVOTE", "DOWNVOTE"]),
+});
+
 export const listPostsQuerySchema = z.object({
   topicId: z.string().uuid("O tópico deve ser um UUID válido.").optional(),
   topic: z.string().optional(),
@@ -47,3 +51,4 @@ export type CreatePostBody = z.infer<typeof createPostBodySchema>;
 export type UpdatePostBody = z.infer<typeof updatePostBodySchema>;
 export type CreateCommentBody = z.infer<typeof createCommentBodySchema>;
 export type PostReactionBody = z.infer<typeof postReactionBodySchema>;
+export type PostVoteBody = z.infer<typeof postVoteBodySchema>;

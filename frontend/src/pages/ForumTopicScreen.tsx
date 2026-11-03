@@ -8,12 +8,13 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { useAuth } from "../entities/session";
-import { fetchForumPosts, ForumPost, ForumReactionValue, reactToForumPost } from "../shared/api/forumApi";
+import { fetchForumPosts, ForumPost, ForumReactionValue, ForumVoteType, removeForumPostVote, voteForumPost, ForumApiError } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 
 function truncateContent(content: string, maxLength = 140): string {
@@ -67,14 +68,27 @@ export function ForumTopicScreen() {
   );
 
   async function handleReaction(postId: string, value: ForumReactionValue): Promise<void> {
-    if (!token || reactingPostId) return;
+    if (!token) {
+      Alert.alert("Login necessário", "Entre na sua conta para avaliar uma postagem.");
+      return;
+    }
+    if (reactingPostId) return;
 
     setReactingPostId(postId);
     try {
-      const reaction = await reactToForumPost(token, postId, value);
+      const post = posts.find((item) => item.id === postId);
+      const currentVote = post?.myReaction === "LIKE" ? "UPVOTE" : post?.myReaction === "DISLIKE" ? "DOWNVOTE" : null;
+      const vote = value === "LIKE" ? "UPVOTE" : "DOWNVOTE";
+      const reaction = currentVote === vote
+        ? await removeForumPostVote(token, postId)
+        : await voteForumPost(token, postId, vote as ForumVoteType);
       setPosts((current) => current.map((post) => post.id === postId
-        ? { ...post, reactionCounts: { likes: reaction.likes, dislikes: reaction.dislikes }, myReaction: reaction.myReaction }
+        ? { ...post, reactionCounts: { likes: reaction.upvotes, dislikes: reaction.downvotes }, myReaction: reaction.myVote === "UPVOTE" ? "LIKE" : reaction.myVote === "DOWNVOTE" ? "DISLIKE" : null }
         : post));
+    } catch (error: unknown) {
+      if (error instanceof ForumApiError && error.status === 401) {
+        Alert.alert("Sessão expirada", "Faça login novamente para avaliar uma postagem.");
+      }
     } finally {
       setReactingPostId(null);
     }

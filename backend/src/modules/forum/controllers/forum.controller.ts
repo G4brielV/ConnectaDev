@@ -10,6 +10,7 @@ import {
   updateCommentBodySchema,
   updatePostBodySchema,
   postReactionBodySchema,
+  postVoteBodySchema,
 } from "../schemas/forum.schema";
 import {
   createComment,
@@ -23,6 +24,8 @@ import {
   updateComment,
   updatePost,
   reactToPost,
+  votePost,
+  removePostVote,
 } from "../services/forum.service";
 
 type PostParams = { Params: { postId: string } };
@@ -118,6 +121,22 @@ export async function reactToPostController(request: FastifyRequest<PostBodyRequ
   if (!params.success) throw new AppError(validationMessage(params.error), 400);
   if (!body.success) throw new AppError(validationMessage(body.error), 400);
   return reply.send(await reactToPost(params.data.postId, userId, body.data));
+}
+
+export async function votePostController(request: FastifyRequest<PostBodyRequest<unknown>>, reply: FastifyReply) {
+  const userId = await authenticatedUser(request);
+  const params = postIdParamsSchema.safeParse(request.params);
+  const body = postVoteBodySchema.safeParse(request.body);
+  if (!params.success) throw new AppError(validationMessage(params.error), 400);
+  if (!body.success) throw new AppError(validationMessage(body.error), 400);
+  return reply.send(await votePost(params.data.postId, userId, body.data));
+}
+
+export async function removePostVoteController(request: FastifyRequest<PostParams>, reply: FastifyReply) {
+  const userId = await authenticatedUser(request);
+  const params = postIdParamsSchema.safeParse(request.params);
+  if (!params.success) throw new AppError(validationMessage(params.error), 400);
+  return reply.send(await removePostVote(params.data.postId, userId));
 }
 export async function updateCommentController(request: FastifyRequest<CommentBodyRequest<unknown>>, reply: FastifyReply) {
   const authorId = await authenticatedUser(request);

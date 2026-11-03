@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createForumComment, createForumPost, reactToForumPost } from "./forumApi";
+import { createForumComment, createForumPost, reactToForumPost, removeForumPostVote, voteForumPost } from "./forumApi";
 
 const originalFetch = globalThis.fetch;
 
@@ -109,4 +109,35 @@ test("reactToForumPost sends the selected reaction", async () => {
   assert.equal(headers.Authorization, "Bearer mock-token");
   assert.equal(receivedInit?.body, JSON.stringify({ value: "LIKE" }));
   assert.deepEqual(result, { likes: 3, dislikes: 1, myReaction: "LIKE" });
+});
+
+test("voteForumPost sends an upvote to the vote endpoint", async () => {
+  let receivedUrl = "";
+  let receivedInit: RequestInit | undefined;
+  globalThis.fetch = async (input, init) => {
+    receivedUrl = String(input);
+    receivedInit = init;
+    return new Response(JSON.stringify({ upvotes: 1, downvotes: 0, myVote: "UPVOTE" }), { status: 200 });
+  };
+
+  const result = await voteForumPost("mock-token", "post-1", "UPVOTE");
+  const headers = receivedInit?.headers as Record<string, string>;
+  assert.match(receivedUrl, /\/api\/forum\/posts\/post-1\/vote$/);
+  assert.equal(receivedInit?.method, "POST");
+  assert.equal(headers.Authorization, "******");
+  assert.equal(receivedInit?.body, JSON.stringify({ voteType: "UPVOTE" }));
+  assert.equal(result.myVote, "UPVOTE");
+});
+
+test("removeForumPostVote sends DELETE to cancel the vote", async () => {
+  let receivedInit: RequestInit | undefined;
+  globalThis.fetch = async (_input, init) => {
+    receivedInit = init;
+    return new Response(JSON.stringify({ upvotes: 0, downvotes: 0, myVote: null }), { status: 200 });
+  };
+
+  const result = await removeForumPostVote("mock-token", "post-1");
+  assert.equal(receivedInit?.method, "DELETE");
+  assert.equal((receivedInit?.headers as Record<string, string>).Authorization, "******");
+  assert.equal(result.myVote, null);
 });

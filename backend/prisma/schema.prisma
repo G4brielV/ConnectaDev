@@ -29,6 +29,7 @@ model User {
   forumPosts      ForumPost[]
   forumComments   ForumComment[]
   forumReactions  ForumPostReaction[]
+  forumVotes      ForumPostVote[]
 
   @@map("user")
 }
@@ -378,6 +379,7 @@ model ForumPost {
   topic      ForumTopic      @relation(fields: [topicId], references: [id], onDelete: Restrict)
   comments   ForumComment[]
   reactions  ForumPostReaction[]
+  votes      ForumPostVote[]
 
   @@index([topicSlug])
   @@index([topicId])
@@ -419,4 +421,20 @@ model ForumPostReaction {
   @@index([postId, value])
   @@index([userId])
   @@map("forum_post_reactions")
+}
+
+model ForumPostVote {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  voteType  String   @map("vote_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId, voteType])
+  @@index([userId])
+  @@map("forum_post_votes")
 }
