@@ -17,6 +17,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import {
   createForumComment,
@@ -38,6 +39,7 @@ import {
   updateForumPost,
 } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { colors, fonts, radius, shadow, spacing } from "../shared/config/theme";
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -308,8 +310,8 @@ export function ForumPostScreen() {
               </View>
               <Text style={styles.content}>{post.content}</Text>
               <View style={styles.postStats}>
-                <Text style={styles.statText}>💬 {post._count.comments}</Text>
-                <Text style={styles.statText}>👁 {post.viewsCount}</Text>
+                  <View style={styles.statItem}><Feather name="message-circle" size={14} color={colors.textMuted} /><Text style={styles.statText}>{post._count.comments}</Text></View>
+                  <View style={styles.statItem}><Feather name="eye" size={14} color={colors.textMuted} /><Text style={styles.statText}>{post.viewsCount}</Text></View>
               </View>
               {post.tags.length > 0 ? (
                 <View style={styles.tagsRow}>
@@ -324,7 +326,7 @@ export function ForumPostScreen() {
                   onPress={() => void handleReaction("LIKE")}
                   style={[styles.reactionButton, post.myReaction === "LIKE" && styles.reactionButtonActive]}
                 >
-                  <Text style={[styles.reactionIcon, post.myReaction === "LIKE" && styles.reactionIconActive]}>👍︎</Text>
+                  <Feather name="thumbs-up" size={15} color={post.myReaction === "LIKE" ? colors.primary : colors.textMuted} />
                   <Text style={styles.reactionCount}>{post.reactionCounts.likes}</Text>
                 </Pressable>
                 <Pressable
@@ -334,7 +336,7 @@ export function ForumPostScreen() {
                   onPress={() => void handleReaction("DISLIKE")}
                   style={[styles.reactionButton, post.myReaction === "DISLIKE" && styles.reactionButtonActive]}
                 >
-                  <Text style={[styles.reactionIcon, post.myReaction === "DISLIKE" && styles.reactionIconActive]}>👎︎</Text>
+                  <Feather name="thumbs-down" size={15} color={post.myReaction === "DISLIKE" ? colors.primary : colors.textMuted} />
                   <Text style={styles.reactionCount}>{post.reactionCounts.dislikes}</Text>
                 </Pressable>
               </View>
@@ -425,7 +427,7 @@ export function ForumPostScreen() {
                   pressed && styles.submitButtonPressed,
                 ]}
               >
-                {isSubmittingComment ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.sendButtonText}>✈</Text>}
+                {isSubmittingComment ? <ActivityIndicator color={colors.textOnPrimary} size="small" /> : <Feather name="send" size={17} color={colors.textOnPrimary} />}
               </Pressable>
               {commentError ? <Text style={styles.commentError}>{commentError}</Text> : null}
             </View>
@@ -437,7 +439,7 @@ export function ForumPostScreen() {
               style={({ pressed }) => [styles.composerPill, pressed && styles.submitButtonPressed]}
             >
               <View style={styles.composerPlusWrap}>
-                <Text style={styles.composerPlus}>+</Text>
+                <Feather name="plus" size={18} color={colors.primary} />
               </View>
               <Text style={styles.composerPrompt}>Entre na conversa</Text>
             </Pressable>
@@ -451,7 +453,15 @@ export function ForumPostScreen() {
         >
           <Pressable style={styles.modalOverlay} onPress={() => setMenuTarget(null)}>
             <View style={styles.actionSheet}>
-              <Text style={styles.actionSheetTitle}>Ações</Text>
+              <View style={styles.actionSheetHeader}>
+                <View style={styles.actionSheetIcon}>
+                  <Feather name="more-horizontal" size={20} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={styles.actionSheetTitle}>Ações</Text>
+                  <Text style={styles.actionSheetSubtitle}>Gerencie este conteúdo</Text>
+                </View>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => {
@@ -461,16 +471,24 @@ export function ForumPostScreen() {
                     if (comment) openCommentEditor(comment);
                   }
                 }}
-                style={styles.actionItem}
+                style={({ pressed }) => [styles.actionItem, pressed && styles.actionItemPressed]}
               >
+                <View style={styles.actionItemIcon}>
+                  <Feather name="edit-2" size={17} color={colors.primary} />
+                </View>
                 <Text style={styles.actionItemText}>Editar</Text>
+                <Feather name="chevron-right" size={17} color={colors.textMuted} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => menuTarget === "post" ? confirmDeletePost() : confirmDeleteComment(menuTarget || "")}
-                style={styles.actionItem}
+                style={({ pressed }) => [styles.actionItem, pressed && styles.deleteItemPressed]}
               >
+                <View style={styles.deleteItemIcon}>
+                  <Feather name="trash-2" size={17} color={colors.danger} />
+                </View>
                 <Text style={styles.deleteActionText}>Excluir</Text>
+                <Feather name="chevron-right" size={17} color={colors.danger} />
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => setMenuTarget(null)} style={styles.cancelAction}>
                 <Text style={styles.cancelActionText}>Cancelar</Text>
@@ -488,6 +506,9 @@ export function ForumPostScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmModal}>
+              <View style={styles.confirmIcon}>
+                <Feather name="trash-2" size={22} color={colors.danger} />
+              </View>
               <Text style={styles.confirmTitle}>
                 Excluir {deleteTarget?.type === "post" ? "post" : "comentário"}?
               </Text>
@@ -507,7 +528,7 @@ export function ForumPostScreen() {
                   onPress={() => void handleDelete()}
                   style={styles.confirmDeleteButton}
                 >
-                  {isDeleting ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.confirmDeleteText}>Excluir</Text>}
+                  {isDeleting ? <ActivityIndicator color={colors.textOnPrimary} size="small" /> : <><Feather name="trash-2" size={15} color={colors.textOnPrimary} /><Text style={styles.confirmDeleteText}>Excluir</Text></>}
                 </Pressable>
               </View>
             </View>
@@ -526,7 +547,15 @@ export function ForumPostScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.editorModal}>
-              <Text style={styles.actionSheetTitle}>{isEditingPost ? "Editar post" : "Editar comentário"}</Text>
+              <View style={styles.editorHeader}>
+                <View style={styles.editorIcon}>
+                  <Feather name="edit-2" size={19} color={colors.primary} />
+                </View>
+                <View style={styles.editorTitleWrap}>
+                  <Text style={styles.actionSheetTitle}>{isEditingPost ? "Editar post" : "Editar comentário"}</Text>
+                  <Text style={styles.actionSheetSubtitle}>Atualize o conteúdo da conversa</Text>
+                </View>
+              </View>
               {isEditingPost ? (
                 <TextInput
                   accessibilityLabel="Título do post"
@@ -558,7 +587,7 @@ export function ForumPostScreen() {
                     setIsEditingPost(false);
                     setEditingComment(null);
                   }}
-                  style={styles.cancelAction}
+                  style={styles.editorCancelButton}
                 >
                   <Text style={styles.cancelActionText}>Cancelar</Text>
                 </Pressable>
@@ -566,7 +595,7 @@ export function ForumPostScreen() {
                   accessibilityRole="button"
                   disabled={isSavingEdit}
                   onPress={() => void handleSaveEdit()}
-                  style={styles.submitButton}
+                  style={[styles.submitButton, styles.editorActionButton]}
                 >
                   {isSavingEdit ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.submitButtonText}>Salvar</Text>}
                 </Pressable>
@@ -580,22 +609,23 @@ export function ForumPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
+  safeArea: { flex: 1, backgroundColor: colors.canvas },
   keyboardContainer: { flex: 1 },
-  listContent: { padding: 20, paddingBottom: 32 },
-  backText: { color: "#036564", fontSize: 14, fontWeight: "700", marginBottom: 18 },
-  postHeader: { backgroundColor: "#FFFFFF", borderRadius: 16, elevation: 2, padding: 18, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  topicLabel: { color: "#036564", fontSize: 12, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase" },
-  title: { color: "#0F172A", fontSize: 25, fontWeight: "800", lineHeight: 32, marginTop: 8 },
+  listContent: { padding: spacing.lg, paddingBottom: spacing.xl },
+  backText: { color: colors.primary, fontFamily: fonts.sans.semiBold, fontSize: 14, marginBottom: spacing.md },
+  postHeader: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, ...shadow.card },
+  topicLabel: { color: colors.primary, fontFamily: fonts.sans.bold, fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" },
+  title: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 25, lineHeight: 32, marginTop: spacing.sm },
   authorRow: { alignItems: "center", flexDirection: "row", marginTop: 18 },
   avatar: { alignItems: "center", backgroundColor: "#DCEEE9", borderRadius: 18, height: 36, justifyContent: "center", marginRight: 10, width: 36 },
   avatarImage: { borderRadius: 18, height: 36, marginRight: 10, width: 36 },
   avatarText: { color: "#036564", fontSize: 15, fontWeight: "800" },
   author: { color: "#32504C", fontSize: 13, fontWeight: "700" },
   date: { color: "#7A8986", fontSize: 12, marginTop: 3 },
-  content: { color: "#334155", fontSize: 16, lineHeight: 25, marginTop: 22 },
+  content: { color: colors.textBody, fontFamily: fonts.sans.regular, fontSize: 16, lineHeight: 25, marginTop: spacing.lg },
   postStats: { flexDirection: "row", gap: 16, marginTop: 16 },
-  statText: { color: "#64748B", fontSize: 13, fontWeight: "600" },
+  statItem: { alignItems: "center", flexDirection: "row", gap: spacing.xs },
+  statText: { color: colors.textMuted, fontFamily: fonts.sans.medium, fontSize: 13 },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 14 },
   tagBadge: { backgroundColor: "#E0F2F1", borderRadius: 999, color: "#036564", fontSize: 12, fontWeight: "700", paddingHorizontal: 9, paddingVertical: 5 },
   reactionActions: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 18, marginTop: 20, paddingTop: 12 },
@@ -604,7 +634,7 @@ const styles = StyleSheet.create({
   reactionIcon: { color: "#94A3B8", fontSize: 15 },
   reactionIconActive: { color: "#036564" },
   reactionCount: { color: "#64748B", fontSize: 13, fontWeight: "700" },
-  commentsTitle: { color: "#0F172A", fontSize: 18, fontWeight: "700", marginBottom: 12, marginTop: 26 },
+  commentsTitle: { color: colors.textPrimary, fontFamily: fonts.sans.semiBold, fontSize: 18, marginBottom: spacing.sm, marginTop: spacing.lg },
   commentCard: { borderLeftColor: "#D7E0E5", borderLeftWidth: 2, marginBottom: 18, paddingLeft: 14, paddingVertical: 2 },
   commentHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   commentAuthorRow: { alignItems: "center", flex: 1, flexDirection: "row" },
@@ -620,8 +650,8 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: "center", paddingVertical: 36 },
   emptyTitle: { color: "#0F172A", fontSize: 16, fontWeight: "700" },
   emptyText: { color: "#64748B", fontSize: 14, lineHeight: 21, marginTop: 6, textAlign: "center" },
-  composerDock: { backgroundColor: "#F8FAFC", borderTopColor: "#E2E8F0", borderTopWidth: 1, paddingHorizontal: 20, paddingVertical: 10 },
-  composerPill: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 999, borderWidth: 1, flexDirection: "row", height: 44, justifyContent: "flex-start", paddingHorizontal: 16 },
+  composerDock: { backgroundColor: colors.canvas, borderTopColor: colors.light, borderTopWidth: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  composerPill: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.light, borderRadius: radius.pill, borderWidth: 1, flexDirection: "row", height: 44, justifyContent: "flex-start", paddingHorizontal: spacing.md },
   composerPlusWrap: { alignItems: "center", height: 20, justifyContent: "center", marginRight: 10, width: 20 },
   composerPlus: { color: "#036564", fontSize: 20, fontWeight: "400", includeFontPadding: false, lineHeight: 20, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
   composerPrompt: { color: "#64748B", fontSize: 14, fontWeight: "600", includeFontPadding: false, lineHeight: 20, textAlignVertical: "center" },
@@ -629,7 +659,7 @@ const styles = StyleSheet.create({
   commentInput: { color: "#0F172A", flex: 1, fontSize: 14, lineHeight: 20, maxHeight: 110, minHeight: 44, paddingHorizontal: 8, paddingVertical: 10 },
   sendButton: { alignItems: "center", alignSelf: "flex-end", backgroundColor: "#036564", borderRadius: 22, height: 44, justifyContent: "center", marginLeft: 8, width: 44 },
   sendButtonText: { color: "#FFFFFF", fontSize: 20, transform: [{ rotate: "-12deg" }] },
-  submitButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, justifyContent: "center", minHeight: 44, paddingHorizontal: 16 },
+  submitButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.pill, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.md },
   submitButtonDisabled: { backgroundColor: "#A7C6C1" },
   submitButtonPressed: { opacity: 0.85 },
   submitButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
@@ -638,23 +668,36 @@ const styles = StyleSheet.create({
   cacheBanner: { backgroundColor: "#FEF3C7", color: "#92400E", fontSize: 12, paddingHorizontal: 20, paddingVertical: 8, textAlign: "center" },
   moreButton: { alignSelf: "flex-end", marginTop: 8, paddingVertical: 1 },
   moreButtonText: { color: "#94A3B8", fontSize: 12, fontWeight: "700", letterSpacing: 1.5 },
-  modalOverlay: { backgroundColor: "rgba(3, 22, 52, 0.42)", flex: 1, justifyContent: "flex-end" },
-  actionSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 28 },
-  actionSheetTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800", marginBottom: 12 },
-  actionItem: { borderBottomColor: "#E2E8F0", borderBottomWidth: 1, paddingVertical: 16 },
-  actionItemText: { color: "#036564", fontSize: 15, fontWeight: "700" },
-  deleteActionText: { color: "#B42318", fontSize: 15, fontWeight: "700" },
-  cancelAction: { alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: 10, marginTop: 14, paddingVertical: 13 },
-  cancelActionText: { color: "#475569", fontSize: 14, fontWeight: "700" },
-  confirmModal: { backgroundColor: "#FFFFFF", borderRadius: 16, margin: 20, padding: 20 },
-  confirmTitle: { color: "#0F172A", fontSize: 18, fontWeight: "800" },
-  confirmText: { color: "#64748B", fontSize: 14, lineHeight: 20, marginTop: 8 },
-  confirmActions: { flexDirection: "row", gap: 10, marginTop: 20 },
-  confirmCancelButton: { alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: 10, flex: 1, justifyContent: "center", minHeight: 44, paddingHorizontal: 16 },
-  confirmDeleteButton: { alignItems: "center", backgroundColor: "#B42318", borderRadius: 10, flex: 1, justifyContent: "center", minHeight: 44, paddingHorizontal: 16 },
-  confirmDeleteText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  editorModal: { backgroundColor: "#FFFFFF", borderRadius: 16, margin: 20, padding: 20 },
-  editInput: { backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, color: "#0F172A", fontSize: 14, marginTop: 10, padding: 12 },
+  modalOverlay: { alignItems: "center", backgroundColor: "rgba(3, 22, 52, 0.48)", flex: 1, justifyContent: "flex-end" },
+  actionSheet: { alignSelf: "stretch", backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, width: "100%" },
+  actionSheetHeader: { alignItems: "center", flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
+  actionSheetIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.md, height: 40, justifyContent: "center", width: 40 },
+  actionSheetTitle: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 18 },
+  actionSheetSubtitle: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 12, marginTop: 2 },
+  actionItem: { alignItems: "center", borderTopColor: colors.light, borderTopWidth: 1, flexDirection: "row", minHeight: 58, paddingVertical: spacing.sm },
+  actionItemPressed: { backgroundColor: colors.creamSoft },
+  deleteItemPressed: { backgroundColor: "#FDECEC" },
+  actionItemIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.sm, height: 32, justifyContent: "center", marginRight: spacing.sm, width: 32 },
+  deleteItemIcon: { alignItems: "center", backgroundColor: "#FDECEC", borderRadius: radius.sm, height: 32, justifyContent: "center", marginRight: spacing.sm, width: 32 },
+  actionItemText: { color: colors.primary, flex: 1, fontFamily: fonts.sans.semiBold, fontSize: 15 },
+  deleteActionText: { color: colors.danger, flex: 1, fontFamily: fonts.sans.semiBold, fontSize: 15 },
+  cancelAction: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.pill, marginTop: spacing.md, paddingVertical: spacing.sm },
+  cancelActionText: { color: colors.secondary, fontFamily: fonts.sans.semiBold, fontSize: 14 },
+  confirmModal: { backgroundColor: colors.surface, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.lg, width: "90%" },
+  confirmIcon: { alignItems: "center", alignSelf: "center", backgroundColor: "#FDECEC", borderRadius: radius.pill, height: 52, justifyContent: "center", marginBottom: spacing.md, width: 52 },
+  confirmTitle: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 18, textAlign: "center" },
+  confirmText: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, lineHeight: 20, marginTop: spacing.sm, textAlign: "center" },
+  confirmActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg },
+  confirmCancelButton: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.pill, flex: 1, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.md },
+  confirmDeleteButton: { alignItems: "center", backgroundColor: colors.danger, borderRadius: radius.pill, flex: 1, flexDirection: "row", gap: spacing.xs, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.md },
+  confirmDeleteText: { color: colors.textOnPrimary, fontFamily: fonts.sans.semiBold, fontSize: 14 },
+  editorModal: { backgroundColor: colors.surface, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.lg, width: "90%" },
+  editorHeader: { alignItems: "center", flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm },
+  editorIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.md, height: 40, justifyContent: "center", width: 40 },
+  editorTitleWrap: { flex: 1 },
+  editInput: { backgroundColor: colors.canvas, borderColor: colors.light, borderRadius: radius.md, borderWidth: 1, color: colors.textPrimary, fontFamily: fonts.sans.regular, fontSize: 14, marginTop: spacing.sm, padding: spacing.md },
   editContentInput: { minHeight: 130 },
-  editorActions: { flexDirection: "row", gap: 10, marginTop: 16 },
+  editorActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  editorActionButton: { flex: 1 },
+  editorCancelButton: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.pill, flex: 1, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.md },
 });

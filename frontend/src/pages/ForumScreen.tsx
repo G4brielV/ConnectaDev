@@ -11,9 +11,12 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import { fetchForumTopics, ForumTopic } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { colors, fonts, radius, shadow, spacing } from "../shared/config/theme";
+import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 export function ForumScreen() {
   const { token } = useAuth();
@@ -48,7 +51,7 @@ export function ForumScreen() {
   }, [loadTopics]);
 
   if (isLoading) {
-    return <ActivityIndicator style={styles.centered} color="#036564" />;
+    return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Carregando discussões...</Text></View>;
   }
 
   if (errorMessage) {
@@ -64,6 +67,7 @@ export function ForumScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <XpProgressBar />
       <FlatList
         data={topics}
         keyExtractor={(topic) => topic.slug}
@@ -73,10 +77,11 @@ export function ForumScreen() {
         ListHeaderComponent={
           <View style={styles.headerRow}>
             <View style={styles.header}>
-              <Text style={styles.eyebrow}>COMUNIDADE CONNECTADEV</Text>
+              <Text style={styles.eyebrow}>CONNECTA<Text style={styles.eyebrowStrong}>DEV</Text></Text>
               <Text style={styles.title}>Fórum</Text>
               <Text style={styles.subtitle}>Encontre conversas sobre tecnologia, carreira e aprendizado.</Text>
             </View>
+            <View style={styles.headerIcon}><Feather name="message-circle" size={24} color={colors.primary} /></View>
           </View>
         }
         ListEmptyComponent={
@@ -97,7 +102,7 @@ export function ForumScreen() {
               <Text style={styles.topicTitle}>{item.title}</Text>
               <Text style={styles.topicAction}>{item.discussionsCount} discussões • {item.repliesCount} respostas</Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Feather name="chevron-right" size={20} color={colors.primary} />
           </Pressable>
         )}
       />
@@ -108,7 +113,7 @@ export function ForumScreen() {
           onPress={() => navigation.navigate("ForumCreatePost")}
           style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
         >
-          <Text style={styles.createButtonText}>+</Text>
+          <Feather name="plus" size={24} color={colors.textOnPrimary} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -116,30 +121,32 @@ export function ForumScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  listContent: { paddingBottom: 96 },
-  headerRow: { alignItems: "center", flexDirection: "row", paddingHorizontal: 20, paddingTop: 20 },
-  header: { flex: 1, marginBottom: 20, paddingRight: 16 },
-  eyebrow: { alignSelf: "flex-start", backgroundColor: "#E0F2F1", borderRadius: 999, color: "#036564", fontSize: 11, fontWeight: "800", marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, textTransform: "uppercase" },
-  title: { color: "#0F172A", fontSize: 26, fontWeight: "800", marginBottom: 8 },
-  createDock: { bottom: 16, position: "absolute", right: 20 },
-  createButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 999, height: 50, justifyContent: "center", width: 50 },
+  safeArea: { flex: 1, backgroundColor: colors.canvas },
+  listContent: { padding: spacing.lg, paddingBottom: 104 },
+  headerRow: { alignItems: "center", flexDirection: "row", paddingTop: spacing.sm },
+  header: { flex: 1, marginBottom: spacing.lg, paddingRight: spacing.md },
+  eyebrow: { color: colors.secondary, fontFamily: fonts.sans.bold, fontSize: 12, letterSpacing: 1.3 },
+  eyebrowStrong: { color: colors.primary },
+  title: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 26, marginTop: spacing.xs, marginBottom: spacing.sm },
+  headerIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.lg, height: 52, justifyContent: "center", width: 52 },
+  createDock: { bottom: spacing.md, position: "absolute", right: spacing.md },
+  createButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.pill, height: 54, justifyContent: "center", width: 54, ...shadow.card },
   createButtonPressed: { opacity: 0.82 },
   createButtonText: { color: "#FFFFFF", fontSize: 26, fontWeight: "300", includeFontPadding: false, lineHeight: 30, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
-  subtitle: { color: "#64748B", fontSize: 14, lineHeight: 20 },
-  topicRow: { alignItems: "center", borderBottomColor: "#E2E8F0", borderBottomWidth: 1, flexDirection: "row", minHeight: 76, paddingHorizontal: 20, paddingVertical: 14 },
-  topicRowPressed: { backgroundColor: "#F0FDFA" },
+  subtitle: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, lineHeight: 20 },
+  topicRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, flexDirection: "row", minHeight: 76, marginBottom: spacing.sm, padding: spacing.md, ...shadow.card },
+  topicRowPressed: { backgroundColor: colors.creamSoft },
   topicContent: { flex: 1 },
-  topicIcon: { alignItems: "center", backgroundColor: "#E0F2F1", borderRadius: 12, height: 42, justifyContent: "center", marginRight: 12, width: 42 },
-  topicIconText: { color: "#036564", fontSize: 21, fontWeight: "700" },
-  topicTitle: { color: "#0F172A", fontSize: 15, fontWeight: "700" },
-  topicAction: { color: "#64748B", fontSize: 13, marginTop: 4 },
-  chevron: { color: "#036564", fontSize: 24, fontWeight: "300", marginLeft: 12 },
-  centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
-  errorText: { color: "#8B3434", fontSize: 15, lineHeight: 22, marginBottom: 16, textAlign: "center" },
-  primaryButton: { backgroundColor: "#036564", borderRadius: 8, paddingHorizontal: 18, paddingVertical: 12 },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  emptyState: { alignItems: "center", paddingVertical: 48 },
-  emptyTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700" },
-  emptyText: { color: "#64748B", fontSize: 14, marginTop: 6 },
+  topicIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.md, height: 42, justifyContent: "center", marginRight: spacing.sm, width: 42 },
+  topicIconText: { color: colors.primary, fontSize: 21, fontWeight: "700" },
+  topicTitle: { color: colors.textPrimary, fontFamily: fonts.sans.semiBold, fontSize: 15 },
+  topicAction: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 13, marginTop: spacing.xs },
+  centered: { alignItems: "center", backgroundColor: colors.canvas, flex: 1, justifyContent: "center", padding: spacing.lg },
+  loadingText: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 13, marginTop: spacing.sm },
+  errorText: { color: colors.danger, fontFamily: fonts.sans.medium, fontSize: 15, lineHeight: 22, marginBottom: spacing.md, textAlign: "center" },
+  primaryButton: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  primaryButtonText: { color: colors.textOnPrimary, fontFamily: fonts.sans.semiBold, fontSize: 14 },
+  emptyState: { alignItems: "center", paddingVertical: spacing.xl },
+  emptyTitle: { color: colors.textPrimary, fontFamily: fonts.sans.semiBold, fontSize: 17 },
+  emptyText: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, marginTop: spacing.xs },
 });

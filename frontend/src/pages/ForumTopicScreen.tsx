@@ -13,9 +13,11 @@ import {
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import { fetchForumPosts, ForumPost, ForumReactionValue, ForumVoteType, removeForumPostVote, voteForumPost, ForumApiError } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { colors, fonts, radius, shadow, spacing } from "../shared/config/theme";
 
 function truncateContent(content: string, maxLength = 140): string {
   if (content.length <= maxLength) return content;
@@ -94,7 +96,7 @@ export function ForumTopicScreen() {
     }
   }
 
-  if (isLoading) return <ActivityIndicator style={styles.centered} color="#036564" />;
+  if (isLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Carregando posts...</Text></View>;
 
   if (errorMessage) {
     return (
@@ -122,7 +124,7 @@ export function ForumTopicScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Pressable accessibilityLabel="Voltar para os tópicos" accessibilityRole="button" onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>‹ Tópicos</Text>
+              <View style={styles.backRow}><Feather name="arrow-left" size={16} color={colors.primary} /><Text style={styles.backText}>Tópicos</Text></View>
             </Pressable>
             <Text style={styles.title}>{topicTitle}</Text>
             <Text style={styles.subtitle}>Posts mais recentes da comunidade.</Text>
@@ -160,7 +162,7 @@ export function ForumTopicScreen() {
                 onPress={() => void handleReaction(item.id, "LIKE")}
                 style={[styles.reactionButton, item.myReaction === "LIKE" && styles.reactionButtonActive]}
               >
-                <Text style={[styles.reactionIcon, item.myReaction === "LIKE" && styles.reactionIconActive]}>👍︎</Text>
+                <Feather name="thumbs-up" size={15} color={item.myReaction === "LIKE" ? colors.primary : colors.textMuted} />
                 <Text style={styles.metaText}>{item.reactionCounts.likes}</Text>
               </Pressable>
               <Pressable
@@ -170,11 +172,11 @@ export function ForumTopicScreen() {
                 onPress={() => void handleReaction(item.id, "DISLIKE")}
                 style={[styles.reactionButton, item.myReaction === "DISLIKE" && styles.reactionButtonActive]}
               >
-                <Text style={[styles.reactionIcon, item.myReaction === "DISLIKE" && styles.reactionIconActive]}>👎︎</Text>
+                <Feather name="thumbs-down" size={15} color={item.myReaction === "DISLIKE" ? colors.primary : colors.textMuted} />
                 <Text style={styles.metaText}>{item.reactionCounts.dislikes}</Text>
               </Pressable>
               <View accessibilityLabel={`${item._count.comments} comentários`} style={styles.commentCount}>
-                <Text style={styles.commentIcon}>💬</Text>
+                <Feather name="message-circle" size={14} color={colors.textMuted} />
                 <Text style={styles.metaText}>{item._count.comments}</Text>
               </View>
             </View>
@@ -188,7 +190,7 @@ export function ForumTopicScreen() {
           onPress={() => navigation.navigate("ForumCreatePost", { topicId, topicTitle })}
           style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
         >
-          <Text style={styles.createButtonText}>+</Text>
+          <Feather name="plus" size={24} color={colors.textOnPrimary} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -196,19 +198,20 @@ export function ForumTopicScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  listContent: { padding: 20, paddingBottom: 96 },
-  header: { marginBottom: 20 },
-  backText: { color: "#036564", fontSize: 14, fontWeight: "700", marginBottom: 18 },
-  title: { color: "#0F172A", fontSize: 26, fontWeight: "800", marginBottom: 8 },
-  subtitle: { color: "#64748B", fontSize: 14, lineHeight: 20 },
-  postCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, elevation: 2, marginBottom: 12, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  safeArea: { flex: 1, backgroundColor: colors.canvas },
+  listContent: { padding: spacing.lg, paddingBottom: 104 },
+  header: { marginBottom: spacing.md },
+  backRow: { alignItems: "center", flexDirection: "row", gap: spacing.xs, marginBottom: spacing.md },
+  backText: { color: colors.primary, fontFamily: fonts.sans.semiBold, fontSize: 14 },
+  title: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 26, marginBottom: spacing.sm },
+  subtitle: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, lineHeight: 20 },
+  postCard: { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.sm, overflow: "hidden", ...shadow.card },
   postContentPressable: { padding: 18 },
-  postCardPressed: { backgroundColor: "#F0FDFA" },
-  postTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700", lineHeight: 23 },
-  postContent: { color: "#64748B", fontSize: 13, lineHeight: 19, marginTop: 8 },
+  postCardPressed: { backgroundColor: colors.creamSoft },
+  postTitle: { color: colors.textPrimary, fontFamily: fonts.sans.semiBold, fontSize: 17, lineHeight: 23 },
+  postContent: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 13, lineHeight: 19, marginTop: spacing.sm },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 },
-  tagBadge: { backgroundColor: "#E0F2F1", borderRadius: 6, color: "#036564", fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4 },
+  tagBadge: { backgroundColor: colors.creamSoft, borderRadius: radius.pill, color: colors.primary, fontFamily: fonts.sans.semiBold, fontSize: 11, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   postMeta: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", gap: 14, paddingHorizontal: 18, paddingVertical: 10 },
   reactionButton: { alignItems: "center", flexDirection: "row", gap: 4 },
   reactionButtonActive: { opacity: 1 },
@@ -216,9 +219,10 @@ const styles = StyleSheet.create({
   reactionIconActive: { color: "#036564" },
   commentCount: { alignItems: "center", flexDirection: "row", gap: 5 },
   commentIcon: { fontSize: 14 },
-  author: { color: "#32504C", fontSize: 13, fontWeight: "700", marginBottom: 6 },
-  metaText: { color: "#64748B", fontSize: 12, marginTop: 4 },
-  centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
+  author: { color: colors.secondary, fontFamily: fonts.sans.semiBold, fontSize: 13, marginBottom: spacing.xs },
+  metaText: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 12, marginTop: spacing.xs },
+  centered: { alignItems: "center", backgroundColor: colors.canvas, flex: 1, justifyContent: "center", padding: spacing.lg },
+  loadingText: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 13, marginTop: spacing.sm },
   errorText: { color: "#8B3434", fontSize: 15, lineHeight: 22, marginBottom: 16, textAlign: "center" },
   primaryButton: { backgroundColor: "#036564", borderRadius: 10, paddingHorizontal: 18, paddingVertical: 14 },
   primaryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
@@ -226,8 +230,8 @@ const styles = StyleSheet.create({
   emptyTitle: { color: "#0F172A", fontSize: 17, fontWeight: "700" },
   emptyText: { color: "#64748B", fontSize: 14, lineHeight: 21, marginTop: 6, textAlign: "center" },
   footerLoader: { marginVertical: 16 },
-  createDock: { bottom: 16, position: "absolute", right: 20 },
-  createButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 999, height: 50, justifyContent: "center", width: 50 },
+  createDock: { bottom: spacing.md, position: "absolute", right: spacing.md },
+  createButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.pill, height: 54, justifyContent: "center", width: 54, ...shadow.card },
   createButtonPressed: { opacity: 0.82 },
   createButtonText: { color: "#FFFFFF", fontSize: 26, fontWeight: "300", includeFontPadding: false, lineHeight: 30, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
 });

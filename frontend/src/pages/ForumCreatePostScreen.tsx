@@ -12,10 +12,12 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../entities/session";
 import { createForumPost, fetchForumTopics, ForumTopic } from "../shared/api/forumApi";
 import { clearForumDraft, getForumDraft, saveForumDraft } from "../shared/lib/storage/forumDraft";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { colors, fonts, radius, spacing } from "../shared/config/theme";
 
 export function ForumCreatePostScreen() {
   const { token } = useAuth();
@@ -135,9 +137,9 @@ export function ForumCreatePostScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Pressable accessibilityLabel="Voltar para o fórum" accessibilityRole="button" onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>‹ Fórum</Text>
+          <View style={styles.backRow}><Feather name="arrow-left" size={16} color={colors.primary} /><Text style={styles.backText}>Fórum</Text></View>
         </Pressable>
-        <Text style={styles.eyebrow}>COMUNIDADE CONNECTADEV</Text>
+        <Text style={styles.eyebrow}>CONNECTA<Text style={styles.eyebrowStrong}>DEV</Text></Text>
         <Text style={styles.title}>Criar post</Text>
         <Text style={styles.subtitle}>Compartilhe uma dúvida, descoberta ou ideia com a comunidade.</Text>
 
@@ -217,25 +219,27 @@ export function ForumCreatePostScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: "#F8FAFC", flex: 1 },
-  container: { padding: 20, paddingBottom: 40 },
-  backText: { color: "#036564", fontSize: 14, fontWeight: "700", marginBottom: 22 },
-  eyebrow: { alignSelf: "flex-start", backgroundColor: "#E0F2F1", borderRadius: 999, color: "#036564", fontSize: 11, fontWeight: "800", marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  title: { color: "#0F172A", fontSize: 28, fontWeight: "800", marginBottom: 8 },
-  subtitle: { color: "#64748B", fontSize: 14, lineHeight: 21, marginBottom: 24 },
-  label: { color: "#0F172A", fontSize: 14, fontWeight: "700", marginBottom: 8, marginTop: 16 },
+  safeArea: { backgroundColor: colors.canvas, flex: 1 },
+  container: { padding: spacing.lg, paddingBottom: 40 },
+  backRow: { alignItems: "center", flexDirection: "row", gap: spacing.xs, marginBottom: spacing.lg },
+  backText: { color: colors.primary, fontFamily: fonts.sans.semiBold, fontSize: 14 },
+  eyebrow: { color: colors.secondary, fontFamily: fonts.sans.bold, fontSize: 12, letterSpacing: 1.3, marginBottom: spacing.xs },
+  eyebrowStrong: { color: colors.primary },
+  title: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 28, marginBottom: spacing.sm },
+  subtitle: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, lineHeight: 21, marginBottom: spacing.lg },
+  label: { color: colors.textPrimary, fontFamily: fonts.sans.semiBold, fontSize: 14, marginBottom: spacing.sm, marginTop: spacing.md },
   topicLoader: { alignSelf: "flex-start", marginVertical: 12 },
   topicList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  topicOption: { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
-  topicOptionSelected: { backgroundColor: "#E0F2F1", borderColor: "#036564" },
-  topicOptionText: { color: "#64748B", fontSize: 13, fontWeight: "600" },
-  topicOptionTextSelected: { color: "#036564", fontWeight: "800" },
-  input: { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, color: "#0F172A", fontSize: 14, minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  topicOption: { backgroundColor: colors.surface, borderColor: colors.light, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  topicOptionSelected: { backgroundColor: colors.creamSoft, borderColor: colors.primary },
+  topicOptionText: { color: colors.textMuted, fontFamily: fonts.sans.medium, fontSize: 13 },
+  topicOptionTextSelected: { color: colors.primary, fontFamily: fonts.sans.bold },
+  input: { backgroundColor: colors.surface, borderColor: colors.light, borderRadius: radius.md, borderWidth: 1, color: colors.textPrimary, fontFamily: fonts.sans.regular, fontSize: 14, minHeight: 48, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   contentInput: { minHeight: 170 },
   errorText: { color: "#B42318", fontSize: 13, lineHeight: 19, marginTop: 14 },
-  counter: { color: "#64748B", fontSize: 12, marginTop: 6, textAlign: "right" },
-  submitButton: { alignItems: "center", backgroundColor: "#036564", borderRadius: 10, justifyContent: "center", marginTop: 24, minHeight: 50, paddingHorizontal: 18 },
-  submitButtonDisabled: { backgroundColor: "#A7C6C1" },
+  counter: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 12, marginTop: spacing.xs, textAlign: "right" },
+  submitButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.pill, justifyContent: "center", marginTop: spacing.lg, minHeight: 50, paddingHorizontal: spacing.lg },
+  submitButtonDisabled: { backgroundColor: colors.primarySoft },
   submitButtonPressed: { opacity: 0.85 },
-  submitButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  submitButtonText: { color: colors.textOnPrimary, fontFamily: fonts.sans.semiBold, fontSize: 15 },
 });
