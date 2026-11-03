@@ -12,6 +12,7 @@ import { jobsRoutes } from "./modules/jobs/routes/jobs.routes";
 import { infrastructureRoutes } from "./modules/infrastructure/routes/infrastructure.routes";
 import { eventsRoutes } from "./modules/jobsEvents/routes/events.routes";
 import { startEventsSynchronization } from "./modules/jobsEvents/services/eventsScheduler";
+import { forumRoutes } from "./modules/forum/routes/forum.routes";
 
 const app = fastify({ logger: true });
 
@@ -20,7 +21,7 @@ app.register(cors, {
   origin: true, // Allow all origins for mobile dev
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 // Setup Error Handler
@@ -35,6 +36,7 @@ app.register(gamificationRoutes);
 app.register(jobsRoutes);
 app.register(infrastructureRoutes);
 app.register(eventsRoutes);
+app.register(forumRoutes);
 
 // Health check
 app.get("/health", async () => {

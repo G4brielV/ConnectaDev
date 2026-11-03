@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { balancedQuestions } from "./vocationalQuestions";
 import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
 import { publicInfrastructuresSeed } from "./publicInfrastructures";
+import { FORUM_TOPICS } from "../src/modules/forum/constants/forumTopics";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -276,6 +277,23 @@ async function main(): Promise<void> {
     },
     data: { isActive: false },
   });
+
+  for (const [index, forumTopic] of FORUM_TOPICS.entries()) {
+    const topic = await prisma.forumTopic.upsert({
+      where: { slug: forumTopic.slug },
+      update: {
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+      create: {
+        slug: forumTopic.slug,
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+    });
+  }
 
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({

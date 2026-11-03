@@ -20,6 +20,9 @@ import { StreakPage } from '@/pages/streak';
 import { DailyPracticePage } from '@/pages/daily-practice';
 import { TrailLessonScreen } from '@/pages/TrailLessonScreen';
 import { SupportPointsPage } from '@/pages/support-points';
+import { ForumTopicScreen } from '@/pages/ForumTopicScreen';
+import { ForumPostScreen } from '@/pages/ForumPostScreen';
+import { ForumCreatePostScreen } from '@/pages/ForumCreatePostScreen';
 import type { ReviewSubmitResponse } from '@/shared/api/reviewApi';
 import type { QuizAnalysisResult } from '@/shared/api/quizApi';
 import type { ScoreLessonResult } from '@/shared/api/gamificationApi';
@@ -49,6 +52,9 @@ export type RootStackParamList = {
   DailyPractice: undefined;
   SupportPoints: undefined;
   Events: undefined;
+  ForumTopic: { topicId: string; topicTitle: string };
+  ForumPost: { postId: string; topicTitle?: string };
+  ForumCreatePost: { topicId?: string; topicTitle?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -140,6 +146,9 @@ export function RootNavigator() {
             />
             <Stack.Screen name="SupportPoints" component={SupportPointsPage} />
             <Stack.Screen name="Events" component={EventsPage} />
+            <Stack.Screen name="ForumTopic" component={ForumTopicScreen} />
+            <Stack.Screen name="ForumPost" component={ForumPostScreen} />
+            <Stack.Screen name="ForumCreatePost" component={ForumCreatePostScreen} />
           </>
         ) : (
           <>
