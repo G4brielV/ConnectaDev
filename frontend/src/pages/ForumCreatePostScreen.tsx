@@ -42,8 +42,8 @@ export function ForumCreatePostScreen() {
         const availableTopics = await fetchForumTopics(token);
         setTopics(availableTopics);
         const requestedTopic = route.params?.topicId;
-        const requestedTopicExists = availableTopics.some((topic) => topic.id === requestedTopic);
-        setSelectedTopic(requestedTopicExists ? requestedTopic || "" : availableTopics[0]?.id || "");
+        const requestedTopicSlug = availableTopics.find((topic) => topic.id === requestedTopic)?.slug;
+        setSelectedTopic(requestedTopicSlug || availableTopics[0]?.slug || "");
       } catch (error: unknown) {
         setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar os tópicos.");
       } finally {
@@ -112,14 +112,18 @@ export function ForumCreatePostScreen() {
 
     try {
       await createForumPost(token, {
-        topicId: selectedTopic,
+        topicSlug: selectedTopic,
         title: trimmedTitle,
         content: trimmedContent,
         tags: parseTags(tagsText),
       });
       await clearForumDraft();
-      const topic = topics.find((item) => item.id === selectedTopic);
-      navigation.replace("ForumTopic", { topicId: selectedTopic, topicTitle: topic?.title || "Fórum" });
+      const topic = topics.find((item) => item.slug === selectedTopic);
+      if (topic) {
+        navigation.replace("ForumTopic", { topicId: topic.id, topicTitle: topic.title });
+      } else {
+        navigation.goBack();
+      }
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : "Não foi possível publicar o post.");
     } finally {
