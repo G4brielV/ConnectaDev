@@ -1,0 +1,489 @@
+import cron, { type ScheduledTask } from "node-cron";
+import type { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../lib/auth";
+import { categorizeJob } from "./categorizeJob.service";
+
+const JOOBLE_API_URL = "https://br.jooble.org/api";
+const RMR_LOCATION = "Recife, Pernambuco";
+const DEFAULT_CRON_EXPRESSION = "0 3 * * *";
+const DEFAULT_TIMEZONE = "America/Recife";
+const DEFAULT_MAX_PAGES = 2;
+const DEFAULT_BATCH_SIZE = 10;
+const DEFAULT_MAX_JOB_AGE_DAYS = 30;
+
+const CATEGORY_KEYWORDS = {
+  Backend: "estágio junior backend tecnologia",
+  Frontend: "estágio junior frontend tecnologia",
+  Mobile: "estágio junior mobile tecnologia",
+  Dados: "estágio junior dados tecnologia",
+  QA: "estágio junior QA tecnologia",
+} as const;
+
+export type JobCategory = keyof typeof CATEGORY_KEYWORDS;
+
+interface JoobleJob {
+  id: number | string;
+  title: string;
+  location: string;
+  snippet?: string;
+  salary?: string;
+  link: string;
+  company?: string;
+  updated?: string;
+}
+
+interface JoobleResponse {
+  jobs?: JoobleJob[];
+  totalCount?: number;
+}
+
+interface JoobleRequest {
+  keywords: string;
+  location: string;
+  radius: string;
+  page: number;
+  ResultOnPage: number;
+  SearchMode: number;
+  companysearch: boolean;
+}
+
+interface JobsRepository {
+  job: Pick<PrismaClient["job"], "upsert" | "updateMany"> &
+    Partial<Pick<PrismaClient["job"], "findMany">>;
+  $transaction?: <T>(
+    callback: (transactionRepository: JobsRepository) => Promise<T>,
+  ) => Promise<T>;
+}
+
+export interface JoobleIntegrationOptions {
+  apiKey?: string;
+  apiUrl?: string;
+  fetcher?: typeof fetch;
+  repository?: JobsRepository;
+  categories?: readonly JobCategory[];
+  pageSize?: number;
+  maxPages?: number;
+  batchSize?: number;
+  maxJobAgeDays?: number;
+  logger?: Pick<Console, "error" | "info">;
+}
+
+export class JoobleIntegrationService {
+  private readonly apiKey: string;
+  private readonly apiUrl: string;
+  private readonly fetcher: typeof fetch;
+  private readonly repository: JobsRepository;
+  private readonly categories: readonly JobCategory[];
+  private readonly pageSize: number;
+  private readonly maxPages: number;
+  private readonly batchSize: number;
+  private readonly maxJobAgeDays: number;
+  private readonly logger: Pick<Console, "error" | "info">;
+
+  constructor(options: JoobleIntegrationOptions = {}) {
+    this.apiKey = options.apiKey ?? process.env.JOOBLE_API_KEY ?? "";
+    this.apiUrl = options.apiUrl ?? JOOBLE_API_URL;
+    this.fetcher = options.fetcher ?? fetch;
+    this.repository = options.repository ?? prisma;
+    this.categories = options.categories ?? (Object.keys(CATEGORY_KEYWORDS) as JobCategory[]);
+    this.pageSize = options.pageSize ?? 20;
+    this.maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+    this.batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
+    this.maxJobAgeDays = options.maxJobAgeDays ?? DEFAULT_MAX_JOB_AGE_DAYS;
+    this.logger = options.logger ?? console;
+  }
+
+  async synchronize(): Promise<{
+    fetched: number;
+    synchronized: number;
+    inserted: number;
+    updated: number;
+    deactivated: number;
+  }> {
+    if (!this.apiKey) {
+      throw new Error("JOOBLE_API_KEY não configurada.");
+    }
+
+    let fetched = 0;
+    let synchronized = 0;
+    const seenExternalIds = new Set<string>();
+    const jobsByCategory: Array<{ category: JobCategory; jobs: JoobleJob[] }> = [];
+
+    for (const category of this.categories) {
+      let jobs: JoobleJob[];
+      try {
+        jobs = (await this.search(category)).filter((job) =>
+          isRelevantJob(category, job),
+        );
+      } catch (error) {
+        throw new JobSyncError(
+          `Falha ao consultar a categoria ${category}.`,
+          "provider",
+          category,
+          error,
+        );
+      }
+      fetched += jobs.length;
+      jobsByCategory.push({ category, jobs });
+      for (const job of jobs) {
+        seenExternalIds.add(String(job.id));
+      }
+    }
+
+    const allExternalIds = [...new Set(
+      jobsByCategory.flatMap(({ jobs }) => jobs.map((job) => String(job.id))),
+    )];
+    const existingJobs = this.repository.job.findMany
+      ? await this.repository.job.findMany({
+        where: { externalId: { in: allExternalIds } },
+        select: { externalId: true },
+      })
+      : [];
+    const existingExternalIds = new Set(existingJobs.map((job) => job.externalId));
+    let inserted = 0;
+    let updated = 0;
+    let deactivated = 0;
+
+    const applyChanges = async (transactionRepository: JobsRepository): Promise<void> => {
+      for (const { category, jobs } of jobsByCategory) {
+        try {
+          const result = await this.persist(category, jobs, transactionRepository);
+          synchronized += result.processed;
+          inserted += result.inserted;
+          updated += result.updated;
+        } catch (error) {
+          throw new JobSyncError(
+            `Falha ao persistir a categoria ${category}.`,
+            "database",
+            category,
+            error,
+          );
+        }
+      }
+      try {
+        deactivated = await this.expireUnavailableJobs(seenExternalIds, transactionRepository);
+      } catch (error) {
+        throw new JobSyncError(
+          "Falha ao expirar vagas descontinuadas.",
+          "database",
+          undefined,
+          error,
+        );
+      }
+    };
+
+    if (this.repository.$transaction) {
+      await this.repository.$transaction(applyChanges);
+    } else {
+      await applyChanges(this.repository);
+    }
+
+    return { fetched, synchronized, inserted, updated, deactivated };
+  }
+
+  private async search(category: JobCategory): Promise<JoobleJob[]> {
+    const jobs: JoobleJob[] = [];
+    for (let page = 1; page <= this.maxPages; page += 1) {
+      const payload: JoobleRequest = {
+        keywords: CATEGORY_KEYWORDS[category],
+        location: RMR_LOCATION,
+        radius: "40",
+        page,
+        ResultOnPage: this.pageSize,
+        SearchMode: 0,
+        companysearch: false,
+      };
+      const response = await this.fetcher(`${this.apiUrl}/${this.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Jooble retornou HTTP ${response.status} para ${category} (página ${page}).`);
+      }
+
+      const data = (await response.json()) as JoobleResponse;
+      const pageJobs = Array.isArray(data.jobs) ? data.jobs : [];
+      jobs.push(...pageJobs);
+      if (pageJobs.length < this.pageSize || jobs.length >= (data.totalCount ?? jobs.length)) {
+        break;
+      }
+    }
+    return jobs;
+  }
+
+  private async persist(
+    category: JobCategory,
+    jobs: JoobleJob[],
+    repository: JobsRepository,
+  ): Promise<{ processed: number; inserted: number; updated: number }> {
+    const uniqueJobs = deduplicateJobs(jobs);
+    let inserted = 0;
+    let updated = 0;
+
+    for (let index = 0; index < uniqueJobs.length; index += this.batchSize) {
+      const batch = uniqueJobs.slice(index, index + this.batchSize);
+      for (const job of batch) {
+        if (await this.jobExists(repository, String(job.id))) {
+          updated += 1;
+        } else {
+          inserted += 1;
+        }
+      }
+      await Promise.all(batch.map((job) => repository.job.upsert({
+        where: { externalId: String(job.id) },
+        create: {
+          ...categorizeJob(job.title, job.snippet ?? ""),
+          externalId: String(job.id),
+          title: job.title,
+          company: job.company ?? "Empresa não informada",
+          location: job.location,
+          description: job.snippet ?? "",
+          salary: job.salary ?? null,
+          link: job.link,
+          isExpired: false,
+          updatedAt: parseUpdatedAt(job.updated),
+        },
+        update: {
+          ...categorizeJob(job.title, job.snippet ?? ""),
+          title: job.title,
+          company: job.company ?? "Empresa não informada",
+          location: job.location,
+          description: job.snippet ?? "",
+          salary: job.salary ?? null,
+          link: job.link,
+          isExpired: false,
+          updatedAt: parseUpdatedAt(job.updated),
+        },
+      })));
+    }
+
+    return { processed: uniqueJobs.length, inserted, updated };
+  }
+
+  private async jobExists(repository: JobsRepository, externalId: string): Promise<boolean> {
+    if (repository.job.findMany) {
+      const jobs = await repository.job.findMany({
+        where: { externalId },
+        select: { externalId: true },
+        take: 1,
+      });
+      return jobs.length > 0;
+    }
+    return false;
+  }
+
+  private async expireUnavailableJobs(
+    seenExternalIds: ReadonlySet<string>,
+    repository: JobsRepository,
+  ): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - this.maxJobAgeDays);
+    const rmrFilter = [
+      "Recife",
+      "Olinda",
+      "Jaboatão",
+      "Jaboatao",
+      "Paulista",
+      "Camaragibe",
+      "São Lourenço",
+      "Sao Lourenco",
+      "Igarassu",
+      "Abreu e Lima",
+      "Cabo de Santo Agostinho",
+    ].map((city) => ({ location: { contains: city } }));
+
+    const result = await repository.job.updateMany({
+      where: {
+        isExpired: false,
+        OR: rmrFilter,
+        AND: [
+          {
+            OR: [
+              { updatedAt: { lt: cutoff } },
+              ...(seenExternalIds.size > 0
+                ? [{ externalId: { notIn: [...seenExternalIds] } }]
+                : []),
+            ],
+          },
+        ],
+      },
+      data: { isExpired: true },
+    });
+
+    this.logger.info(JSON.stringify({
+      event: "JOB_EXPIRATION_COMPLETED",
+      timestamp: new Date().toISOString(),
+      maxAgeDays: this.maxJobAgeDays,
+      deactivated: result.count,
+    }));
+    return result.count;
+  }
+}
+
+function deduplicateJobs(jobs: readonly JoobleJob[]): JoobleJob[] {
+  const uniqueJobs = new Map<string, JoobleJob>();
+  for (const job of jobs) {
+    uniqueJobs.set(String(job.id), job);
+  }
+  return [...uniqueJobs.values()];
+}
+
+function parseUpdatedAt(value: string | undefined): Date {
+  if (!value) {
+    return new Date();
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+const CATEGORY_TERMS: Record<JobCategory, readonly string[]> = {
+  Backend: ["backend", "back-end", "api", "node", "java", "python", "servidor", "desenvolvimento", "software"],
+  Frontend: ["frontend", "front-end", "react", "angular", "vue", "javascript", "typescript", "web", "desenvolvimento", "software"],
+  Mobile: ["mobile", "android", "ios", "flutter", "react native", "kotlin", "swift", "desenvolvimento", "software"],
+  Dados: ["dados", "data", "python", "sql", "analytics", "pandas", "bi"],
+  QA: ["qa", "teste", "testes", "qualidade", "automação", "automatizacao"],
+};
+
+const EXCLUDED_TERMS = [
+  "administrativ",
+  "bibliotec",
+  "trabalhist",
+  "recepcion",
+  "vendedor",
+  "comercial",
+  "financeir",
+  "contabil",
+  "juridic",
+  "enferm",
+  "marketing",
+];
+
+function isRelevantJob(category: JobCategory, job: JoobleJob): boolean {
+  const title = normalize(job.title);
+  const description = normalize(job.snippet ?? "");
+  const searchableText = `${title} ${description}`;
+
+  if (EXCLUDED_TERMS.some((term) => searchableText.includes(term))) {
+    return false;
+  }
+
+  return CATEGORY_TERMS[category].some((term) =>
+    title.includes(normalize(term)),
+  );
+}
+
+function normalize(value: string): string {
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+class JobSyncError extends Error {
+  constructor(
+    message: string,
+    readonly stage: "provider" | "database",
+    readonly category: JobCategory | undefined,
+    cause: unknown,
+  ) {
+    super(`${message} ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = "JobSyncError";
+  }
+}
+
+export function startJobsSynchronization(
+  service = new JoobleIntegrationService(),
+  logger: Pick<Console, "error" | "info"> = console,
+  options: {
+    cronExpression?: string;
+    timezone?: string;
+    runOnStart?: boolean;
+  } = {},
+): ScheduledTask | undefined {
+  if (!process.env.JOOBLE_API_KEY) {
+    logger.info("Sincronização de vagas desabilitada: JOOBLE_API_KEY não configurada.");
+    return undefined;
+  }
+
+  const cronExpression = options.cronExpression ?? process.env.JOBS_SYNC_CRON ?? DEFAULT_CRON_EXPRESSION;
+  const timezone = options.timezone ?? process.env.JOBS_SYNC_TIMEZONE ?? DEFAULT_TIMEZONE;
+  if (!cron.validate(cronExpression)) {
+    throw new Error(`Expressão cron inválida para sincronização de vagas: ${cronExpression}`);
+  }
+
+  let isRunning = false;
+  const synchronize = async (): Promise<void> => {
+    if (isRunning) {
+      logger.info(JSON.stringify({
+        event: "CRON_JOB_SYNC_SKIPPED",
+        reason: "previous_cycle_running",
+        timestamp: new Date().toISOString(),
+      }));
+      return;
+    }
+
+    isRunning = true;
+    logger.info(JSON.stringify({
+      event: "CRON_JOB_SYNC_STARTED",
+      timestamp: new Date().toISOString(),
+      schedule: cronExpression,
+      timezone,
+      location: RMR_LOCATION,
+      radius: "40",
+      categories: Object.entries(CATEGORY_KEYWORDS).map(([category, keywords]) => ({
+        category,
+        keywords,
+      })),
+    }));
+
+    try {
+      const result = await service.synchronize();
+      logger.info(JSON.stringify({
+        event: "CRON_JOB_SYNC_COMPLETED",
+        timestamp: new Date().toISOString(),
+        fetched: result.fetched,
+        synchronized: result.synchronized,
+      }));
+    } catch (error) {
+      logger.error(JSON.stringify({
+        event: "CRON_JOB_SYNC_ERROR",
+        timestamp: new Date().toISOString(),
+        location: RMR_LOCATION,
+        stage: error instanceof JobSyncError ? error.stage : "unknown",
+        category: error instanceof JobSyncError ? error.category : undefined,
+        error: error instanceof Error ? { name: error.name, message: error.message } : error,
+      }));
+    } finally {
+      isRunning = false;
+    }
+
+  };
+
+  const task = cron.schedule(cronExpression, () => void synchronize(), {
+    timezone,
+  });
+
+  if (options.runOnStart ?? process.env.JOBS_SYNC_RUN_ON_START !== "false") {
+    void synchronize();
+  }
+
+  return task;
+}
+
+export async function synchronizeJobsManually(
+  service = new JoobleIntegrationService(),
+): Promise<{
+  inserted: number;
+  updated: number;
+  deactivated: number;
+}> {
+  const result = await service.synchronize();
+  return {
+    inserted: result.inserted,
+    updated: result.updated,
+    deactivated: result.deactivated,
+  };
+}

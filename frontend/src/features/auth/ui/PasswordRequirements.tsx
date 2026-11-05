@@ -1,30 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { colors, fonts, radius } from '@/shared/config/theme';
+import {
+  PasswordValidationResult,
+  checkPasswordComplexity,
+} from '../model/validation';
 
-export interface PasswordValidationResult {
-  hasMinLength: boolean;
-  hasUppercase: boolean;
-  hasLowercase: boolean;
-  hasNumber: boolean;
-  isValid: boolean;
-}
-
-export function checkPasswordComplexity(password: string): PasswordValidationResult {
-  const hasMinLength = password.length >= 8;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-
-  const isValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
-
-  return {
-    hasMinLength,
-    hasUppercase,
-    hasLowercase,
-    hasNumber,
-    isValid,
-  };
-}
+export { PasswordValidationResult, checkPasswordComplexity };
 
 interface PasswordRequirementsProps {
   validation: PasswordValidationResult;
@@ -32,6 +15,7 @@ interface PasswordRequirementsProps {
   passwordLength: number;
 }
 
+// Pills de feedback em grade 2x2, como na tela "Cadastro Onboarding" do Stitch
 export function PasswordRequirements({
   validation,
   showWhenEmpty = false,
@@ -42,21 +26,22 @@ export function PasswordRequirements({
   }
 
   const items = [
-    { key: 'min', label: 'No mínimo 8 caracteres', met: validation.hasMinLength },
-    { key: 'upper', label: 'Uma letra maiúscula', met: validation.hasUppercase },
-    { key: 'lower', label: 'Uma letra minúscula', met: validation.hasLowercase },
-    { key: 'num', label: 'Um número', met: validation.hasNumber },
+    { key: 'min', label: '8+ caracteres', met: validation.hasMinLength },
+    { key: 'upper', label: 'Maiúscula', met: validation.hasUppercase },
+    { key: 'lower', label: 'Minúscula', met: validation.hasLowercase },
+    { key: 'num', label: 'Número', met: validation.hasNumber },
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Requisitos da senha:</Text>
+    <View style={styles.grid} accessibilityLabel="Requisitos da senha">
       {items.map((item) => (
-        <View key={item.key} style={styles.requirementRow}>
-          <Text style={[styles.icon, item.met ? styles.metIcon : styles.unmetIcon]}>
-            {item.met ? '✓' : '•'}
-          </Text>
-          <Text style={[styles.label, item.met ? styles.metLabel : styles.unmetLabel]}>
+        <View key={item.key} style={[styles.pill, item.met ? styles.pillMet : styles.pillUnmet]}>
+          <Feather
+            name={item.met ? 'check' : 'circle'}
+            size={item.met ? 14 : 8}
+            color={item.met ? colors.primary : colors.textMuted}
+          />
+          <Text style={[styles.label, item.met ? styles.labelMet : styles.labelUnmet]}>
             {item.label}
           </Text>
         </View>
@@ -66,45 +51,36 @@ export function PasswordRequirements({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     marginTop: -8,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  title: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginBottom: 6,
-  },
-  requirementRow: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 2,
+    gap: 6,
+    width: '48.5%',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.sm,
   },
-  icon: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    width: 18,
+  pillMet: {
+    backgroundColor: '#DDF1F0',
   },
-  metIcon: {
-    color: '#10B981',
-  },
-  unmetIcon: {
-    color: '#9CA3AF',
+  pillUnmet: {
+    backgroundColor: colors.creamSoft,
   },
   label: {
-    fontSize: 12,
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
   },
-  metLabel: {
-    color: '#065F46',
-    fontWeight: '500',
+  labelMet: {
+    color: colors.primary,
   },
-  unmetLabel: {
-    color: '#6B7280',
+  labelUnmet: {
+    color: colors.textMuted,
   },
 });

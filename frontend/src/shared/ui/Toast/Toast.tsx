@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { colors, fonts, radius } from '@/shared/config/theme';
 
 export interface ToastProps {
   visible: boolean;
@@ -78,13 +79,13 @@ const styles = StyleSheet.create({
     bottom: 24,
     left: 20,
     right: 20,
-    borderRadius: 8,
+    borderRadius: radius.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
+    shadowColor: colors.dark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -92,18 +93,18 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   errorBg: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.danger,
   },
   infoBg: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.dark,
   },
   successBg: {
-    backgroundColor: '#059669',
+    backgroundColor: colors.success,
   },
   messageText: {
-    color: '#FFFFFF',
+    color: colors.textOnDark,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.sans.medium,
     flex: 1,
     marginRight: 10,
     lineHeight: 20,
@@ -112,9 +113,9 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   closeText: {
-    color: '#FFFFFF',
+    color: colors.textOnDark,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: fonts.sans.bold,
     opacity: 0.8,
   },
 });

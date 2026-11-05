@@ -1,10 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { Toast } from '@/shared/ui/Toast/Toast';
+import { colors, fonts, radius } from '@/shared/config/theme';
+import { sanitizeName } from '@/shared/lib/sanitization';
 import { AuthError } from '../api/authService';
+import {
+  AUTH_INPUT_LIMITS,
+  validateName,
+  validateEmail,
+  validateRegisterPassword,
+} from '../model/validation';
 import { PasswordRequirements, checkPasswordComplexity } from './PasswordRequirements';
 import { ConflictModal } from './ConflictModal';
 
@@ -21,6 +30,7 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Erros de validação inline por campo
@@ -57,27 +67,23 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
     return EMAIL_REGEX.test(email.trim());
   }, [email]);
 
-  // Cenário 2 & 3 & 5: Validação completa do formulário antes do envio
+  // Cenário 2 & 3 & 5: Validação completa do formulário antes do envio (incluindo limites máximos)
   const validateForm = (): boolean => {
     const newErrors: { name?: string; email?: string; password?: string } = {};
 
-    // Validação de Nome (Cenário 2)
-    if (!name.trim()) {
-      newErrors.name = 'Preenchimento obrigatório';
+    const nameError = validateName(name);
+    if (nameError) {
+      newErrors.name = nameError;
     }
 
-    // Validação de E-mail (Cenários 2 e 3)
-    if (!email.trim()) {
-      newErrors.email = 'Preenchimento obrigatório';
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      newErrors.email = 'Informe um e-mail válido';
+    const emailError = validateEmail(email, 'Preenchimento obrigatório');
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    // Validação de Senha (Cenários 2 e 5)
-    if (!password) {
-      newErrors.password = 'Preenchimento obrigatório';
-    } else if (!passwordValidation.isValid) {
-      newErrors.password = 'A senha não cumpre todos os requisitos de segurança';
+    const passwordError = validateRegisterPassword(password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     setErrors(newErrors);
@@ -94,9 +100,9 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Cenário 1: Sanitizar campos (trim nos espaços)
+      // Cenário 1: Sanitizar campos (remover tags HTML/scripts e trim)
       await register({
-        name: name.trim(),
+        name: sanitizeName(name),
         email: email.trim(),
         password,
       });
@@ -143,10 +149,13 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
     }
   };
 
-  // Botão desabilitado se e-mail estiver com formato inválido ou senha não cumprir requisitos (Cenários 3 e 5)
+  // Botão desabilitado se e-mail estiver com formato inválido, limites excedidos ou senha não cumprir requisitos (Cenários 3 e 5)
   const isSubmitDisabled =
-    (email.trim().length > 0 && !isEmailFormatValid) ||
-    (password.length > 0 && !passwordValidation.isValid);
+    (name.trim().length > 0 && name.trim().length > AUTH_INPUT_LIMITS.NAME_MAX_LENGTH) ||
+    (email.trim().length > 0 &&
+      (!isEmailFormatValid || email.trim().length > AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH)) ||
+    (password.length > 0 &&
+      (!passwordValidation.isValid || password.length > AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH));
 
   return (
     <View style={styles.formContainer}>
@@ -158,9 +167,11 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
       {/* Campo: Nome Completo */}
       <Input
-        label="Nome completo"
-        placeholder="Seu nome completo"
+        label="Nome Completo"
+        leftIcon="user"
+        placeholder="Ex: Maria Clara Silva"
         value={name}
+        maxLength={AUTH_INPUT_LIMITS.NAME_MAX_LENGTH}
         onChangeText={(text) => {
           setName(text);
           if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
@@ -173,9 +184,11 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
       {/* Campo: E-mail */}
       <Input
-        label="E-mail"
+        label="E-mail de Acesso"
+        leftIcon="mail"
         placeholder="seu.email@exemplo.com"
         value={email}
+        maxLength={AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH}
         onChangeText={(text) => {
           setEmail(text);
           if (errors.email) {
@@ -195,9 +208,11 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
 
       {/* Campo: Senha */}
       <Input
-        label="Senha"
+        label="Senha de Acesso"
+        leftIcon="lock"
         placeholder="Crie uma senha forte"
         value={password}
+        maxLength={AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH}
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) {
@@ -205,9 +220,20 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
           }
           if (apiError) setApiError(null);
         }}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         autoCapitalize="none"
         error={errors.password}
+        rightAccessory={
+          <Pressable
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={8}
+            style={styles.toggleButton}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+          </Pressable>
+        }
       />
 
       {/* Indicadores visuais de requisitos da senha (TT-60 / Cenário 5) */}
@@ -217,9 +243,21 @@ export function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         showWhenEmpty={false}
       />
 
+      {/* Banner da comunidade regional (design Stitch) */}
+      <View style={styles.communityBanner}>
+        <Feather name="users" size={24} color={colors.secondary} />
+        <View style={styles.communityTexts}>
+          <Text style={styles.communityTitle}>Comunidade Ativa</Text>
+          <Text style={styles.communitySubtitle}>
+            Mais de 1.400 estudantes trocando dúvidas de SSA e algoritmos hoje.
+          </Text>
+        </View>
+      </View>
+
       {/* Botão de Criação de Conta (TT-56) */}
       <Button
-        title="Criar Conta"
+        title="Criar Conta e Iniciar Jornada"
+        rightIcon="arrow-right"
         onPress={handleRegister}
         loading={isSubmitting}
         disabled={isSubmitDisabled}
@@ -252,20 +290,47 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FDF3F2',
     borderWidth: 1,
-    borderColor: '#F87171',
-    borderRadius: 8,
+    borderColor: colors.danger,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
   errorBannerText: {
-    color: '#B91C1C',
+    color: colors.danger,
+    fontFamily: fonts.sans.medium,
     fontSize: 14,
     textAlign: 'center',
-    fontWeight: '500',
+  },
+  toggleButton: {
+    padding: 4,
+  },
+  communityBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.light,
+    borderRadius: radius.lg,
+    padding: 12,
+    marginBottom: 16,
+  },
+  communityTexts: {
+    flex: 1,
+  },
+  communityTitle: {
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 13,
+    color: colors.secondary,
+  },
+  communitySubtitle: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.secondary,
+    marginTop: 2,
   },
   submitButton: {
-    marginTop: 8,
+    marginTop: 0,
   },
 });

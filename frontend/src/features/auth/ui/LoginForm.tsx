@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
+import { colors, fonts, radius } from '@/shared/config/theme';
 import { AuthError } from '../api/authService';
+import {
+  AUTH_INPUT_LIMITS,
+  validateEmail,
+  validateLoginPassword,
+} from '../model/validation';
 
 export interface LoginFormProps {
   initialEmail?: string;
 }
-
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   const { login } = useAuth();
 
   const [email, setEmail] = useState(initialEmail || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
@@ -29,20 +35,18 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   // Erro geral retornado pela API (ex: 401)
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // TT-52: Validação de campos
+  // TT-52: Validação de campos (incluindo limites máximos)
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'Informe o seu e-mail';
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      newErrors.email = 'Informe um e-mail válido';
+    const emailError = validateEmail(email, 'Informe o seu e-mail');
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    if (!password) {
-      newErrors.password = 'Informe sua senha';
-    } else if (password.length < 6) {
-      newErrors.password = 'A senha deve conter no mínimo 6 caracteres';
+    const passwordError = validateLoginPassword(password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     setErrors(newErrors);
@@ -81,8 +85,10 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
       <Input
         label="E-mail"
-        placeholder="seu.email@exemplo.com"
+        leftIcon="at-sign"
+        placeholder="estudante@exemplo.com"
         value={email}
+        maxLength={AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH}
         onChangeText={(text) => {
           setEmail(text);
           if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
@@ -96,20 +102,34 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
 
       <Input
         label="Senha"
-        placeholder="Sua senha secreta"
+        leftIcon="lock"
+        placeholder="••••••••"
         value={password}
+        maxLength={AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH}
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
           if (apiError) setApiError(null);
         }}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         autoCapitalize="none"
         error={errors.password}
+        rightAccessory={
+          <Pressable
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={8}
+            style={styles.toggleButton}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+          </Pressable>
+        }
       />
 
       <Button
-        title="Entrar"
+        title="Entrar na Minha Conta"
+        rightIcon="arrow-right"
         onPress={handleLogin}
         loading={isSubmitting}
         style={styles.submitButton}
@@ -123,20 +143,23 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FDF3F2',
     borderWidth: 1,
-    borderColor: '#F87171',
-    borderRadius: 8,
+    borderColor: colors.danger,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
   errorBannerText: {
-    color: '#B91C1C',
+    color: colors.danger,
+    fontFamily: fonts.sans.medium,
     fontSize: 14,
     textAlign: 'center',
-    fontWeight: '500',
+  },
+  toggleButton: {
+    padding: 4,
   },
   submitButton: {
-    marginTop: 8,
+    marginTop: 4,
   },
 });

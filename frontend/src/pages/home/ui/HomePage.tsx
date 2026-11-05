@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { Pressable, View, Text, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,6 +10,7 @@ import { LogoutConfirmationModal } from '@/features/auth';
 import { useGamification } from '@/entities/gamification';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
 import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
+import { StreakCard } from './StreakCard';
 
 export function HomePage() {
   const { user, logout, token } = useAuth();
@@ -41,7 +44,7 @@ export function HomePage() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Pressable accessibilityRole="button" onPress={() => setIsLogoutModalVisible(true)}>
@@ -52,6 +55,11 @@ export function HomePage() {
           </View>
         </View>
         <XpProgressBar />
+        <StreakCard
+          currentStreak={summary?.currentStreak ?? null}
+          longestStreak={summary?.longestStreak ?? null}
+          onPress={() => navigation.navigate('Streak')}
+        />
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE ✨</Text>
           <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
@@ -64,11 +72,27 @@ export function HomePage() {
           <View style={styles.chips}>
             <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
             <Text style={styles.chip}>💼 Vagas locais</Text>
-            <Text style={styles.chip}>
-              {summary ? `🔥 Ofensiva: ${summary.currentStreak}` : '🏆 Seu perfil'}
-            </Text>
           </View>
         </View>
+
+        {/* Card de Pontos de Apoio Públicos com Wi-Fi */}
+        <Pressable
+          style={styles.supportPointsCard}
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('SupportPoints')}
+        >
+          <View style={styles.supportPointsIconContainer}>
+            <Feather name="map-pin" size={22} color="#036564" />
+          </View>
+          <View style={styles.supportPointsTexts}>
+            <Text style={styles.supportPointsTitle}>Pontos de Apoio na RMR</Text>
+            <Text style={styles.supportPointsSubtitle}>
+              Wi-Fi gratuito, computadores e locais de estudo próximos.
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={20} color="#6B7280" />
+        </Pressable>
+
         <View style={styles.footer}>
           <Pressable
             accessibilityRole="button"
@@ -173,4 +197,37 @@ const styles = StyleSheet.create({
   trailsButtonText: { color: '#031634', fontSize: 15, fontWeight: '800' },
   logoutButton: { alignItems: 'center', paddingVertical: 12 },
   logoutText: { color: '#60717A', fontSize: 14 },
+  supportPointsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E8DDCB',
+    gap: 12,
+  },
+  supportPointsIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E8F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supportPointsTexts: {
+    flex: 1,
+  },
+  supportPointsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#031634',
+    marginBottom: 2,
+  },
+  supportPointsSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
+  },
 });

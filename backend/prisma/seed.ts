@@ -2,251 +2,14 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+import { balancedQuestions } from "./vocationalQuestions";
+import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
+import { publicInfrastructuresSeed } from "./publicInfrastructures";
+import { FORUM_TOPICS } from "../src/modules/forum/constants/forumTopics";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
-
-const questions = [
-  {
-    statement: "Quando você se depara com um problema que não sabe resolver, qual costuma ser sua primeira reação?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 1,
-    options: [
-      {
-        id: "A",
-        label: "Tento entender o problema por partes até encontrar uma possível solução.",
-      },
-      {
-        id: "B",
-        label: "Procuro informações e referências para entender melhor a situação.",
-      },
-      {
-        id: "C",
-        label: "Experimento diferentes possibilidades até descobrir o que funciona.",
-      },
-      {
-        id: "D",
-        label: "Observo o cenário como um todo antes de decidir por onde começar.",
-      },
-    ],
-  },
-
-  {
-    statement: "Que tipo de atividade tende a prender mais a sua atenção?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 2,
-    options: [
-      {
-        id: "A",
-        label: "Encontrar padrões ou relações que não são imediatamente evidentes.",
-      },
-      {
-        id: "B",
-        label: "Criar algo novo a partir de uma ideia.",
-      },
-      {
-        id: "C",
-        label: "Investigar por que algo não está funcionando como deveria.",
-      },
-      {
-        id: "D",
-        label: "Organizar informações e transformar uma situação complexa em algo mais simples.",
-      },
-    ],
-  },
-
-  {
-    statement: "Imagine que você recebeu uma tarefa com várias formas possíveis de ser realizada. Como você prefere agir?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 3,
-    options: [
-      {
-        id: "A",
-        label: "Escolho uma abordagem e começo a testar rapidamente.",
-      },
-      {
-        id: "B",
-        label: "Analiso as alternativas antes de escolher a que parece mais adequada.",
-      },
-      {
-        id: "C",
-        label: "Busco uma maneira de tornar o processo mais rápido ou automático.",
-      },
-      {
-        id: "D",
-        label: "Procuro entender como a escolha pode afetar as outras partes do trabalho.",
-      },
-    ],
-  },
-
-  {
-    statement: "Qual situação costuma despertar mais sua curiosidade?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 4,
-    options: [
-      {
-        id: "A",
-        label: "Entender como algo funciona por trás do que é apresentado.",
-      },
-      {
-        id: "B",
-        label: "Descobrir o motivo de algo apresentar um comportamento inesperado.",
-      },
-      {
-        id: "C",
-        label: "Entender o que os dados ou informações de uma situação podem revelar.",
-      },
-      {
-        id: "D",
-        label: "Imaginar como uma solução poderia ser diferente ou melhor.",
-      },
-    ],
-  },
-
-  {
-    statement: "Como você costuma lidar com tarefas que exigem bastante atenção aos detalhes?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 5,
-    options: [
-      {
-        id: "A",
-        label: "Gosto de revisar cuidadosamente para evitar pequenos erros.",
-      },
-      {
-        id: "B",
-        label: "Consigo me concentrar nos detalhes quando eles são importantes para o resultado.",
-      },
-      {
-        id: "C",
-        label: "Prefiro entender primeiro a ideia geral e depois olhar os detalhes necessários.",
-      },
-      {
-        id: "D",
-        label: "Tento encontrar formas de reduzir a quantidade de trabalho manual envolvida.",
-      },
-    ],
-  },
-
-  {
-    statement: "Quando você precisa aprender algo completamente novo, qual abordagem combina mais com você?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 6,
-    options: [
-      {
-        id: "A",
-        label: "Prefiro entender os conceitos antes de começar a praticar.",
-      },
-      {
-        id: "B",
-        label: "Aprendo melhor colocando a mão na massa e experimentando.",
-      },
-      {
-        id: "C",
-        label: "Costumo pesquisar diferentes fontes até construir minha própria compreensão.",
-      },
-      {
-        id: "D",
-        label: "Prefiro aprender através de exemplos e situações práticas.",
-      },
-    ],
-  },
-
-  {
-    statement: "Em um projeto em equipe, qual tipo de contribuição você naturalmente tende a assumir?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 7,
-    options: [
-      {
-        id: "A",
-        label: "Pensar em como transformar ideias em algo concreto.",
-      },
-      {
-        id: "B",
-        label: "Analisar informações e ajudar o grupo a tomar decisões.",
-      },
-      {
-        id: "C",
-        label: "Identificar possíveis problemas antes que eles aconteçam.",
-      },
-      {
-        id: "D",
-        label: "Organizar tarefas, processos e dependências entre as atividades.",
-      },
-    ],
-  },
-
-  {
-    statement: "Se você pudesse melhorar alguma coisa em um processo que utiliza frequentemente, o que provavelmente faria?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 8,
-    options: [
-      {
-        id: "A",
-        label: "Tentaria simplificar a experiência para quem utiliza o processo.",
-      },
-      {
-        id: "B",
-        label: "Tentaria eliminar etapas desnecessárias.",
-      },
-      {
-        id: "C",
-        label: "Procuraria formas de automatizar parte do processo.",
-      },
-      {
-        id: "D",
-        label: "Analisaria os resultados para descobrir onde estão os principais problemas.",
-      },
-    ],
-  },
-
-  {
-    statement: "Qual dessas situações provavelmente seria mais interessante para você resolver?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 9,
-    options: [
-      {
-        id: "A",
-        label: "Uma situação em que existem muitas informações diferentes e é preciso encontrar o que realmente importa.",
-      },
-      {
-        id: "B",
-        label: "Uma situação em que algo apresenta falhas e ninguém sabe exatamente a causa.",
-      },
-      {
-        id: "C",
-        label: "Uma situação em que é necessário criar uma solução que ainda não existe.",
-      },
-      {
-        id: "D",
-        label: "Uma situação em que várias partes precisam funcionar juntas de maneira confiável.",
-      },
-    ],
-  },
-
-  {
-    statement: "Pensando em uma carreira na área de tecnologia, qual tipo de resultado provavelmente traria mais satisfação para você?",
-    type: "MULTIPLE_CHOICE",
-    sequence: 10,
-    options: [
-      {
-        id: "A",
-        label: "Criar uma solução que facilite ou transforme a forma como as pessoas realizam alguma atividade.",
-      },
-      {
-        id: "B",
-        label: "Descobrir algo importante a partir de informações que inicialmente pareciam desconectadas.",
-      },
-      {
-        id: "C",
-        label: "Fazer com que um sistema ou processo funcione de maneira confiável e eficiente.",
-      },
-      {
-        id: "D",
-        label: "Encontrar e solucionar problemas que poderiam comprometer o funcionamento de algo.",
-      },
-    ],
-  },
-] as const;
+const questions = balancedQuestions;
 
 /**
  * Replace the `externalUrl` values with the final course or playlist links.
@@ -365,75 +128,6 @@ const courses = [
 ] as const;
 
 const trails = [
-  {
-    title: "Fundamentos de Desenvolvimento Web",
-    description: "Aprenda os conceitos iniciais para construir páginas web.",
-    area: "Desenvolvimento de Software",
-    lessons: [
-      {
-        title: "Primeiros conceitos da Web",
-        sequence: 1,
-        xpReward: 50,
-        questions: [
-          {
-            statement: "Qual tecnologia define a estrutura de uma página web?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 1,
-            options: [
-              { id: "A", label: "HTML" },
-              { id: "B", label: "SQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual tecnologia é usada principalmente para estilizar uma página?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 2,
-            options: [
-              { id: "A", label: "CSS" },
-              { id: "B", label: "PostgreSQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual linguagem adiciona interatividade às páginas web?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 3,
-            options: [
-              { id: "A", label: "JavaScript" },
-              { id: "B", label: "HTML" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual elemento HTML representa um título principal?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 4,
-            options: [
-              { id: "A", label: "<h1>" },
-              { id: "B", label: "<main-title>" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-          {
-            statement: "Qual tecnologia é executada normalmente no navegador?",
-            type: "MULTIPLE_CHOICE",
-            sequence: 5,
-            options: [
-              { id: "A", label: "JavaScript" },
-              { id: "B", label: "PostgreSQL" },
-            ],
-            validation: null,
-            correctAnswer: "A",
-          },
-        ],
-      },
-    ],
-  },
   {
     title: "Fundamentos de Dados e IA",
     description: "Conheça conceitos básicos de dados, modelos e inteligência artificial.",
@@ -575,6 +269,32 @@ const trails = [
 ] as const;
 
 async function main(): Promise<void> {
+  await prisma.quizQuestion.updateMany({
+    where: {
+      sequence: {
+        notIn: balancedQuestions.map((question) => question.sequence),
+      },
+    },
+    data: { isActive: false },
+  });
+
+  for (const [index, forumTopic] of FORUM_TOPICS.entries()) {
+    const topic = await prisma.forumTopic.upsert({
+      where: { slug: forumTopic.slug },
+      update: {
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+      create: {
+        slug: forumTopic.slug,
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+    });
+  }
+
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
       where: { sequence: question.sequence },
@@ -728,6 +448,95 @@ async function main(): Promise<void> {
     });
   }
 
+  // Mapa de fases: trilha -> unidades -> fases -> recursos.
+  for (const track of learningTracks) {
+    const existing = await prisma.trail.findFirst({
+      where: { title: track.title },
+      select: { id: true },
+    });
+
+    const trailRecord = existing
+      ? await prisma.trail.update({
+          where: { id: existing.id },
+          data: { description: track.description, area: track.area, isActive: true },
+        })
+      : await prisma.trail.create({
+          data: {
+            title: track.title,
+            description: track.description,
+            area: track.area,
+            isActive: true,
+          },
+        });
+
+    // `sequence` da fase e global na trilha: define a ordem de desbloqueio.
+    let phaseSequence = 0;
+
+    for (const [unitIndex, unit] of track.units.entries()) {
+      const unitSequence = unitIndex + 1;
+      const existingUnit = await prisma.trailUnit.findFirst({
+        where: { trailId: trailRecord.id, sequence: unitSequence },
+        select: { id: true },
+      });
+
+      const unitRecord = existingUnit
+        ? await prisma.trailUnit.update({
+            where: { id: existingUnit.id },
+            data: { title: unit.title, isActive: true },
+          })
+        : await prisma.trailUnit.create({
+            data: {
+              trailId: trailRecord.id,
+              title: unit.title,
+              sequence: unitSequence,
+              isActive: true,
+            },
+          });
+
+      for (const phase of unit.phases) {
+        phaseSequence += 1;
+
+        const existingPhase = await prisma.trailLesson.findFirst({
+          where: { trailId: trailRecord.id, sequence: phaseSequence },
+          select: { id: true },
+        });
+
+        const phaseData = {
+          unitId: unitRecord.id,
+          title: phase.title,
+          description: phase.description,
+          kind: phase.kind,
+          tags: phase.tags,
+          xpReward: XP_BY_KIND[phase.kind],
+          passingScore: PASSING_BY_KIND[phase.kind],
+          isActive: true,
+        };
+
+        const phaseRecord = existingPhase
+          ? await prisma.trailLesson.update({ where: { id: existingPhase.id }, data: phaseData })
+          : await prisma.trailLesson.create({
+              data: { ...phaseData, trailId: trailRecord.id, sequence: phaseSequence },
+            });
+
+        // Recursos sao reescritos a cada seed; as questoes geradas pela IA nao sao tocadas.
+        await prisma.trailLessonResource.deleteMany({ where: { lessonId: phaseRecord.id } });
+
+        for (const [resourceIndex, resource] of phase.resources.entries()) {
+          await prisma.trailLessonResource.create({
+            data: {
+              lessonId: phaseRecord.id,
+              title: resource.title,
+              url: resource.url,
+              provider: resource.provider,
+              kind: resource.kind,
+              sequence: resourceIndex + 1,
+            },
+          });
+        }
+      }
+    }
+  }
+
   for (const trail of trails) {
     const existingTrail = await prisma.trail.findFirst({
       where: { title: trail.title },
@@ -788,8 +597,26 @@ async function main(): Promise<void> {
     }
   }
 
+  // Carga dos pontos de apoio e infraestrutura pública da RMR
+  for (const item of publicInfrastructuresSeed) {
+    const existing = await prisma.publicInfrastructure.findFirst({
+      where: { name: item.name, city: item.city },
+    });
+
+    if (existing) {
+      await prisma.publicInfrastructure.update({
+        where: { id: existing.id },
+        data: item,
+      });
+    } else {
+      await prisma.publicInfrastructure.create({
+        data: item,
+      });
+    }
+  }
+
   console.log(
-    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} trails, and ${reviewQuestions.length} review questions.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} legacy trails, ${learningTracks.length} phase map(s) with ${learningTracks.reduce((total, track) => total + track.units.length, 0)} units, ${reviewQuestions.length} review questions, and ${publicInfrastructuresSeed.length} public infrastructure points.`,
   );
 }
 

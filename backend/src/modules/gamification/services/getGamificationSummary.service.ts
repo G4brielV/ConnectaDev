@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/auth";
 import { LEVEL_NAME } from "../constants/xpLevel";
+import { effectiveStreak } from "./streakRules";
 
 export interface GamificationSummary {
   totalXp: number;
@@ -45,6 +46,7 @@ const defaultRepository: GamificationSummaryRepository = {
 export async function getGamificationSummaryService(
   userId: string,
   repository: GamificationSummaryRepository = defaultRepository,
+  now: Date = new Date(),
 ): Promise<GamificationSummary> {
   const [gamification, completedReviews] = await Promise.all([
     repository.findGamification(userId),
@@ -55,7 +57,12 @@ export async function getGamificationSummaryService(
     totalXp: gamification?.totalXp ?? 0,
     currentLevel: gamification?.currentLevel ?? 1,
     levelName: LEVEL_NAME,
-    currentStreak: gamification?.currentStreak ?? 0,
+    // A ofensiva gravada só é zerada na próxima atividade; aqui já sai a efetiva.
+    currentStreak: effectiveStreak(
+      gamification?.currentStreak ?? 0,
+      gamification?.lastActivityDate ?? null,
+      now,
+    ),
     longestStreak: gamification?.longestStreak ?? 0,
     lastActivityDate: gamification?.lastActivityDate?.toISOString() ?? null,
     completedReviews,

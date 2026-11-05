@@ -2,7 +2,8 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { auth, ensureDevelopmentUser } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { ScoreLessonRequest } from "../schemas/scoreLesson.schema";
-import { scoreLesson } from "../services/scoreLesson.service";
+import { PhaseLockedError, scoreLesson } from "../services/scoreLesson.service";
+import { InvalidExamAnswersError } from "../services/phaseExam";
 
 export async function scoreLessonController(
   request: FastifyRequest<ScoreLessonRequest>,
@@ -20,7 +21,12 @@ export async function scoreLessonController(
   }
 
   const answers = request.body?.answers;
-  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+  if (
+    !answers ||
+    typeof answers !== "object" ||
+    Array.isArray(answers) ||
+    Object.values(answers).some((optionId) => typeof optionId !== "string")
+  ) {
     throw new AppError("As respostas da lição são obrigatórias.", 400);
   }
 
@@ -31,6 +37,14 @@ export async function scoreLessonController(
   } catch (error) {
     if (error instanceof Error && error.message === "Lição não encontrada.") {
       throw new AppError(error.message, 404);
+    }
+
+    if (error instanceof PhaseLockedError) {
+      throw new AppError(error.message, 403);
+    }
+
+    if (error instanceof InvalidExamAnswersError) {
+      throw new AppError(error.message, 400);
     }
 
     if (error instanceof Error && error.message === "A lição não possui perguntas ativas.") {

@@ -5,6 +5,7 @@ export type QuizQuestionType = "MULTIPLE_CHOICE" | "OPEN_TEXT";
 export interface QuizOption {
   id: string;
   label: string;
+  targetArea?: string;
 }
 
 export interface QuizQuestion {
@@ -80,6 +81,38 @@ export async function fetchQuizQuestions(
     options: question.options,
     validation: question.validation,
   }));
+}
+
+export interface QuizDiagnosisStatus {
+  completed: boolean;
+  areaPrincipal: string | null;
+  tecnologiasSugeridas: string[];
+}
+
+// Diz se o usuário já concluiu o Quiz Vocacional (decide o onboarding pós-cadastro)
+export async function fetchQuizDiagnosis(
+  token: string,
+): Promise<QuizDiagnosisStatus> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const response = await fetch(`${API_URL}/api/quiz/diagnosis`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+
+  if (!response.ok) {
+    throw new Error(
+      response.status === 401
+        ? "Sua sessão não é válida. Faça login para continuar."
+        : "Não foi possível consultar seu diagnóstico vocacional.",
+    );
+  }
+
+  return (await response.json()) as QuizDiagnosisStatus;
 }
 
 export async function submitQuiz(

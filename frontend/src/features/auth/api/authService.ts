@@ -3,6 +3,7 @@ import { apiClient } from '@/shared/api/apiClient';
 import { tokenStorage } from '@/shared/lib/storage/tokenStorage';
 import { AuthResponse, LoginCredentials } from '@/entities/session/model/types';
 import { normalizeApiError } from '@/shared/lib/errors';
+import { sanitizeName } from '@/shared/lib/sanitization';
 
 export class AuthError extends Error {
   public readonly statusCode?: number;
@@ -23,7 +24,6 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
       email: credentials.email.trim(),
       password: credentials.password,
     });
-
     const data = response.data;
 
     // Extrai o token e usuário da resposta do Better Auth
@@ -72,6 +72,15 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthR
   }
 }
 
+export async function getCurrentSessionUser(): Promise<AuthResponse["user"] | null> {
+  try {
+    const response = await apiClient.get("/api/auth/get-session");
+    return response.data?.user || null;
+  } catch {
+    return null;
+  }
+}
+
 // TT-56 a TT-61: Serviço de requisição de cadastro
 export async function registerRequest(credentials: {
   name: string;
@@ -80,7 +89,7 @@ export async function registerRequest(credentials: {
 }): Promise<AuthResponse> {
   try {
     const response = await apiClient.post('/auth/register', {
-      name: credentials.name.trim(),
+      name: sanitizeName(credentials.name),
       email: credentials.email.trim(),
       password: credentials.password,
     });
@@ -99,7 +108,7 @@ export async function registerRequest(credentials: {
     const user = data?.user || {
       id: data?.id || 'new-user',
       email: credentials.email.trim(),
-      name: credentials.name.trim(),
+      name: sanitizeName(credentials.name),
     };
 
     if (!token) {

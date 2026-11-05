@@ -5,12 +5,13 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "prisma generate && tsc --noEmit",
-    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts",
+    "test": "prisma generate && tsc --noEmit && vitest",
+    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts test/forum.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "trails:exams": "tsx scripts/generatePhaseExams.ts"
   },
   "keywords": [],
   "author": "",
@@ -22,19 +23,23 @@
     "@prisma/client": "^7.10.0",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.7.2",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.1",
+    "node-cron": "^4.6.0",
     "pg": "^8.23.0",
+    "puppeteer": "^25.15.0",
     "resend": "^6.26.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.28.2",
