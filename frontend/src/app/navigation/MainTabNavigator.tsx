@@ -8,10 +8,12 @@ import { HomePage } from '@/pages/home';
 import { TrailMapPage } from '@/pages/trail-map';
 import { CoursesScreen } from '@/pages/CoursesScreen';
 import { JobsScreen } from '@/pages/JobsScreen';
+import { ForumScreen } from '@/pages/ForumScreen';
 import { colors, fonts } from '@/shared/config/theme';
 import type { RootStackParamList } from './RootNavigator';
+import { EventsPage } from '@/pages/events/ui/EventsPage';
 
-export type MainTabType = 'trail' | 'courses' | 'jobs' | 'profile';
+export type MainTabType = 'trail' | 'courses' | 'jobs' | 'events' | 'forum' | 'profile';
 
 interface TabContextType {
   activeTab: MainTabType;
@@ -37,6 +39,8 @@ const TABS: TabItem[] = [
   { id: 'trail', label: 'Trilha', icon: 'map' },
   { id: 'courses', label: 'Cursos', icon: 'book-open' },
   { id: 'jobs', label: 'Vagas', icon: 'briefcase' },
+  { id: 'events', label: 'Eventos', icon: 'calendar' },
+  { id: 'forum', label: 'Fórum', icon: 'message-circle' },
   { id: 'profile', label: 'Perfil', icon: 'user' },
 ];
 
@@ -64,6 +68,12 @@ export function MainTabNavigator() {
           </View>
           <View style={[styles.screenWrapper, activeTab === 'jobs' ? styles.screenActive : styles.screenHidden]}>
             <JobsScreen />
+          </View>
+          <View style={[styles.screenWrapper, activeTab === 'events' ? styles.screenActive : styles.screenHidden]}>
+            <EventsPage />
+          </View>
+          <View style={[styles.screenWrapper, activeTab === 'forum' ? styles.screenActive : styles.screenHidden]}>
+            <ForumScreen />
           </View>
           <View style={[styles.screenWrapper, activeTab === 'profile' ? styles.screenActive : styles.screenHidden]}>
             <HomePage />

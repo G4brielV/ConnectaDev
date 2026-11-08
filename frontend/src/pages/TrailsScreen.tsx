@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../entities/session";
@@ -34,47 +35,50 @@ export function TrailsScreen() {
   if (isLoading) return <ActivityIndicator style={styles.centered} color="#036564" />;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <XpProgressBar />
-      <Pressable accessibilityRole="button" onPress={() => navigation.goBack()}>
-        <Text style={styles.back}>‹ Voltar</Text>
-      </Pressable>
-      <Text style={styles.eyebrow}>TRILHAS PERSONALIZADAS</Text>
-      <Text style={styles.title}>Seu próximo passo na tecnologia</Text>
-      <Text style={styles.subtitle}>Selecionamos até 3 trilhas com base na sua área principal do Quiz Vocacional.</Text>
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      {!errorMessage && trails.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Nenhuma trilha disponível para seu perfil.</Text>
-          <Text style={styles.emptyText}>Conclua o Quiz Vocacional ou aguarde novas trilhas da sua área.</Text>
-        </View>
-      ) : null}
-      {trails.map((trail) => (
-        <View key={trail.id} style={styles.card}>
-          <Text style={styles.area}>{trail.area ?? "TRILHA CONNECTADEV"}</Text>
-          <Text style={styles.cardTitle}>{trail.title}</Text>
-          {trail.description ? <Text style={styles.description}>{trail.description}</Text> : null}
-          {trail.lessons.map((lesson) => (
-            <Pressable
-              accessibilityRole="button"
-              key={lesson.id}
-              onPress={() => navigation.navigate("TrailLesson", { lessonId: lesson.id })}
-              style={styles.lesson}
-            >
-              <View>
-                <Text style={styles.lessonTitle}>Lição {lesson.sequence}: {lesson.title}</Text>
-                <Text style={styles.lessonMeta}>{lesson.questions.length} perguntas · +{lesson.xpReward} XP</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </Pressable>
-          ))}
-        </View>
-      ))}
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <XpProgressBar />
+        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>‹ Voltar</Text>
+        </Pressable>
+        <Text style={styles.eyebrow}>TRILHAS PERSONALIZADAS</Text>
+        <Text style={styles.title}>Seu próximo passo na tecnologia</Text>
+        <Text style={styles.subtitle}>Selecionamos até 3 trilhas com base na sua área principal do Quiz Vocacional.</Text>
+        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        {!errorMessage && trails.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>Nenhuma trilha disponível para seu perfil.</Text>
+            <Text style={styles.emptyText}>Conclua o Quiz Vocacional ou aguarde novas trilhas da sua área.</Text>
+          </View>
+        ) : null}
+        {trails.map((trail) => (
+          <View key={trail.id} style={styles.card}>
+            <Text style={styles.area}>{trail.area ?? "TRILHA CONNECTADEV"}</Text>
+            <Text style={styles.cardTitle}>{trail.title}</Text>
+            {trail.description ? <Text style={styles.description}>{trail.description}</Text> : null}
+            {trail.lessons.map((lesson) => (
+              <Pressable
+                accessibilityRole="button"
+                key={lesson.id}
+                onPress={() => navigation.navigate("TrailLesson", { lessonId: lesson.id })}
+                style={styles.lesson}
+              >
+                <View>
+                  <Text style={styles.lessonTitle}>Lição {lesson.sequence}: {lesson.title}</Text>
+                  <Text style={styles.lessonMeta}>{lesson.questions.length} perguntas · +{lesson.xpReward} XP</Text>
+                </View>
+                <Text style={styles.arrow}>›</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { backgroundColor: "#F9F8F5", flex: 1 },
   container: { backgroundColor: "#F9F8F5", flexGrow: 1, gap: 14, padding: 20 },
   centered: { flex: 1 },
   back: { color: "#036564", fontSize: 15, fontWeight: "700" },

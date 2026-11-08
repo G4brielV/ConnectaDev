@@ -42,8 +42,10 @@ As tabelas de negócio atualmente implementadas são:
 - `user_trail_progress`
 - `trail_practice_sessions`
 - `trail_practice_items`
+- `forum_posts`
+- `forum_comments`
 
-Não fazem parte do schema atual tabelas de desafios de código, fórum, eventos, vagas ou
+Não fazem parte do schema atual tabelas de desafios de código, eventos, vagas ou
 infraestrutura pública.
 
 ---
@@ -72,12 +74,28 @@ erDiagram
     user ||--o{ knowledge_review_sessions : "realiza"
     topics ||--o{ knowledge_review_questions : "contém"
     topics ||--o{ knowledge_review_sessions : "é avaliado"
+    user ||--o{ forum_posts : "publica"
+    user ||--o{ forum_comments : "comenta"
+    forum_posts ||--o{ forum_comments : "recebe"
 ```
 
 `quiz_questions`, `verification` e `jwks` são tabelas independentes no schema
 atual. O diagnóstico é associado ao usuário por uma relação 1:1, e os favoritos
 formam uma relação N:N entre `user` e `courses`, materializada por
 `user_course_bookmarks`.
+
+### Fórum
+
+`forum_posts` e `forum_comments` usam `status` (`PUBLISHED` ou `REMOVED`) e
+`deleted_at` para exclusão lógica. Posts e comentários removidos não aparecem
+nas consultas públicas. O autor é o único usuário autorizado a editar ou
+remover seu conteúdo; a remoção de um post também marca seus comentários como
+removidos. Comentários são diretos, sem relação de resposta aninhada.
+
+Os slugs fixos são `desenvolvimento-de-sistemas`, `ia-e-dados`,
+`seguranca-cibernetica`, `devops-e-cloud`, `ux-ui-e-produto` e
+`carreira-e-estudos`. Os índices cobrem tópico, data de criação, autor, post e
+status para suportar filtro e paginação por posts mais recentes.
 
 As perguntas de trilha ficam em `trail_questions`, seguindo a mesma estrutura
 de `quiz_questions`, mas com `correct_answer` para a correção no backend. Essa
@@ -111,6 +129,23 @@ A prática do dia grava eventos com `source = TRAIL_PRACTICE` e
 `reference_id = <id da sessão>`. O teto é de uma sessão premiada por dia de
 estudo (dia de Recife), garantido pelo unique `(user_id, rewarded_day)` de
 `trail_practice_sessions` — ver 7.8.
+
+#### Bônus
+
+Os bônus são eventos próprios em `xp_events`, para o extrato da tela de
+resultado mostrar cada linha separada. Nenhum exige coluna nova:
+
+| `source` | `reference_id` | Quando paga | Quanto |
+|---|---|---|---|
+| `TRAIL_LESSON_PERFECT` | id da lição | Primeira tentativa com 100% de acertos (`user_trail_progress.best_percentage` anterior < 100) | Metade do `xp_reward` da fase |
+| `TRAIL_PRACTICE_COMBO` | id da sessão | Prática premiada do dia com 3+ acertos seguidos | +1 por acerto do maior combo |
+| `STREAK_DAILY` | dia de estudo (`YYYY-MM-DD`) | Primeira atividade do dia que faz a ofensiva subir (dia 2 em diante) | +5 |
+| `STREAK_MILESTONE` | dias do marco (`3`, `7`, `14`, `30`) | Ofensiva chega ao marco pela primeira vez (`longest_streak` anterior abaixo dele) | 10 / 30 / 50 / 100 |
+
+Os bônus de ofensiva valem para qualquer atividade que acende a chama (fase,
+prática do dia ou revisão de conhecimento). A trava contra pagamento duplo é o
+unique `(user_id, day)` de `user_activity_days`: só a atividade que insere o
+dia leva o bônus diário e o de marco.
 
 ---
 

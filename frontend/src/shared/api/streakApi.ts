@@ -13,6 +13,8 @@ export interface StreakWeekDay {
 export interface StreakMilestone {
   days: number;
   title: string;
+  /** Bônus pago na primeira vez que a ofensiva chega ao marco. */
+  xp: number;
   achieved: boolean;
   isNew: boolean;
   progress: number;

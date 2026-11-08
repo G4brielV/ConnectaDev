@@ -147,6 +147,9 @@ function CoursesScreenContent() {
     void loadRecommendations();
   }, [loadRecommendations]);
 
+  // Pela aba não há para onde voltar; pelo "Meus cursos" do Perfil, há.
+  const canGoBack = navigation.canGoBack();
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -169,6 +172,16 @@ function CoursesScreenContent() {
         >
           <Text style={styles.primaryButtonText}>Tentar Novamente</Text>
         </Pressable>
+        {canGoBack ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.goBack()}
+            style={styles.backLink}
+            hitSlop={8}
+          >
+            <Text style={styles.backLinkText}>Voltar</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -190,6 +203,16 @@ function CoursesScreenContent() {
           >
             <Text style={styles.primaryButtonText}>Fazer Teste Vocacional</Text>
           </Pressable>
+          {canGoBack ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.goBack()}
+              style={styles.backLink}
+              hitSlop={8}
+            >
+              <Text style={styles.backLinkText}>Voltar</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );
@@ -203,6 +226,7 @@ function CoursesScreenContent() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
+<<<<<<< HEAD
           <View style={styles.titleSection}>
             <View style={styles.sectionPill}>
               <Text style={styles.sectionPillText}>Recomendados para Você</Text>
@@ -211,6 +235,50 @@ function CoursesScreenContent() {
               {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
               {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
             </Text>
+=======
+          <View style={styles.listHeader}>
+            <XpProgressBar />
+
+            <View style={styles.navBar}>
+              {canGoBack ? (
+                <Pressable
+                  accessibilityLabel="Voltar"
+                  accessibilityRole="button"
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}
+                  hitSlop={6}
+                >
+                  <Feather name="chevron-left" size={20} color={colors.textPrimary} />
+                </Pressable>
+              ) : (
+                <View style={styles.navSpacer} />
+              )}
+              <View style={styles.brand}>
+                <View style={styles.brandDot} />
+                <Text style={styles.brandText}>CONNECTADEV</Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Meu Perfil"
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("Home", { tab: "profile" })}
+                style={styles.avatar}
+                hitSlop={6}
+              >
+                <Text style={styles.avatarText}>{userInitials(user?.name, user?.email)}</Text>
+                <View style={styles.onlineDot} />
+              </Pressable>
+            </View>
+
+            <View style={styles.titleSection}>
+              <View style={styles.sectionPill}>
+                <Text style={styles.sectionPillText}>Recomendados para Você</Text>
+              </View>
+              <Text style={styles.subtitle}>
+                {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
+                {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
+              </Text>
+            </View>
+>>>>>>> main
           </View>
         }
         renderItem={({ item, index }) => (
@@ -404,4 +472,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonPressed: { borderBottomWidth: chunky.pressedDepth, transform: [{ translateY: 2 }] },
   primaryButtonText: { fontFamily: fonts.sans.bold, fontSize: 14, color: colors.textOnPrimary },
+  backLink: { paddingVertical: 8 },
+  backLinkText: { fontFamily: fonts.sans.semiBold, fontSize: 14, color: colors.textMuted },
 });

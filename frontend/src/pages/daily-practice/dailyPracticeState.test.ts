@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  comboLabel,
+  currentCombo,
   optionTone,
   practiceButtonLabel,
   practiceHeadline,
@@ -32,10 +34,36 @@ test("o título do resultado acompanha os acertos", () => {
   assert.equal(practiceHeadline(0, 5), "Todo erro ensina!");
 });
 
-test("a mensagem explica o XP, inclusive no treino livre", () => {
-  assert.match(practiceRewardMessage({ rewarded: true, xpEarned: 8 }), /\+8 XP/);
-  assert.match(practiceRewardMessage({ rewarded: true, xpEarned: 0 }), /Amanhã/);
-  assert.match(practiceRewardMessage({ rewarded: false, xpEarned: 0 }), /Treino livre/);
+test("a mensagem explica o XP da prática, inclusive no treino livre", () => {
+  assert.match(
+    practiceRewardMessage({
+      rewarded: true,
+      xpBreakdown: [
+        { kind: "PRACTICE", amount: 8 },
+        { kind: "STREAK_DAILY", amount: 5 },
+      ],
+    }),
+    /\+8 XP/,
+  );
+  // Só o bônus de ofensiva: a prática em si não pagou nada.
+  assert.match(
+    practiceRewardMessage({ rewarded: true, xpBreakdown: [{ kind: "STREAK_DAILY", amount: 5 }] }),
+    /Amanhã/,
+  );
+  assert.match(practiceRewardMessage({ rewarded: false, xpBreakdown: [] }), /Treino livre/);
+});
+
+test("o combo conta os acertos seguidos e zera no erro", () => {
+  assert.equal(currentCombo([]), 0);
+  assert.equal(currentCombo([true, true, true]), 3);
+  assert.equal(currentCombo([true, true, false]), 0);
+  assert.equal(currentCombo([true, false, true, true]), 2);
+});
+
+test("o indicador de combo só aparece a partir de 3 seguidas", () => {
+  assert.equal(comboLabel(2), null);
+  assert.equal(comboLabel(3), "Combo x3! 🔥");
+  assert.equal(comboLabel(5), "Combo x5! 🔥");
 });
 
 test("depois da correção, a certa fica verde e a escolhida errada vermelha", () => {

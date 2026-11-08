@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../entities/session";
@@ -69,8 +70,18 @@ export function TrailLessonScreen() {
   }
 
   if (isLoading) return <ActivityIndicator style={styles.centered} color="#036564" />;
-  if (errorMessage && !lesson) return <View style={styles.centered}><Text style={styles.error}>{errorMessage}</Text></View>;
-  if (!lesson) return null;
+  if (!lesson) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centered}>
+          <Text style={styles.error}>{errorMessage ?? "Não foi possível carregar a lição."}</Text>
+          <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>Voltar</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (pendingSyncMessage) {
     return (
@@ -128,47 +139,50 @@ export function TrailLessonScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable accessibilityRole="button" onPress={() => navigation.goBack()}><Text style={styles.back}>‹ Voltar</Text></Pressable>
-      <Text style={styles.eyebrow}>LIÇÃO {lesson.sequence}</Text>
-      <Text style={styles.title}>{lesson.title}</Text>
-      <Text style={styles.subtitle}>Acerte todas as perguntas para receber +{lesson.xpReward} XP.</Text>
-      {lesson.questions.map((question, index) => (
-        <View key={question.id} style={styles.questionCard}>
-          <Text style={styles.questionNumber}>Pergunta {index + 1}</Text>
-          <Text style={styles.question}>{question.statement}</Text>
-          {question.options?.map((option) => (
-            <Pressable
-              accessibilityRole="button"
-              key={option.id}
-              onPress={() => setAnswers((current) => ({ ...current, [question.id]: option.id }))}
-              style={[styles.option, answers[question.id] === option.id && styles.optionSelected]}
-            >
-              <Text style={styles.optionText}>{option.label}</Text>
-            </Pressable>
-          ))}
-          {question.type === "OPEN_TEXT" ? (
-            <TextInput
-              multiline
-              onChangeText={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))}
-              placeholder="Digite sua resposta"
-              style={styles.input}
-              value={answers[question.id] ?? ""}
-            />
-          ) : null}
-        </View>
-      ))}
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => void handleSubmit()} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>{isSubmitting ? "Calculando XP..." : "Concluir lição"}</Text>
-      </Pressable>
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()}><Text style={styles.back}>‹ Voltar</Text></Pressable>
+        <Text style={styles.eyebrow}>LIÇÃO {lesson.sequence}</Text>
+        <Text style={styles.title}>{lesson.title}</Text>
+        <Text style={styles.subtitle}>Acerte todas as perguntas para receber +{lesson.xpReward} XP.</Text>
+        {lesson.questions.map((question, index) => (
+          <View key={question.id} style={styles.questionCard}>
+            <Text style={styles.questionNumber}>Pergunta {index + 1}</Text>
+            <Text style={styles.question}>{question.statement}</Text>
+            {question.options?.map((option) => (
+              <Pressable
+                accessibilityRole="button"
+                key={option.id}
+                onPress={() => setAnswers((current) => ({ ...current, [question.id]: option.id }))}
+                style={[styles.option, answers[question.id] === option.id && styles.optionSelected]}
+              >
+                <Text style={styles.optionText}>{option.label}</Text>
+              </Pressable>
+            ))}
+            {question.type === "OPEN_TEXT" ? (
+              <TextInput
+                multiline
+                onChangeText={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))}
+                placeholder="Digite sua resposta"
+                style={styles.input}
+                value={answers[question.id] ?? ""}
+              />
+            ) : null}
+          </View>
+        ))}
+        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => void handleSubmit()} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>{isSubmitting ? "Calculando XP..." : "Concluir lição"}</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { backgroundColor: "#F9F8F5", flex: 1 },
   container: { backgroundColor: "#F9F8F5", flexGrow: 1, gap: 14, padding: 20 },
-  centered: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
+  centered: { alignItems: "center", flex: 1, gap: 16, justifyContent: "center", padding: 24 },
   back: { color: "#036564", fontSize: 15, fontWeight: "700" },
   eyebrow: { color: "#B46B00", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   title: { color: "#031634", fontSize: 26, fontWeight: "800" },

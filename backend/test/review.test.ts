@@ -171,6 +171,9 @@ test("submitReviewService validates session ownership and computes score / XP", 
     currentStreak: 3,
     longestStreak: 5,
     streakIncremented: true,
+    streakStatus: "INCREMENTED" as const,
+    bonuses: [{ kind: "STREAK_DAILY" as const, amount: 5 }],
+    milestone: null,
   });
 
   // User gets 4 out of 5 correct (q-1 to q-4 right, q-5 wrong)
@@ -193,7 +196,13 @@ test("submitReviewService validates session ownership and computes score / XP", 
   expect(result.score).toBe(4);
   expect(result.totalQuestions).toBe(5);
   expect(result.percentage).toBe(80);
-  expect(result.xpEarned).toBe(40); // 4 * 10 XP
+  // 4 * 10 XP da revisão + 5 do bônus diário de ofensiva
+  expect(result.xpEarned).toBe(45);
+  expect(result.xpBreakdown).toEqual([
+    { kind: "REVIEW", amount: 40 },
+    { kind: "STREAK_DAILY", amount: 5 },
+  ]);
+  expect(result.streakStatus).toBe("INCREMENTED");
   expect(result.isFirstCompletion).toBe(true);
   expect(result.totalXp).toBe(140);
   expect(result.currentStreak).toBe(3);
@@ -217,24 +226,28 @@ test("calculateNewStreak handles streak transitions correctly", () => {
   expect(firstTime.newCurrentStreak).toBe(1);
   expect(firstTime.newLongestStreak).toBe(1);
   expect(firstTime.streakIncremented).toBe(true);
+  expect(firstTime.status).toBe("STARTED");
 
   // Same day
   const sameDay = calculateNewStreak(day1, 1, 1, new Date("2026-09-10T18:00:00Z"));
   expect(sameDay.newCurrentStreak).toBe(1);
   expect(sameDay.newLongestStreak).toBe(1);
   expect(sameDay.streakIncremented).toBe(false);
+  expect(sameDay.status).toBe("KEPT");
 
   // Next day
   const nextDay = calculateNewStreak(day1, 1, 1, day2);
   expect(nextDay.newCurrentStreak).toBe(2);
   expect(nextDay.newLongestStreak).toBe(2);
   expect(nextDay.streakIncremented).toBe(true);
+  expect(nextDay.status).toBe("INCREMENTED");
 
   // Missed day
   const missedDay = calculateNewStreak(day1, 5, 10, day4);
   expect(missedDay.newCurrentStreak).toBe(1);
   expect(missedDay.newLongestStreak).toBe(10);
   expect(missedDay.streakIncremented).toBe(true);
+  expect(missedDay.status).toBe("RESTARTED");
 });
 
 test("getReviewQuestionsService dynamically generates AI questions for an unindexed course topic", async () => {
@@ -382,7 +395,10 @@ test("submitReviewService awards 0 XP on a retake but still registers streak act
       xpEarned: params.xpEarned,
       currentStreak: 2,
       longestStreak: 2,
-      streakIncremented: true,
+      streakIncremented: false,
+      streakStatus: "KEPT" as const,
+      bonuses: [],
+      milestone: null,
     };
   };
 
@@ -398,7 +414,8 @@ test("submitReviewService awards 0 XP on a retake but still registers streak act
   expect(result.xpEarned).toBe(0);
   expect(result.isFirstCompletion).toBe(false);
   expect(result.totalXp).toBe(50);
-  expect(result.streakIncremented).toBe(true);
+  expect(result.streakStatus).toBe("KEPT");
+  expect(result.xpBreakdown).toEqual([]);
   expect(gamificationCall).toEqual({ userId: "user-1", xpEarned: 0 });
   expect(updatedSession).toEqual({ xpEarned: 0, status: "COMPLETED" });
 });

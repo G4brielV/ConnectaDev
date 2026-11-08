@@ -50,6 +50,8 @@ export function buildWeek(today: StudyDay, activeDays: ReadonlySet<StudyDay>): W
 export interface StreakMilestone {
   days: number;
   title: string;
+  /** Bônus pago na primeira vez que a ofensiva chega ao marco. */
+  xp: number;
   achieved: boolean;
   /** Conquistado hoje — a tela comemora com "Novo!". */
   isNew: boolean;
@@ -57,11 +59,11 @@ export interface StreakMilestone {
   progress: number;
 }
 
-const MILESTONES = [
-  { days: 3, title: "Faísca" },
-  { days: 7, title: "Fogo!" },
-  { days: 14, title: "Hábito" },
-  { days: 30, title: "Lenda" },
+export const STREAK_MILESTONES = [
+  { days: 3, title: "Faísca", xp: 10 },
+  { days: 7, title: "Fogo!", xp: 30 },
+  { days: 14, title: "Hábito", xp: 50 },
+  { days: 30, title: "Lenda", xp: 100 },
 ] as const;
 
 export function buildMilestones(
@@ -69,11 +71,12 @@ export function buildMilestones(
   longestStreak: number,
   activeToday: boolean,
 ): StreakMilestone[] {
-  return MILESTONES.map(({ days, title }) => {
+  return STREAK_MILESTONES.map(({ days, title, xp }) => {
     const achieved = Math.max(currentStreak, longestStreak) >= days;
     return {
       days,
       title,
+      xp,
       achieved,
       isNew: achieved && activeToday && currentStreak === days,
       progress: Math.min(currentStreak, days),

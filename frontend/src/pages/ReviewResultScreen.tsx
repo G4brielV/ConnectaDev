@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
+import { StreakFeedback, StreakMilestoneModal, XpBreakdown } from "../entities/gamification";
 import { QuestionResultItem, ReviewSubmitResponse } from "../shared/api/reviewApi";
 import { getWrongAnswers } from "./knowledgeReviewState";
 
@@ -71,6 +72,18 @@ export function ReviewResultScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* goBack voltaria para a revisão já finalizada, então fechar leva ao Início */}
+      <View style={styles.header}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Fechar resultado"
+          onPress={() => navigation.navigate("Home")}
+          style={styles.closeButton}
+          hitSlop={12}
+        >
+          <Text style={styles.closeIcon}>✕</Text>
+        </Pressable>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Celebratory Animation (Cenário 4) */}
         <Animated.View
@@ -128,6 +141,15 @@ export function ReviewResultScreen() {
               </>
             )}
           </View>
+        </View>
+
+        <View style={styles.bonusSection}>
+          <XpBreakdown items={result.xpBreakdown} />
+          <StreakFeedback
+            status={result.streakStatus}
+            currentStreak={result.currentStreak}
+            items={result.xpBreakdown}
+          />
         </View>
 
         {/* Error Review Collapsible Section (Cenário 6) */}
@@ -204,6 +226,7 @@ export function ReviewResultScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <StreakMilestoneModal milestone={result.streakMilestone} />
     </SafeAreaView>
   );
 }
@@ -213,8 +236,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeIcon: {
+    fontSize: 18,
+    color: "#334155",
+    fontWeight: "700",
+  },
   scrollContent: {
     padding: 24,
+    paddingTop: 8,
     paddingBottom: 40,
   },
   centerContainer: {
@@ -339,6 +383,10 @@ const styles = StyleSheet.create({
   totalXpSubtext: {
     fontSize: 13,
     color: "#94A3B8",
+  },
+  bonusSection: {
+    gap: 10,
+    marginBottom: 20,
   },
   errorsSection: {
     marginBottom: 24,

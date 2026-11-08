@@ -4,6 +4,8 @@ import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 import { balancedQuestions } from "./vocationalQuestions";
 import { learningTracks, PASSING_BY_KIND, XP_BY_KIND } from "./learningTracks";
+import { publicInfrastructuresSeed } from "./publicInfrastructures";
+import { FORUM_TOPICS } from "../src/modules/forum/constants/forumTopics";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -345,6 +347,23 @@ async function main(): Promise<void> {
     data: { isActive: false },
   });
 
+  for (const [index, forumTopic] of FORUM_TOPICS.entries()) {
+    const topic = await prisma.forumTopic.upsert({
+      where: { slug: forumTopic.slug },
+      update: {
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+      create: {
+        slug: forumTopic.slug,
+        title: forumTopic.title,
+        sequence: index + 1,
+        isActive: true,
+      },
+    });
+  }
+
   for (const question of questions) {
     const existingQuestion = await prisma.quizQuestion.findFirst({
       where: { sequence: question.sequence },
@@ -647,8 +666,26 @@ async function main(): Promise<void> {
     }
   }
 
+  // Carga dos pontos de apoio e infraestrutura pública da RMR
+  for (const item of publicInfrastructuresSeed) {
+    const existing = await prisma.publicInfrastructure.findFirst({
+      where: { name: item.name, city: item.city },
+    });
+
+    if (existing) {
+      await prisma.publicInfrastructure.update({
+        where: { id: existing.id },
+        data: item,
+      });
+    } else {
+      await prisma.publicInfrastructure.create({
+        data: item,
+      });
+    }
+  }
+
   console.log(
-    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} legacy trails, ${learningTracks.length} phase map(s) with ${learningTracks.reduce((total, track) => total + track.units.length, 0)} units, and ${reviewQuestions.length} review questions.`,
+    `Seeded ${questions.length} quiz questions, ${courses.length} courses, ${trails.length} legacy trails, ${learningTracks.length} phase map(s) with ${learningTracks.reduce((total, track) => total + track.units.length, 0)} units, ${reviewQuestions.length} review questions, and ${publicInfrastructuresSeed.length} public infrastructure points.`,
   );
 }
 

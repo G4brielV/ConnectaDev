@@ -5,6 +5,7 @@ import { bearer, jwt } from "better-auth/plugins";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { sanitizeName } from "../shared/utils/sanitization";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -25,6 +26,30 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          return {
+            data: {
+              ...user,
+              name: typeof user.name === "string" ? sanitizeName(user.name) : user.name,
+            },
+          };
+        },
+      },
+      update: {
+        before: async (user) => {
+          return {
+            data: {
+              ...user,
+              name: typeof user.name === "string" ? sanitizeName(user.name) : user.name,
+            },
+          };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
   },

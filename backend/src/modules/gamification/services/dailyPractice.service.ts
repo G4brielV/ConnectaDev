@@ -3,6 +3,15 @@ import { prisma } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { LEVEL_NAME } from "../constants/xpLevel";
 import { applyStudyActivity } from "./gamification.service";
+import {
+  bestCombo,
+  comboBonus,
+  StreakMilestoneReward,
+  StreakStatus,
+  sumXp,
+  XpBreakdownItem,
+  xpBreakdown,
+} from "./bonusRules";
 import { getTrailMapForUser } from "./getTrailMap.service";
 import { ensurePhaseQuestions, PHASE_CONTEXT_INCLUDE, toPhaseContext } from "./getTrailPhase.service";
 import { ExamOption, toExamOptions } from "./phaseExam";
@@ -18,6 +27,7 @@ import {
 import { studyDayToDate, toStudyDay } from "./studyDay";
 
 const TRAIL_PRACTICE_SOURCE = "TRAIL_PRACTICE";
+const TRAIL_PRACTICE_COMBO_SOURCE = "TRAIL_PRACTICE_COMBO";
 
 export interface PracticeQuestion {
   id: string;
@@ -49,7 +59,11 @@ export interface PracticeAnswerResult {
 export interface DailyPracticeResult {
   correctCount: number;
   totalQuestions: number;
+  /** Maior sequência de acertos seguidos da prática. */
+  bestCombo: number;
+  /** Total ganho nesta prática, bônus inclusos; o detalhe está em `xpBreakdown`. */
   xpEarned: number;
+  xpBreakdown: XpBreakdownItem[];
   /** Esta foi a prática do dia que valeu XP; false = treino livre. */
   rewarded: boolean;
   totalXp: number;
@@ -59,6 +73,9 @@ export interface DailyPracticeResult {
   currentStreak: number;
   longestStreak: number;
   streakIncremented: boolean;
+  streakStatus: StreakStatus;
+  /** Marco da ofensiva batido hoje com esta prática — a tela comemora. */
+  streakMilestone: StreakMilestoneReward | null;
 }
 
 interface PoolQuestion {
@@ -203,8 +220,9 @@ export async function answerPracticeQuestion(
 }
 
 /**
- * Fecha a prática: soma os acertos, paga o XP se for a primeira concluída no
- * dia e registra o dia de estudo na ofensiva — treino livre também conta.
+ * Fecha a prática: soma os acertos, paga o XP (e o combo) se for a primeira
+ * concluída no dia e registra o dia de estudo na ofensiva — treino livre
+ * também conta.
  */
 export async function completeDailyPractice(
   userId: string,
@@ -216,7 +234,11 @@ export async function completeDailyPractice(
     select: {
       userId: true,
       completedAt: true,
-      items: { select: { selectedOptionId: true, isCorrect: true } },
+      // Na ordem em que as perguntas apareceram: é ela que define o combo.
+      items: {
+        orderBy: { sequence: "asc" },
+        select: { selectedOptionId: true, isCorrect: true },
+      },
     },
   });
 
@@ -230,7 +252,9 @@ export async function completeDailyPractice(
     throw new AppError("Responda todas as perguntas antes de finalizar.", 400);
   }
 
-  const correctCount = session.items.filter((item) => item.isCorrect === true).length;
+  const results = session.items.map((item) => item.isCorrect === true);
+  const correctCount = results.filter(Boolean).length;
+  const combo = bestCombo(results);
   const today = studyDayToDate(toStudyDay(now));
 
   try {
@@ -248,31 +272,59 @@ export async function completeDailyPractice(
         select: { id: true },
       });
       const rewarded = rewardedToday === null;
-      const xpEarned = practiceXp(correctCount, rewarded);
+      const practiceXpEarned = practiceXp(correctCount, rewarded);
+      // O combo segue a regra do XP da prática: treino livre não paga.
+      const comboXp = rewarded ? comboBonus(combo) : 0;
 
       // O unique (userId, rewardedDay) segura dois envios simultâneos no mesmo dia.
       await transaction.trailPracticeSession.update({
         where: { id: sessionId },
-        data: { correctCount, xpEarned, rewardedDay: rewarded ? today : null },
+        data: {
+          correctCount,
+          xpEarned: practiceXpEarned + comboXp,
+          rewardedDay: rewarded ? today : null,
+        },
       });
 
-      if (xpEarned > 0) {
+      if (practiceXpEarned > 0) {
         await transaction.xpEvent.create({
           data: {
             userId,
             source: TRAIL_PRACTICE_SOURCE,
             referenceId: sessionId,
-            amount: xpEarned,
+            amount: practiceXpEarned,
+          },
+        });
+      }
+      if (comboXp > 0) {
+        await transaction.xpEvent.create({
+          data: {
+            userId,
+            source: TRAIL_PRACTICE_COMBO_SOURCE,
+            referenceId: sessionId,
+            amount: comboXp,
           },
         });
       }
 
-      const activity = await applyStudyActivity(transaction, userId, xpEarned, now);
+      const activity = await applyStudyActivity(
+        transaction,
+        userId,
+        practiceXpEarned + comboXp,
+        now,
+      );
+      const breakdown = xpBreakdown(
+        { kind: "PRACTICE", amount: practiceXpEarned },
+        { kind: "COMBO", amount: comboXp },
+        ...activity.bonuses,
+      );
 
       return {
         correctCount,
         totalQuestions: session.items.length,
-        xpEarned,
+        bestCombo: combo,
+        xpEarned: sumXp(breakdown),
+        xpBreakdown: breakdown,
         rewarded,
         totalXp: activity.totalXp,
         currentLevel: activity.currentLevel,
@@ -281,6 +333,8 @@ export async function completeDailyPractice(
         currentStreak: activity.currentStreak,
         longestStreak: activity.longestStreak,
         streakIncremented: activity.streakIncremented,
+        streakStatus: activity.streakStatus,
+        streakMilestone: activity.milestone,
       };
     });
   } catch (error) {

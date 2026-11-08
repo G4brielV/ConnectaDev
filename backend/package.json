@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "test": "prisma generate && tsc --noEmit && vitest",
-    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts",
+    "test:unit": "prisma generate && tsx --test test/quizQuestions.test.ts test/bookmarkCourse.test.ts test/review.test.ts test/gamificationSummary.test.ts test/forum.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "migrate": "prisma db push",
@@ -23,10 +23,12 @@
     "@prisma/client": "^7.10.0",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.7.2",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.1",
     "node-cron": "^4.6.0",
     "pg": "^8.23.0",
+    "puppeteer": "^25.15.0",
     "resend": "^6.26.0",
     "zod": "^4.5.4"
   },

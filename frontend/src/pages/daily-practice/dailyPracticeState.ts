@@ -31,13 +31,32 @@ export function practiceHeadline(correctCount: number, totalQuestions: number): 
   return 'Todo erro ensina!';
 }
 
-/** Explica o XP do resultado — inclusive por que um treino livre não pagou nada. */
+/**
+ * Explica o XP da prática no resultado — inclusive por que um treino livre
+ * não pagou nada. Os bônus aparecem no extrato, não aqui.
+ */
 export function practiceRewardMessage(
-  result: Pick<DailyPracticeResult, 'rewarded' | 'xpEarned'>,
+  result: Pick<DailyPracticeResult, 'rewarded' | 'xpBreakdown'>,
 ): string {
   if (!result.rewarded) return 'Treino livre: o XP da prática de hoje já tinha sido garantido.';
-  if (result.xpEarned > 0) return `+${result.xpEarned} XP garantidos na prática de hoje.`;
+  const practiceXp = result.xpBreakdown.find((item) => item.kind === 'PRACTICE')?.amount ?? 0;
+  if (practiceXp > 0) return `+${practiceXp} XP garantidos na prática de hoje.`;
   return 'Sem acertos desta vez. Amanhã tem outra prática valendo XP.';
+}
+
+/** Acertos seguidos para o combo aparecer — o mesmo mínimo que o servidor paga. */
+export const COMBO_MIN = 3;
+
+/** Acertos seguidos até a última pergunta corrigida; um erro zera. */
+export function currentCombo(results: readonly boolean[]): number {
+  let combo = 0;
+  for (const isCorrect of results) combo = isCorrect ? combo + 1 : 0;
+  return combo;
+}
+
+/** "Combo x3! 🔥" a partir do mínimo; abaixo dele, nada na tela. */
+export function comboLabel(combo: number): string | null {
+  return combo >= COMBO_MIN ? `Combo x${combo}! 🔥` : null;
 }
 
 export type OptionTone = 'idle' | 'selected' | 'correct' | 'wrong' | 'dimmed';

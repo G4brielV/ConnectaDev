@@ -3,6 +3,7 @@ import { auth, prisma } from "../lib/auth";
 import { Resend } from "resend";
 import { hashPassword } from "better-auth/crypto";
 import { createHash, randomInt } from "crypto";
+import { sanitizeName, AUTH_INPUT_LIMITS } from "../shared/utils/sanitization";
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.all("/api/auth/*", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -59,8 +60,29 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ message: "Preenchimento obrigatório" });
     }
 
-    const sanitizedName = String(name).trim();
+    const sanitizedName = sanitizeName(name);
+    if (!sanitizedName) {
+      return reply.status(400).send({ message: "Preenchimento obrigatório" });
+    }
+
+    if (sanitizedName.length > AUTH_INPUT_LIMITS.NAME_MAX_LENGTH) {
+      return reply.status(400).send({
+        message: `O nome deve conter no máximo ${AUTH_INPUT_LIMITS.NAME_MAX_LENGTH} caracteres`,
+      });
+    }
+
     const sanitizedEmail = String(email).trim().toLowerCase();
+    if (sanitizedEmail.length > AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH) {
+      return reply.status(400).send({
+        message: `O e-mail deve conter no máximo ${AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH} caracteres`,
+      });
+    }
+
+    if (String(password).length > AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH) {
+      return reply.status(400).send({
+        message: `A senha deve conter no máximo ${AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH} caracteres`,
+      });
+    }
 
     // Verificação de duplicidade de e-mail (TT-59)
     try {

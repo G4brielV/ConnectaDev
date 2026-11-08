@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { getJobRecommendationsController } from "../controllers/getJobRecommendations.controller";
 import { synchronizeJobsManually } from "../services/joobleIntegration.service";
 
-function hasValidAdminToken(request: FastifyRequest): boolean {
+export function hasValidAdminToken(request: FastifyRequest): boolean {
   const configuredToken = process.env.ADMIN_SYNC_TOKEN;
   if (!configuredToken) {
     return false;

@@ -6,12 +6,15 @@ import { Input } from '@/shared/ui/Input/Input';
 import { Button } from '@/shared/ui/Button/Button';
 import { colors, fonts, radius } from '@/shared/config/theme';
 import { AuthError } from '../api/authService';
+import {
+  AUTH_INPUT_LIMITS,
+  validateEmail,
+  validateLoginPassword,
+} from '../model/validation';
 
 export interface LoginFormProps {
   initialEmail?: string;
 }
-
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   const { login } = useAuth();
@@ -32,20 +35,18 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
   // Erro geral retornado pela API (ex: 401)
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // TT-52: Validação de campos
+  // TT-52: Validação de campos (incluindo limites máximos)
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'Informe o seu e-mail';
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      newErrors.email = 'Informe um e-mail válido';
+    const emailError = validateEmail(email, 'Informe o seu e-mail');
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    if (!password) {
-      newErrors.password = 'Informe sua senha';
-    } else if (password.length < 6) {
-      newErrors.password = 'A senha deve conter no mínimo 6 caracteres';
+    const passwordError = validateLoginPassword(password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     setErrors(newErrors);
@@ -87,6 +88,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
         leftIcon="at-sign"
         placeholder="estudante@exemplo.com"
         value={email}
+        maxLength={AUTH_INPUT_LIMITS.EMAIL_MAX_LENGTH}
         onChangeText={(text) => {
           setEmail(text);
           if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
@@ -103,6 +105,7 @@ export function LoginForm({ initialEmail }: LoginFormProps = {}) {
         leftIcon="lock"
         placeholder="••••••••"
         value={password}
+        maxLength={AUTH_INPUT_LIMITS.PASSWORD_MAX_LENGTH}
         onChangeText={(text) => {
           setPassword(text);
           if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));

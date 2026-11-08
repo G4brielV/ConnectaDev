@@ -55,7 +55,8 @@ export function firstUnansweredIndex(
 /** Mensagem do resultado, conforme a aprovação e as estrelas. */
 export function buildResultHeadline(passed: boolean, stars: number): string {
   if (!passed) return 'Quase lá!';
-  if (stars >= 3) return 'Perfeito!';
+  // 3 estrelas = 100% de acertos: o selo do gabarito.
+  if (stars >= 3) return 'Perfeito! 🎯';
   if (stars === 2) return 'Muito bem!';
   return 'Fase concluída!';
 }

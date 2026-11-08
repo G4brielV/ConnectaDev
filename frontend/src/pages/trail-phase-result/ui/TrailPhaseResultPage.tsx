@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, radius, shadow, chunky } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
+import { StreakFeedback, StreakMilestoneModal, XpBreakdown } from '@/entities/gamification';
 import {
   buildResultHeadline,
   optionLabel,
@@ -29,11 +30,23 @@ export function TrailPhaseResultPage() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[styles.badge, !result.passed && styles.badgeFailed]}>
+        <View
+          style={[
+            styles.badge,
+            !result.passed && styles.badgeFailed,
+            result.perfect && styles.badgePerfect,
+          ]}
+        >
           <Feather
-            name={result.passed ? 'award' : 'refresh-cw'}
+            name={result.perfect ? 'target' : result.passed ? 'award' : 'refresh-cw'}
             size={34}
-            color={result.passed ? colors.textOnPrimary : colors.textMuted}
+            color={
+              result.perfect
+                ? colors.accentInk
+                : result.passed
+                  ? colors.textOnPrimary
+                  : colors.textMuted
+            }
           />
         </View>
 
@@ -65,16 +78,12 @@ export function TrailPhaseResultPage() {
               <Text style={styles.scoreHint}>(corte {result.passingScore}%)</Text>
             </Text>
           </View>
-          <View style={styles.scoreRow}>
-            <Text style={styles.scoreLabel}>XP</Text>
-            <Text style={styles.scoreValue}>
-              {result.xpEarned > 0
-                ? `+${result.xpEarned}`
-                : result.alreadyRewarded
-                  ? 'já resgatado'
-                  : '0'}
-            </Text>
-          </View>
+          {result.xpBreakdown.length === 0 ? (
+            <View style={styles.scoreRow}>
+              <Text style={styles.scoreLabel}>XP</Text>
+              <Text style={styles.scoreValue}>{result.alreadyRewarded ? 'já resgatado' : '0'}</Text>
+            </View>
+          ) : null}
           <Pressable
             onPress={() => navigation.navigate('Streak')}
             style={styles.scoreRow}
@@ -87,6 +96,15 @@ export function TrailPhaseResultPage() {
               <Feather name="chevron-right" size={16} color={colors.textMuted} />
             </View>
           </Pressable>
+        </View>
+
+        <View style={styles.rewards}>
+          <XpBreakdown items={result.xpBreakdown} />
+          <StreakFeedback
+            status={result.streakStatus}
+            currentStreak={result.currentStreak}
+            items={result.xpBreakdown}
+          />
         </View>
 
         {result.leveledUp ? (
@@ -154,6 +172,7 @@ export function TrailPhaseResultPage() {
           <Feather name="arrow-right" size={18} color={colors.textOnPrimary} />
         </Pressable>
       </View>
+      <StreakMilestoneModal milestone={result.streakMilestone} />
     </SafeAreaView>
   );
 }
@@ -170,6 +189,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeFailed: { backgroundColor: colors.light },
+  badgePerfect: { backgroundColor: colors.accentFixed },
   headline: {
     fontFamily: fonts.sans.extraBold,
     fontSize: 24,
@@ -199,6 +219,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.textMuted },
   scoreValue: { fontFamily: fonts.sans.bold, fontSize: 14, color: colors.textPrimary },
   streakValue: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  rewards: { width: '100%', gap: 10, marginTop: 12 },
   scoreHint: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.textMuted },
   levelUp: {
     flexDirection: 'row',
