@@ -34,6 +34,24 @@ const courses = [
     tags: ["JavaScript", "TypeScript", "Node.js", "React"],
   },
   {
+    title: "Curso Completo de Git e GitHub",
+    provider: "YouTube",
+    level: "Iniciante",
+    thumbnail: "https://img.youtube.com/vi/xEKo29OWILE/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/playlist?list=PLHz_AreHm4dm7ZULPAmadvNhH6vk9oNZA",
+    areas: ["Desenvolvimento de Software"],
+    tags: ["Git", "GitHub", "Controle de Versão", "Dev"],
+  },
+  {
+    title: "Arquitetura de Software e Clean Code",
+    provider: "YouTube",
+    level: "Avançado",
+    thumbnail: "https://img.youtube.com/vi/2nvbgwFE_0Y/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/playlist?list=PLAgbpJQADBGK0opZ8ZuDX3zDjQck_QKMy",
+    areas: ["Desenvolvimento de Software"],
+    tags: ["Clean Code", "Arquitetura", "SOLID", "Design Patterns"],
+  },
+  {
     title: "Python para Dados",
     provider: "Youtube",
     level: "Iniciante",
@@ -50,6 +68,15 @@ const courses = [
     externalUrl: "https://www.youtube.com/watch?v=jQMbuK6URws&list=PLHz_AreHm4dm24MhlWJYiR_Rm7TFtvs6S",
     areas: ["Dados e Inteligência Artificial"],
     tags: ["Python", "Machine Learning", "Inteligência Artificial", "Dados"],
+  },
+  {
+    title: "SQL e Banco de Dados para Análise de Dados",
+    provider: "YouTube",
+    level: "Iniciante",
+    thumbnail: "https://img.youtube.com/vi/BRPUA0EgS4I/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/watch?v=BRPUA0EgS4I&list=PL5TJqBvpXQv5n1N15kcK1m9oKJm_cv-m6",
+    areas: ["Dados e Inteligência Artificial"],
+    tags: ["SQL", "Banco de Dados", "MySQL", "Análise de Dados"],
   },
   {
   title: "Fundamentos de UI e UX",
@@ -70,6 +97,17 @@ const courses = [
   tags: ["UX", "Pesquisa com Usuários", "Prototipação", "Design"],
   },
   {
+    title: "Design System do Zero ao Avançado",
+    provider: "YouTube",
+    level: "Intermediário",
+    thumbnail: "https://img.youtube.com/vi/ajqbXpFVaAw/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/watch?v=ajqbXpFVaAw&list=PLIXMdhnnWhcRHni3lsROJ5RirS-Mas4-4",
+    areas: ["Design e Experiência do Usuário"],
+    tags: ["Design System", "Figma", "UI", "Componentes"],
+  },
+
+  // --- INFRAESTRUTURA E REDES (1 novo adicionado) ---
+  {
   title: "Fundamentos de Cloud Computing",
   provider: "YouTube",
   level: "Iniciante",
@@ -87,6 +125,17 @@ const courses = [
   areas: ["Infraestrutura e Redes"],
   tags: ["Linux", "Redes", "Docker", "DevOps", "Kubernetes"],
   },
+  {
+    title: "Docker Completo: Do Zero ao Avançado",
+    provider: "YouTube",
+    level: "Intermediário",
+    thumbnail: "https://img.youtube.com/vi/c2y_yz9B6_M/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/watch?v=c2y_yz9B6_M&list=PLg7nVxv7fa6dxsV1ftKI8FAm4YD6iZuI4",
+    areas: ["Infraestrutura e Redes"],
+    tags: ["Docker", "Containers", "DevOps", "Infraestrutura"],
+  },
+
+  // --- CIBERSEGURANÇA (1 novo adicionado) ---
   {
   title: "Fundamentos de Cibersegurança",
   provider: "YouTube",
@@ -106,6 +155,17 @@ const courses = [
   tags: ["Cibersegurança", "OWASP", "Web Security", "APIs"],
   },
   {
+    title: "Ethical Hacking e Pentest para Iniciantes",
+    provider: "YouTube",
+    level: "Intermediário",
+    thumbnail: "https://img.youtube.com/vi/RxxCan33CbA/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/watch?v=RxxCan33CbA&list=PLp95aw034Wn8Wi0NViVF58hOpX-m00jyg",
+    areas: ["Cibersegurança"],
+    tags: ["Pentest", "Ethical Hacking", "Segurança", "Hacking"],
+  },
+
+  // --- GESTÃO DE PRODUTOS DE TECNOLOGIA (1 novo adicionado) ---
+  {
   title: "Fundamentos de Gestão de Produtos",
   provider: "YouTube",
   level: "Iniciante",
@@ -123,6 +183,15 @@ const courses = [
   areas: ["Gestão de Produtos de Tecnologia"],
   tags: ["Produto", "Discovery", "Métricas", "Roadmap", "Agile"],
 },
+  {
+    title: "Scrum e Metodologias Ágeis na Prática",
+    provider: "YouTube",
+    level: "Iniciante",
+    thumbnail: "https://img.youtube.com/vi/qYap9iIYmX4/maxresdefault.jpg",
+    externalUrl: "https://www.youtube.com/watch?v=qYap9iIYmX4&list=PLkM70VNwg9DRnQm7FhZQZTKQaVQocoEbY",
+    areas: ["Gestão de Produtos de Tecnologia"],
+    tags: ["Scrum", "Ágil", "Kanban", "Gestão"],
+  },
 ] as const;
 
 const trails = [
