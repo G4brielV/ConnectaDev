@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +24,7 @@ import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { Toast } from "../shared/ui/Toast";
 import { CourseRatingModal } from "../features/courses/ui/CourseRatingModal";
 import { CourseCard } from "../features/courses/ui/CourseCard";
+import { userInitials } from "../features/courses/lib/courseCardView";
 import { useGamification } from "../entities/gamification";
 import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 import { colors, fonts, radius, shadow, chunky } from "../shared/config/theme";
@@ -226,16 +227,6 @@ function CoursesScreenContent() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-<<<<<<< HEAD
-          <View style={styles.titleSection}>
-            <View style={styles.sectionPill}>
-              <Text style={styles.sectionPillText}>Recomendados para Você</Text>
-            </View>
-            <Text style={styles.subtitle}>
-              {courses.length} curso{courses.length === 1 ? "" : "s"} selecionado
-              {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
-            </Text>
-=======
           <View style={styles.listHeader}>
             <XpProgressBar />
 
@@ -278,7 +269,6 @@ function CoursesScreenContent() {
                 {courses.length === 1 ? "" : "s"} para {areaPrincipal || "suas preferências"}
               </Text>
             </View>
->>>>>>> main
           </View>
         }
         renderItem={({ item, index }) => (
