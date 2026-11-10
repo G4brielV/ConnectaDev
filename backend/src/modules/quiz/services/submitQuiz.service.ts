@@ -159,7 +159,7 @@ async function requestAnalysis(
         jsonSchema: quizAnalysisJsonSchema,
         timeoutMs: AI_REQUEST_TIMEOUT_MS,
         temperature: 0.2,
-        maxTokens: 512,
+        maxTokens: 2048,
       },
       { ...clientOptions, provider },
     );
