@@ -217,6 +217,36 @@ export const learningTracks: SeedTrack[] = [
           },
         ],
       },
+      {
+        title: "Avançando no Front e Back-end",
+        phases: [
+          { title: "Web Components e Hooks", description: "Reutilização de componentes e lógica avançada no React.", kind: "STANDARD", tags: ["React"], resources: [video("X5sZ9V3X_iY", "React Hooks na prática", "Rocketseat")] },
+          { title: "Testes Automatizados", description: "Garantindo a qualidade do seu código com testes.", kind: "STANDARD", tags: ["Testes", "JavaScript"], resources: [video("8695btgjWaQ", "Introdução a testes unitários", "Rocketseat")] },
+          { title: "NoSQL e Banco de Dados", description: "Armazenando dados de forma flexível com MongoDB.", kind: "STANDARD", tags: ["NoSQL", "Database"], resources: [video("N8i5NLYXZQs", "MongoDB e Node.js", "Rocketseat")] },
+          { title: "Baú Bônus: Performance Web", description: "Otimizando o carregamento da sua aplicação.", kind: "BONUS", tags: ["Performance"], resources: [video("9Z5lR8lG8-Y", "Web Performance", "Felipe Rocha")] },
+          { title: "Chefão: App Full-Stack Completo", description: "Autenticação, banco, front e back integrados.", kind: "BOSS", tags: ["Full-Stack"], resources: [video("G74J95sZ-L8", "Projeto Full-Stack com Auth", "Rocketseat")] },
+        ],
+      },
+      {
+        title: "Arquitetura e Engenharia de Software",
+        phases: [
+          { title: "Clean Code e Refatoração", description: "Escrever código legível, manutenível e seguir princípios SOLID.", kind: "STANDARD", tags: ["Lógica de Programação", "JavaScript", "TypeScript"], resources: [video("n4X_iY0arch", "Princípios de Clean Code", CFTV)] },
+          { title: "Design Patterns na Prática", description: "Padrões de projeto comuns: Factory, Singleton, Observer e Strategy.", kind: "STANDARD", tags: ["TypeScript", "Lógica de Programação"], resources: [video("n4X_iY1arch", "Design Patterns essenciais", "Felipe Rocha • Full Stack Club")] },
+          { title: "Arquitetura de Microsserviços e APIs", description: "Monólitos vs microsserviços, mensageria e comunicação assíncrona.", kind: "STANDARD", tags: ["Node.js", "APIs"], resources: [video("n4X_iY2arch", "Monólito ou Microsserviços?", "Rocketseat")] },
+          { title: "Baú Bônus: GraphQL vs REST", description: "Consultas flexíveis com GraphQL e quando utilizá-lo.", kind: "BONUS", tags: ["APIs", "Node.js"], resources: [video("n4X_iY3arch", "Introdução ao GraphQL", "Rocketseat")] },
+          { title: "Chefão: Refatoração e Arquitetura Limpa", description: "Aplicar Clean Architecture e testes em uma API de produção.", kind: "BOSS", tags: ["TypeScript", "Node.js", "APIs"], resources: [video("n4X_iY4arch", "Clean Architecture na Prática", "Rodrigo Manguinho")] },
+        ],
+      },
+      {
+        title: "Desenvolvimento Mobile e Multiplataforma",
+        phases: [
+          { title: "React Native: Primeiras Telas", description: "Componentes nativos, View, Text, StyleSheet e Flexbox.", kind: "STANDARD", tags: ["React", "JavaScript"], resources: [video("m6X_iY0mob", "React Native para Iniciantes", "Rocketseat")] },
+          { title: "Navegação e Rotas Mobile", description: "Stacks, Tabs e navegação com React Navigation.", kind: "STANDARD", tags: ["React", "TypeScript"], resources: [video("m6X_iY1mob", "Navegação no React Native", "Sujeito Programador")] },
+          { title: "Consumo de APIs e Armazenamento", description: "Conectar o app a APIs REST e persistir dados locais com AsyncStorage.", kind: "STANDARD", tags: ["APIs", "React"], resources: [video("m6X_iY2mob", "Consumindo APIs no Mobile", "Rocketseat")] },
+          { title: "Baú Bônus: Deploy e Publicação em Lojas", description: "Builds com Expo EAS e publicação no Google Play e App Store.", kind: "BONUS", tags: ["React", "DevOps"], resources: [video("m6X_iY3mob", "Publicando Apps com Expo EAS", "Rocketseat")] },
+          { title: "Chefão: App Mobile Completo Conectado", description: "Construir e testar um aplicativo completo conectado ao backend do ConnectaDev.", kind: "BOSS", tags: ["React", "TypeScript", "Full-Stack"], resources: [video("m6X_iY4mob", "Construindo um App Mobile do Zero", "Felipe Rocha • Full Stack Club")] },
+        ],
+      },
     ],
   },
   {
@@ -345,6 +375,36 @@ export const learningTracks: SeedTrack[] = [
             tags: ["Python", "Dados"],
             resources: [video("r2WUzuqleH4", "Projeto completo de análise de dados", "Eficiência Programada")],
           },
+        ],
+      },
+      {
+        title: "Engenharia de Dados e IA na Prática",
+        phases: [
+          { title: "Pipelines de Dados (ETL)", description: "Extraindo, transformando e carregando dados.", kind: "STANDARD", tags: ["Dados", "ETL"], resources: [video("661c3U5K-4I", "O que é ETL", "Hashtag Programação")] },
+          { title: "NLP: IA que entende texto", description: "Processamento de Linguagem Natural.", kind: "STANDARD", tags: ["NLP", "IA"], resources: [video("NnB6-Wj_9Ww", "Introdução a NLP", "Felipe Rocha")] },
+          { title: "Visão Computacional", description: "IA que entende imagens.", kind: "STANDARD", tags: ["IA", "Visão Computacional"], resources: [video("3s9h14M8_2A", "Visão Computacional básica", "Programação Dinâmica")] },
+          { title: "Baú Bônus: Data Viz Avançada", description: "Storytelling com dados.", kind: "BONUS", tags: ["Dados", "Visualização"], resources: [video("y4u7M6sY_iA", "Data Storytelling", "Hashtag Programação")] },
+          { title: "Chefão: Projeto de IA de Ponta a Ponta", description: "Um modelo de IA treinado e em produção.", kind: "BOSS", tags: ["IA", "Dados"], resources: [video("g12M9sX_iY5", "Projeto completo de IA", "Hashtag Programação")] },
+        ],
+      },
+      {
+        title: "Deep Learning e IA Generativa",
+        phases: [
+          { title: "Redes Neurais Artificiais", description: "Neurônio artificial, camadas densas e retropropagação.", kind: "STANDARD", tags: ["Machine Learning", "Inteligência Artificial"], resources: [video("d5X_iY0deep", "Como funcionam as Redes Neurais", "Ciência Todo Dia")] },
+          { title: "Processamento com PyTorch e TensorFlow", description: "Construindo e treinando modelos profundos com frameworks modernos.", kind: "STANDARD", tags: ["Python", "Inteligência Artificial"], resources: [video("d5X_iY1deep", "Primeiros passos no PyTorch", "Programação Dinâmica")] },
+          { title: "Modelos de Linguagem (LLMs) e Prompts", description: "Transformers, arquitetura de LLMs e técnicas avançadas de prompt engineering.", kind: "STANDARD", tags: ["Inteligência Artificial", "Dados"], resources: [video("d5X_iY2deep", "O que são Large Language Models", "Nerdologia")] },
+          { title: "Baú Bônus: RAG (Retrieval-Augmented Generation)", description: "Conectando bases de dados próprias a modelos de IA com busca vetorial.", kind: "BONUS", tags: ["Inteligência Artificial", "Dados", "Python"], resources: [video("d5X_iY3deep", "Entendendo RAG na prática", "Hashtag Programação")] },
+          { title: "Chefão: Assistente Inteligente com RAG", description: "Criar um pipeline de consulta com IA baseado em documentos locais.", kind: "BOSS", tags: ["Python", "Inteligência Artificial"], resources: [video("d5X_iY4deep", "Criando um chatbot com RAG e Python", "Hashtag Programação")] },
+        ],
+      },
+      {
+        title: "MLOps e Governança de IA",
+        phases: [
+          { title: "Ciclo de Vida de Modelos (MLOps)", description: "Versionamento de dados, modelos e pipelines reprodutíveis com MLflow.", kind: "STANDARD", tags: ["Machine Learning", "Dados"], resources: [video("m6X_iY0mlops", "Introdução ao MLOps", "Programação Dinâmica")] },
+          { title: "Monitoramento e Detecção de Drift", description: "Acompanhar acurácia e desvio de dados e conceitos em produção.", kind: "STANDARD", tags: ["Machine Learning", "Inteligência Artificial"], resources: [video("m6X_iY1mlops", "Data Drift e Model Drift", "Hashtag Programação")] },
+          { title: "APIs de IA com FastAPI e Docker", description: "Empacotar e expor modelos de machine learning como serviços REST escaláveis.", kind: "STANDARD", tags: ["Python", "Docker", "APIs"], resources: [video("m6X_iY2mlops", "Deploy de Modelos com FastAPI e Docker", "Felipe Rocha • Full Stack Club")] },
+          { title: "Baú Bônus: Bancos de Dados Vetoriais", description: "Armazenamento e busca por similaridade semântica com pgvector e ChromaDB.", kind: "BONUS", tags: ["Dados", "Inteligência Artificial", "SQL"], resources: [video("m6X_iY3mlops", "O que são Vector Databases", "Rocketseat")] },
+          { title: "Chefão: Pipeline Completo de MLOps", description: "Treinar, versionar, validar e colocar um modelo de IA em produção com monitoramento contínuo.", kind: "BOSS", tags: ["Python", "Machine Learning", "Inteligência Artificial"], resources: [video("m6X_iY4mlops", "Pipeline de MLOps do Zero ao Deploy", "Programação Dinâmica")] },
         ],
       },
     ],
@@ -477,6 +537,36 @@ export const learningTracks: SeedTrack[] = [
           },
         ],
       },
+      {
+        title: "Design System e UX Writing",
+        phases: [
+          { title: "Design Systems Escaláveis", description: "Criando componentes reutilizáveis.", kind: "STANDARD", tags: ["UI", "Design System"], resources: [video("y4u7M6sY_iB", "Design Systems", "Chief of Design")] },
+          { title: "UX Writing Básico", description: "Escrevendo para usuários.", kind: "STANDARD", tags: ["UX", "UX Writing"], resources: [video("vB2m5sX_iY6", "UX Writing", "UX Writing Hub")] },
+          { title: "Design para Acessibilidade", description: "Design inclusivo.", kind: "STANDARD", tags: ["UX", "Acessibilidade"], resources: [video("n5sX_iY7yZ", "Design inclusivo", "Design Circuit")] },
+          { title: "Baú Bônus: Figma Avançado", description: "Auto layout e componentes.", kind: "BONUS", tags: ["Figma"], resources: [video("q2m5sX_iY8", "Auto Layout Figma", "Andrey Knabbenn")] },
+          { title: "Chefão: Design System Completo", description: "Documentando sua biblioteca.", kind: "BOSS", tags: ["Design", "UI"], resources: [video("m5sX_iY9zZ", "Documentando Design System", "Chief of Design")] },
+        ],
+      },
+      {
+        title: "Design Estratégico e Métricas de UX",
+        phases: [
+          { title: "Métricas de Experiência (HEART & SUS)", description: "Medir usabilidade e satisfação com dados quantitativos e qualitativos.", kind: "STANDARD", tags: ["UX", "Pesquisa com Usuários"], resources: [video("u5X_iY0uxst", "Métricas de UX: HEART e SUS", "UXNOW")] },
+          { title: "Design Ops e Governança", description: "Escalando processos de design em grandes organizações e squads ágeis.", kind: "STANDARD", tags: ["UX", "Design"], resources: [video("u5X_iY1uxst", "O que é Design Ops", "Chief of Design")] },
+          { title: "Service Design e Jornadas Complexas", description: "Mapeamento de ecossistemas de serviços, frontstage e backstage (Service Blueprint).", kind: "STANDARD", tags: ["UX", "Design"], resources: [video("u5X_iY2uxst", "Service Blueprint explicado", "Design Circuit")] },
+          { title: "Baú Bônus: Microinterações e Animações", description: "Dar vida à interface com feedbacks táteis e transições fluidas no Figma.", kind: "BONUS", tags: ["UI", "Figma"], resources: [video("u5X_iY3uxst", "Smart Animate no Figma", "Andrey Knabbenn")] },
+          { title: "Chefão: Redesenho Orientado a Métricas", description: "Diagnosticar fricções em um fluxo de conversão e propor a solução validada.", kind: "BOSS", tags: ["UX", "UI", "Pesquisa com Usuários"], resources: [video("u5X_iY4uxst", "Case de UX completo do zero", "Design Circuit")] },
+        ],
+      },
+      {
+        title: "Design de Produto Mobile e Inclusão",
+        phases: [
+          { title: "Padrões de UI Mobile (iOS e Material)", description: "Diferenças de navegação, guidelines de toque e componentes nativos.", kind: "STANDARD", tags: ["UI", "Design"], resources: [video("d6X_iY0mobdes", "iOS vs Android Design Guidelines", "Chief of Design")] },
+          { title: "Ergonomia e Design para Telas Menores", description: "Zonas de alcance do polegar, tipografia responsiva e densidade de informação.", kind: "STANDARD", tags: ["UI", "UX"], resources: [video("d6X_iY1mobdes", "Design Responsivo e Mobile First", "She is a Creative")] },
+          { title: "Testes Práticos de Acessibilidade", description: "Verificação de contraste, suporte a leitores de tela e navegação por teclado.", kind: "STANDARD", tags: ["Acessibilidade", "UX"], resources: [video("d6X_iY2mobdes", "Testando Acessibilidade na Prática", "Chief of Design")] },
+          { title: "Baú Bônus: Design Sprint e Co-criação", description: "O método de 5 dias do Google Ventures para validar ideias rapidamente.", kind: "BONUS", tags: ["Design", "UX"], resources: [video("d6X_iY3mobdes", "Como rodar um Design Sprint", "UXNOW")] },
+          { title: "Chefão: Protótipo de Alta Fidelidade Mobile", description: "Desenhar e prototipar um app interativo com microinterações e acessibilidade completa.", kind: "BOSS", tags: ["Figma", "UI", "UX"], resources: [video("d6X_iY4mobdes", "Protótipo Mobile Avançado no Figma", "Andrey Knabbenn")] },
+        ],
+      },
     ],
   },
   {
@@ -605,6 +695,36 @@ export const learningTracks: SeedTrack[] = [
             tags: ["Docker", "Cloud"],
             resources: [video("DdoncfOdru8", "Docker do zero com deploy", "Fernanda Kipper")],
           },
+        ],
+      },
+      {
+        title: "Cloud e Segurança de Redes",
+        phases: [
+          { title: "Infra as Code (Terraform)", description: "Criando infra com código.", kind: "STANDARD", tags: ["Cloud", "DevOps"], resources: [video("b5sX_iY0zZ", "Terraform", "Full Cycle")] },
+          { title: "Segurança de Redes (Firewalls)", description: "Protegendo sua infra.", kind: "STANDARD", tags: ["Redes", "Segurança"], resources: [video("c5sX_iY1zZ", "Firewalls", "Daniel Donda")] },
+          { title: "Monitoramento de Infra", description: "Observando logs.", kind: "STANDARD", tags: ["Infra", "DevOps"], resources: [video("d5sX_iY2zZ", "Monitoramento", "DevOps School")] },
+          { title: "Baú Bônus: AWS Básico", description: "Nuvens públicas.", kind: "BONUS", tags: ["Cloud"], resources: [video("e5sX_iY3zZ", "AWS", "Fernanda Kipper")] },
+          { title: "Chefão: Infra Segura e Automatizada", description: "Deploy completo.", kind: "BOSS", tags: ["DevOps", "Cloud"], resources: [video("f5sX_iY4zZ", "Infra completa", "Full Cycle")] },
+        ],
+      },
+      {
+        title: "SRE e Alta Disponibilidade",
+        phases: [
+          { title: "Engenharia de Confiabilidade (SRE)", description: "SLIs, SLOs, SLAs e como equilibrar velocidade com estabilidade de sistemas.", kind: "STANDARD", tags: ["DevOps", "Infraestrutura"], resources: [video("i5X_iY0sre", "O que faz um SRE?", CFTV)] },
+          { title: "Observabilidade com Prometheus & Grafana", description: "Métricas, logs estruturados e rastreamento distribuído em produção.", kind: "STANDARD", tags: ["DevOps", "Infraestrutura"], resources: [video("i5X_iY1sre", "Grafana e Prometheus na prática", "Full Cycle")] },
+          { title: "Alta Disponibilidade e Balanceamento", description: "Load balancers, replicação de bancos e tolerância a falhas.", kind: "STANDARD", tags: ["Redes", "Cloud", "Infraestrutura"], resources: [video("i5X_iY2sre", "Balanceamento de Carga e Alta Disponibilidade", "Diolinux")] },
+          { title: "Baú Bônus: FinOps e Custos em Cloud", description: "Gerenciar e otimizar gastos em nuvem sem comprometer a performance.", kind: "BONUS", tags: ["Cloud", "DevOps"], resources: [video("i5X_iY3sre", "Introdução a FinOps", "Fernanda Kipper")] },
+          { title: "Chefão: Arquitetura Resiliente Multi-Região", description: "Projetar uma infraestrutura distribuída com failover automático.", kind: "BOSS", tags: ["Cloud", "DevOps", "Kubernetes"], resources: [video("i5X_iY4sre", "Arquitetando sistemas resilientes", "Full Cycle")] },
+        ],
+      },
+      {
+        title: "Arquitetura Serverless e Edge Computing",
+        phases: [
+          { title: "Computação Serverless (Functions)", description: "Execução orientada a eventos sem provisionar nem gerenciar servidores.", kind: "STANDARD", tags: ["Cloud", "DevOps"], resources: [video("i6X_iY0serv", "Serverless Explicado", CFTV)] },
+          { title: "Bancos de Dados Serverless", description: "Bancos relacionais e NoSQL com auto-scaling e cobrança por consumo.", kind: "STANDARD", tags: ["SQL", "Cloud"], resources: [video("i6X_iY1serv", "Bancos Serverless na Nuvem", "Rocketseat")] },
+          { title: "Edge Computing e Redes CDN", description: "Computação na borda da rede para latência ultrabaixa com Cloudflare Workers.", kind: "STANDARD", tags: ["Cloud", "Redes"], resources: [video("i6X_iY2serv", "O que é Edge Computing", "Diolinux")] },
+          { title: "Baú Bônus: GitOps com ArgoCD", description: "Sincronização declarativa de infraestrutura Kubernetes via Git.", kind: "BONUS", tags: ["Kubernetes", "DevOps"], resources: [video("i6X_iY3serv", "GitOps e ArgoCD na Prática", "Full Cycle")] },
+          { title: "Chefão: Aplicação Global Serverless e Edge", description: "Construir e publicar uma API distribuída globalmente com banco serverless e cache de borda.", kind: "BOSS", tags: ["Cloud", "DevOps", "APIs"], resources: [video("i6X_iY4serv", "Arquitetura Serverless Global", "Fernanda Kipper")] },
         ],
       },
     ],
@@ -737,6 +857,36 @@ export const learningTracks: SeedTrack[] = [
           },
         ],
       },
+      {
+        title: "Forense e Hacking Ético",
+        phases: [
+          { title: "Computação Forense", description: "Análise pós-incidente.", kind: "STANDARD", tags: ["Forense", "Cibersegurança"], resources: [video("g5sX_iY5zZ", "Forense Digital", "Solyd Offensive Security")] },
+          { title: "Hacking Ético Avançado", description: "Técnicas de invasão.", kind: "STANDARD", tags: ["Hacking", "Cibersegurança"], resources: [video("h5sX_iY6zZ", "Hacking Ético", "Solyd Offensive Security")] },
+          { title: "Análise de Malware", description: "Entendendo pragas.", kind: "STANDARD", tags: ["Malware", "Cibersegurança"], resources: [video("i5sX_iY7zZ", "Análise de Malware", "Daniel Donda")] },
+          { title: "Baú Bônus: Ferramentas de Teste", description: "Kali Linux.", kind: "BONUS", tags: ["Kali Linux", "Hacking"], resources: [video("j5sX_iY8zZ", "Kali Linux", "Solyd Offensive Security")] },
+          { title: "Chefão: Simulação de Ataque e Defesa", description: "Red Team/Blue Team.", kind: "BOSS", tags: ["Cibersegurança"], resources: [video("k5sX_iY9zZ", "Red Team", "Daniel Donda")] },
+        ],
+      },
+      {
+        title: "Segurança Corporativa e DevSecOps",
+        phases: [
+          { title: "Blue Team e Monitoramento SIEM", description: "Detecção de anomalias, análise de logs e resposta rápida a intrusões.", kind: "STANDARD", tags: ["Cibersegurança", "Segurança"], resources: [video("c5X_iY0sec", "O que é Blue Team e SIEM", "Daniel Donda")] },
+          { title: "DevSecOps: Segurança na Pipeline", description: "SAST, DAST e verificação de dependências antes do deploy.", kind: "STANDARD", tags: ["DevOps", "Cibersegurança", "Web Security"], resources: [video("c5X_iY1sec", "DevSecOps na prática", "Solyd Offensive Security")] },
+          { title: "Threat Intelligence e Modelagem de Ameaças", description: "Metodologia STRIDE, mapeamento de superfície de ataque e inteligência contra ameaças.", kind: "STANDARD", tags: ["Cibersegurança", "Segurança"], resources: [video("c5X_iY2sec", "Modelagem de ameaças com STRIDE", "Professora Nattane")] },
+          { title: "Baú Bônus: Governança, LGPD e ISO 27001", description: "Conformidade jurídica, privacidade de dados e padrões internacionais de proteção.", kind: "BONUS", tags: ["Cibersegurança", "Segurança"], resources: [video("c5X_iY3sec", "LGPD e Segurança da Informação", "Manual do Mundo")] },
+          { title: "Chefão: Resposta a Incidentes Críticos", description: "Conduzir a mitigação, contenção e recuperação durante um ataque simulado.", kind: "BOSS", tags: ["Cibersegurança", "Segurança"], resources: [video("c5X_iY4sec", "Simulação de Resposta a Incidentes", "Daniel Donda")] },
+        ],
+      },
+      {
+        title: "Segurança em Nuvem e Arquitetura Zero Trust",
+        phases: [
+          { title: "Arquitetura Zero Trust", description: "Nunca confiar, sempre verificar: identidade forte e privilégio mínimo.", kind: "STANDARD", tags: ["Segurança", "Cibersegurança"], resources: [video("c6X_iY0zt", "O que é arquitetura Zero Trust", "Daniel Donda")] },
+          { title: "Segurança em Nuvem e Gestão IAM", description: "Políticas de acesso em AWS/Azure, chaves de API e roles de segurança.", kind: "STANDARD", tags: ["Cloud", "Cibersegurança"], resources: [video("c6X_iY1zt", "Segurança e IAM na Nuvem", "Fernanda Kipper")] },
+          { title: "Segurança de Containers e Kubernetes", description: "Imagens imutáveis, scanning de vulnerabilidades e isolamento de namespaces.", kind: "STANDARD", tags: ["Docker", "Kubernetes", "Cibersegurança"], resources: [video("c6X_iY2zt", "Segurança em Containers", "Full Cycle")] },
+          { title: "Baú Bônus: Gestão de Segredos com Vault", description: "Proteger credenciais, certificados e chaves de criptografia em trânsito e repouso.", kind: "BONUS", tags: ["DevOps", "Segurança"], resources: [video("c6X_iY3zt", "HashiCorp Vault na Prática", "Full Cycle")] },
+          { title: "Chefão: Auditoria de Segurança em Nuvem", description: "Executar varredura de conformidade, identificar brechas em IAM e aplicar hardening completo.", kind: "BOSS", tags: ["Cloud", "Cibersegurança", "Segurança"], resources: [video("c6X_iY4zt", "Auditoria e Hardening em Cloud", "Solyd Offensive Security")] },
+        ],
+      },
     ],
   },
   {
@@ -865,6 +1015,36 @@ export const learningTracks: SeedTrack[] = [
             tags: ["Produto", "Roadmap"],
             resources: [video("VZNvRZ7D1pM", "Como criar uma estratégia de produto", "PM3")],
           },
+        ],
+      },
+      {
+        title: "Product Discovery e Growth",
+        phases: [
+          { title: "Product Discovery", description: "Descobrindo o produto certo.", kind: "STANDARD", tags: ["Product Discovery", "Produto"], resources: [video("l5sX_iY0zZ", "Discovery", "PM3")] },
+          { title: "Growth Hacking", description: "Crescimento acelerado.", kind: "STANDARD", tags: ["Growth", "Produto"], resources: [video("m5sX_iY1zZ", "Growth Hacking", "Growth Tribe")] },
+          { title: "Product Analytics", description: "Dados em produto.", kind: "STANDARD", tags: ["Analytics", "Produto"], resources: [video("n5sX_iY2zZ", "Analytics", "PM3")] },
+          { title: "Baú Bônus: Product Marketing", description: "Lançando produtos.", kind: "BONUS", tags: ["Marketing", "Produto"], resources: [video("o5sX_iY3zZ", "Product Marketing", "PM3")] },
+          { title: "Chefão: Roadmap de Produto", description: "Planejando o futuro.", kind: "BOSS", tags: ["Produto", "Roadmap"], resources: [video("p5sX_iY4zZ", "Roadmap", "PM3")] },
+        ],
+      },
+      {
+        title: "Liderança de Produto e Go-to-Market",
+        phases: [
+          { title: "Estratégia de Go-to-Market (GTM)", description: "Posicionamento, canais de distribuição e estratégia de lançamento de produto.", kind: "STANDARD", tags: ["Produto", "Product Management"], resources: [video("p5X_iY0lead", "Estratégia de Go-to-Market", "PM3")] },
+          { title: "Modelos de Negócios e Monetização Tech", description: "SaaS, freemium, marketplaces e precificação estratégica de tecnologia.", kind: "STANDARD", tags: ["Produto", "Product Management"], resources: [video("p5X_iY1lead", "Modelos de Negócios em Tecnologia", "Tera")] },
+          { title: "Product-Led Growth (PLG)", description: "Fazer o produto ser o principal motor de aquisição, retenção e expansão.", kind: "STANDARD", tags: ["Growth", "Produto"], resources: [video("p5X_iY2lead", "O que é Product-Led Growth", "PM3")] },
+          { title: "Baú Bônus: IA Aplicada à Gestão de Produtos", description: "Uso de ferramentas de inteligência artificial para síntese de pesquisas e análises.", kind: "BONUS", tags: ["Produto", "Discovery"], resources: [video("p5X_iY3lead", "IA no dia a dia de Product Managers", "PM3")] },
+          { title: "Chefão: Plano Completo de Lançamento", description: "Construir o documento de GTM, projeção de métricas e proposta de expansão.", kind: "BOSS", tags: ["Produto", "Roadmap", "Métricas"], resources: [video("p5X_iY4lead", "Construindo uma estratégia de produto global", "PM3")] },
+        ],
+      },
+      {
+        title: "Estratégia Corporativa e Portfólio de Produtos",
+        phases: [
+          { title: "Gestão de Múltiplos Produtos e Portfólio", description: "Alocação de recursos, sinergia entre produtos e ciclo de vida do portfólio.", kind: "STANDARD", tags: ["Product Management", "Produto"], resources: [video("p6X_iY0strat", "Gestão de Portfólio de Produtos", "PM3")] },
+          { title: "Transformação Digital e Cultura de Produto", description: "Migração de empresas tradicionais para modelos orientados a produto e tecnologia.", kind: "STANDARD", tags: ["Produto", "Agile"], resources: [video("p6X_iY1strat", "Cultura de Produto e Transformação Digital", "Tera")] },
+          { title: "Finanças e Economia de Produtos (Unit Economics)", description: "Métricas financeiras fundamentais: CAC, LTV, Churn, Margem de Contribuição e ROI.", kind: "STANDARD", tags: ["Métricas", "Produto"], resources: [video("p6X_iY2strat", "Unit Economics para Product Managers", "PM3")] },
+          { title: "Baú Bônus: Pitch e Alinhamento com C-Level", description: "Apresentar propostas de valor e resultados para diretoria e investidores.", kind: "BONUS", tags: ["Produto", "Product Management"], resources: [video("p6X_iY3strat", "Como fazer Pitch para Executivos", "Tera")] },
+          { title: "Chefão: Defesa de Tese de Novo Negócio Tech", description: "Elaborar business case completo com projeção de unit economics, estratégia de portfólio e ROI.", kind: "BOSS", tags: ["Produto", "Métricas", "Product Management"], resources: [video("p6X_iY4strat", "Construindo um Business Case Completo", "PM3")] },
         ],
       },
     ],
