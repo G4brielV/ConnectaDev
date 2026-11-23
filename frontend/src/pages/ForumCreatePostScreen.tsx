@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
@@ -134,7 +134,7 @@ export function ForumCreatePostScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Pressable accessibilityLabel="Voltar para o fórum" accessibilityRole="button" onPress={() => navigation.goBack()}>
           <View style={styles.backRow}><Feather name="arrow-left" size={16} color={colors.primary} /><Text style={styles.backText}>Fórum</Text></View>

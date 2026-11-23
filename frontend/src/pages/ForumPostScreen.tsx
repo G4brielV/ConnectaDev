@@ -8,12 +8,12 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
@@ -276,7 +276,7 @@ export function ForumPostScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <KeyboardAvoidingView behavior="padding" style={styles.keyboardContainer}>
         {isCached ? <Text style={styles.cacheBanner}>Você está visualizando a versão em cache desta postagem</Text> : null}
         {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
