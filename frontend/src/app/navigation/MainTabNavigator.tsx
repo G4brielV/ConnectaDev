@@ -39,9 +39,6 @@ const TABS: TabItem[] = [
   { id: 'trail', label: 'Trilha', icon: 'map' },
   { id: 'courses', label: 'Cursos', icon: 'book-open' },
   { id: 'jobs', label: 'Vagas', icon: 'briefcase' },
-  { id: 'events', label: 'Eventos', icon: 'calendar' },
-  { id: 'forum', label: 'Fórum', icon: 'message-circle' },
-  { id: 'profile', label: 'Perfil', icon: 'user' },
 ];
 
 export function MainTabNavigator() {
@@ -118,29 +115,6 @@ export function MainTabNavigator() {
             </View>
             <Text style={styles.plusLabel}>Mais</Text>
           </Pressable>
-          {TABS.slice(3).map((tab) => {
-            const isSelected = activeTab === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                style={styles.tabButton}
-                onPress={() => setActiveTab(tab.id)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={tab.label}
-              >
-                <Feather
-                  name={tab.icon}
-                  size={22}
-                  color={isSelected ? colors.primary : colors.textMuted}
-                  style={styles.icon}
-                />
-                <Text style={[styles.tabLabel, isSelected ? styles.tabLabelActive : styles.tabLabelInactive]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
         </View>
 
         <Modal
@@ -195,6 +169,63 @@ export function MainTabNavigator() {
                   <Text style={styles.quickActionTitle}>Meus cursos</Text>
                   <Text style={styles.quickActionSubtitle}>
                     Veja seus cursos, favoritos e avaliações.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.textMuted} />
+              </Pressable>
+              <Pressable
+                style={[styles.quickAction, styles.quickActionSpaced]}
+                accessibilityRole="button"
+                onPress={() => {
+                  setIsQuickActionsVisible(false);
+                  setActiveTab('forum');
+                }}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Feather name="message-circle" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.quickActionTexts}>
+                  <Text style={styles.quickActionTitle}>Fórum</Text>
+                  <Text style={styles.quickActionSubtitle}>
+                    Participe de conversas sobre tecnologia e carreira.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.textMuted} />
+              </Pressable>
+              <Pressable
+                style={[styles.quickAction, styles.quickActionSpaced]}
+                accessibilityRole="button"
+                onPress={() => {
+                  setIsQuickActionsVisible(false);
+                  setActiveTab('profile');
+                }}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Feather name="user" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.quickActionTexts}>
+                  <Text style={styles.quickActionTitle}>Perfil</Text>
+                  <Text style={styles.quickActionSubtitle}>
+                    Consulte seu progresso e configurações da conta.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.textMuted} />
+              </Pressable>
+              <Pressable
+                style={[styles.quickAction, styles.quickActionSpaced]}
+                accessibilityRole="button"
+                onPress={() => {
+                  setIsQuickActionsVisible(false);
+                  setActiveTab('events');
+                }}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Feather name="calendar" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.quickActionTexts}>
+                  <Text style={styles.quickActionTitle}>Eventos</Text>
+                  <Text style={styles.quickActionSubtitle}>
+                    Encontre oportunidades locais de tecnologia.
                   </Text>
                 </View>
                 <Feather name="chevron-right" size={20} color={colors.textMuted} />
