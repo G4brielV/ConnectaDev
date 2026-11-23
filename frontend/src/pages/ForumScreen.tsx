@@ -104,14 +104,15 @@ export function ForumScreen() {
           </Pressable>
         )}
       />
-      <View pointerEvents="box-none" style={styles.createDock}>
+      <View style={styles.createDock}>
         <Pressable
-          accessibilityLabel="Criar novo post"
+          accessibilityLabel="Criar nova publicação"
           accessibilityRole="button"
           onPress={() => navigation.navigate("ForumCreatePost")}
           style={({ pressed }) => [styles.createButton, pressed && styles.createButtonPressed]}
         >
-          <Feather name="plus" size={24} color={colors.textOnPrimary} />
+          <Feather name="edit-3" size={18} color={colors.textOnPrimary} />
+          <Text style={styles.createButtonText}>Criar nova publicação</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -120,17 +121,17 @@ export function ForumScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
-  listContent: { padding: spacing.lg, paddingBottom: 104 },
+  listContent: { padding: spacing.lg, paddingBottom: spacing.lg },
   headerRow: { alignItems: "center", flexDirection: "row", paddingTop: spacing.sm },
   header: { flex: 1, marginBottom: spacing.lg, paddingRight: spacing.md },
   eyebrow: { color: colors.secondary, fontFamily: fonts.sans.bold, fontSize: 12, letterSpacing: 1.3 },
   eyebrowStrong: { color: colors.primary },
   title: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 26, marginTop: spacing.xs, marginBottom: spacing.sm },
   headerIcon: { alignItems: "center", backgroundColor: colors.creamSoft, borderRadius: radius.lg, height: 52, justifyContent: "center", width: 52 },
-  createDock: { bottom: spacing.md, position: "absolute", right: spacing.md },
-  createButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.pill, height: 54, justifyContent: "center", width: 54, ...shadow.card },
-  createButtonPressed: { opacity: 0.82 },
-  createButtonText: { color: "#FFFFFF", fontSize: 26, fontWeight: "300", includeFontPadding: false, lineHeight: 30, textAlign: "center", textAlignVertical: "center", transform: [{ translateY: -2 }] },
+  createDock: { backgroundColor: colors.canvas, borderTopColor: colors.light, borderTopWidth: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  createButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.md, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 48, paddingHorizontal: spacing.md },
+  createButtonPressed: { backgroundColor: colors.primaryActive },
+  createButtonText: { color: colors.textOnPrimary, fontFamily: fonts.sans.bold, fontSize: 12 },
   subtitle: { color: colors.textMuted, fontFamily: fonts.sans.regular, fontSize: 14, lineHeight: 20 },
   topicRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, flexDirection: "row", minHeight: 76, marginBottom: spacing.sm, padding: spacing.md, ...shadow.card },
   topicRowPressed: { backgroundColor: colors.creamSoft },
