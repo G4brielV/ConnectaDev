@@ -62,8 +62,8 @@ test("o combo conta os acertos seguidos e zera no erro", () => {
 
 test("o indicador de combo só aparece a partir de 3 seguidas", () => {
   assert.equal(comboLabel(2), null);
-  assert.equal(comboLabel(3), "Combo x3! 🔥");
-  assert.equal(comboLabel(5), "Combo x5! 🔥");
+  assert.equal(comboLabel(3), "Combo x3!");
+  assert.equal(comboLabel(5), "Combo x5!");
 });
 
 test("depois da correção, a certa fica verde e a escolhida errada vermelha", () => {

@@ -25,7 +25,6 @@ export function LogoutConfirmationModal({
       <View style={styles.overlay}>
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Text style={styles.iconText}>🚪</Text>
           </View>
 
           <Text style={styles.title}>Sair da Conta</Text>

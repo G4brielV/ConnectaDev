@@ -92,7 +92,7 @@ export function TrailPhaseResultPage() {
           >
             <Text style={styles.scoreLabel}>Ofensiva</Text>
             <View style={styles.streakValue}>
-              <Text style={styles.scoreValue}>🔥 {result.currentStreak} dias</Text>
+              <Text style={styles.scoreValue}>{result.currentStreak} dias</Text>
               <Feather name="chevron-right" size={16} color={colors.textMuted} />
             </View>
           </Pressable>

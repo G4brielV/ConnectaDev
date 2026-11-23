@@ -208,9 +208,9 @@ function JobCard({ job }: { job: JobRecommendation }) {
         </Text>
       </View>
       <Text style={styles.jobTitle}>{job.title}</Text>
-      <Text style={styles.jobCompany}>🏢 {job.company}</Text>
-      <Text style={styles.jobLocation}>📍 {job.location}</Text>
-      {job.salary ? <Text style={styles.salary}>💰 {job.salary}</Text> : null}
+      <Text style={styles.jobCompany}>{job.company}</Text>
+      <Text style={styles.jobLocation}>{job.location}</Text>
+      {job.salary ? <Text style={styles.salary}>{job.salary}</Text> : null}
       {linkError ? <Text style={styles.linkError}>{linkError}</Text> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={`Ver detalhes de ${job.title}`} onPress={() => void openJob()} style={styles.applyButton}>
         <Text style={styles.applyButtonText}>Ver Detalhes da Vaga →</Text>

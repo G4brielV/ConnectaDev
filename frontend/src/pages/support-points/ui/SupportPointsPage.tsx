@@ -147,7 +147,7 @@ export function SupportPointsPage() {
       {/* Banner de Modo Offline */}
       {isOfflineMode && (
         <View style={styles.offlineBanner}>
-          <Feather name="cloud-off" size={14} color="#856404" />
+          <Feather name="cloud-off" size={14} color={colors.accentInk} />
           <Text style={styles.offlineBannerText}>
             Modo Offline: Exibindo locais salvos no seu aparelho.
           </Text>
@@ -273,16 +273,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFF3CD',
+    backgroundColor: colors.accentFixed,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#FFEEBA',
+    borderBottomColor: colors.accent,
   },
   offlineBannerText: {
     fontFamily: fonts.sans.medium,
     fontSize: 12,
-    color: '#856404',
+    color: colors.accentInk,
   },
   filtersWrapper: {
     backgroundColor: colors.surface,

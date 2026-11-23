@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#E8F5F5',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.sm,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.creamSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radius.sm,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     color: colors.textBody,
   },
   computerBadge: {
-    backgroundColor: '#E6F4F4',
+    backgroundColor: colors.primaryTint,
   },
   computerText: {
     color: colors.primary,

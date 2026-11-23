@@ -87,7 +87,7 @@ export function TrailLessonScreen() {
     return (
       <View style={styles.resultScreen}>
         <View style={styles.pendingCard}>
-          <Text style={styles.pendingIcon}>☁</Text>
+          <Text style={styles.pendingIcon}>...</Text>
           <Text style={styles.pendingTitle}>Respostas salvas</Text>
           <Text style={styles.pendingText}>{pendingSyncMessage}</Text>
           <Pressable
@@ -114,7 +114,7 @@ export function TrailLessonScreen() {
             },
           ]}
         >
-          <Text style={styles.celebration}>{result.leveledUp ? "🎉" : "🏆"}</Text>
+          <Text style={styles.celebration}>{result.leveledUp ? "!" : "OK"}</Text>
           <Text style={styles.resultTitle}>{result.leveledUp ? "Level Up!" : "Lição concluída!"}</Text>
           <Text style={styles.resultScore}>Você acertou {result.correctCount} de {result.totalQuestions} perguntas.</Text>
           <Text style={styles.xpMessage}>
@@ -127,7 +127,7 @@ export function TrailLessonScreen() {
           ) : null}
           {result.leveledUp ? (
             <Text style={styles.levelUp}>
-              Parabéns! Você alcançou o Nível {result.currentLevel}: {result.levelName ?? "Iniciante Tech"} 🎉
+              Parabéns! Você alcançou o Nível {result.currentLevel}: {result.levelName ?? "Iniciante Tech"}
             </Text>
           ) : null}
           <Pressable accessibilityRole="button" onPress={() => navigation.replace("Trails")} style={styles.primaryButton}>
