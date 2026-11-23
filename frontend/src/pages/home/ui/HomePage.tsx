@@ -8,21 +8,60 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { LogoutConfirmationModal } from '@/features/auth';
 import { useGamification } from '@/entities/gamification';
+import { fetchQuizDiagnosis } from '@/shared/api/quizApi';
+import { colors, fonts, radius, shadow, spacing } from '@/shared/config/theme';
+import { Logo } from '@/shared/ui/Logo';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
+import { RestartTrailModal } from './RestartTrailModal';
+
+function getUserInitials(name?: string | null, email?: string | null): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0) {
+    const first = words[0][0] ?? '';
+    const last = words.length > 1 ? words[words.length - 1][0] ?? '' : '';
+    return `${first}${last}`.toUpperCase();
+  }
+  const fromEmail = (email ?? '').trim()[0];
+  return fromEmail ? fromEmail.toUpperCase() : '?';
+}
 
 export function HomePage() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { refresh } = useGamification();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
+  const [currentArea, setCurrentArea] = useState<string | null>(null);
+  const [isRestartTrailModalVisible, setIsRestartTrailModalVisible] = useState(false);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Refresh XP/streak whenever Home regains focus (e.g. after finishing a review)
+  // Atualiza XP/ofensiva e área atual sempre que o Perfil volta ao foco
   useFocusEffect(
     useCallback(() => {
+      let isActive = true;
       void refresh();
-    }, [refresh]),
+
+      if (token) {
+        fetchQuizDiagnosis(token)
+          .then((diagnosis) => {
+            if (isActive) {
+              setCurrentArea(diagnosis.completed ? diagnosis.areaPrincipal : null);
+            }
+          })
+          .catch(() => {
+            // Mantém o estado anterior caso não seja possível consultar o diagnóstico
+          });
+      }
+
+      return () => {
+        isActive = false;
+      };
+    }, [refresh, token]),
   );
+
+  const handleConfirmRestartTrail = () => {
+    setIsRestartTrailModalVisible(false);
+    navigation.navigate('Quiz');
+  };
 
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
@@ -34,56 +73,105 @@ export function HomePage() {
     }
   };
 
+  const displayName = user?.name?.trim() || 'Estudante ConnectaDev';
+  const initials = getUserInitials(user?.name, user?.email);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Pressable accessibilityRole="button" onPress={() => setIsLogoutModalVisible(true)}>
-            <Text style={styles.logo}>CONNECTA<Text style={styles.logoStrong}>DEV</Text></Text>
-          </Pressable>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>◯</Text>
+      <View style={styles.header}>
+        <View style={styles.headerBrand}>
+          <Logo size={34} showWordmark={false} />
+          <View style={styles.headerTexts}>
+            <Text style={styles.headerEyebrow}>CONNECTADEV</Text>
+            <Text style={styles.headerTitle}>Perfil</Text>
           </View>
         </View>
-        <XpProgressBar />
-        <View style={styles.heroCard}>
-          <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE</Text>
-          <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
-          <Text style={styles.emailText}>
-            {user?.email ? `Olá, ${user.email}` : 'Seu próximo passo na tecnologia começa aqui.'}
-          </Text>
-          <Text style={styles.infoText}>
-            Faça o Quiz Vocacional para receber recomendações alinhadas aos seus interesses.
-          </Text>
-          <View style={styles.chips}>
-            <Text style={styles.chip}>Cursos gratuitos</Text>
-            <Text style={styles.chip}>Vagas locais</Text>
+      </View>
+      <XpProgressBar />
+
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {user?.email ? (
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {user.email}
+              </Text>
+            ) : null}
+            {currentArea ? (
+              <View style={styles.areaBadge}>
+                <Feather name="compass" size={12} color={colors.primary} />
+                <Text style={styles.areaBadgeText} numberOfLines={1}>
+                  {currentArea}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
-        <View style={styles.footer}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.navigate('Quiz')}
-            style={styles.quizButton}
-          >
-            <Text style={styles.quizButtonText}>Refazer diagnóstico vocacional</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.navigate('Trails')}
-            style={styles.trailsButton}
-          >
-            <Text style={styles.trailsButtonText}>Trilhas</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setIsLogoutModalVisible(true)}
-            style={styles.logoutButton}
-          >
-            <Text style={styles.logoutText}>Sair da conta</Text>
-          </Pressable>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>JORNADA E CONTA</Text>
+          <View style={styles.actionsCard}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Recomeçar trilha"
+              onPress={() => setIsRestartTrailModalVisible(true)}
+              style={({ pressed }) => [
+                styles.actionRow,
+                pressed && styles.actionRowPressed,
+              ]}
+            >
+              <View style={styles.actionIconPrimary}>
+                <Feather name="refresh-cw" size={19} color={colors.primary} />
+              </View>
+              <View style={styles.actionTexts}>
+                <Text style={styles.actionTitle}>Recomeçar trilha</Text>
+                <Text style={styles.actionSubtitle}>
+                  Refaça o teste vocacional para iniciar uma nova trilha
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.textMuted} />
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sair da conta"
+              onPress={() => setIsLogoutModalVisible(true)}
+              style={({ pressed }) => [
+                styles.actionRow,
+                pressed && styles.actionRowDangerPressed,
+              ]}
+            >
+              <View style={styles.actionIconDanger}>
+                <Feather name="log-out" size={19} color={colors.danger} />
+              </View>
+              <View style={styles.actionTexts}>
+                <Text style={styles.actionTitleDanger}>Sair da conta</Text>
+                <Text style={styles.actionSubtitle}>
+                  Encerrar sua sessão neste dispositivo
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.textMuted} />
+            </Pressable>
+          </View>
         </View>
+
+        <RestartTrailModal
+          visible={isRestartTrailModalVisible}
+          currentArea={currentArea}
+          onConfirm={handleConfirmRestartTrail}
+          onCancel={() => setIsRestartTrailModalVisible(false)}
+        />
 
         <LogoutConfirmationModal
           visible={isLogoutModalVisible}
@@ -94,66 +182,177 @@ export function HomePage() {
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.canvas,
   },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'space-between' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  logo: { color: '#033649', fontSize: 18, letterSpacing: 1 },
-  logoStrong: { fontWeight: '800', color: '#036564' },
-  avatar: { backgroundColor: '#033649', borderRadius: 20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#FFFFFF', fontSize: 20 },
-  heroCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
+    backgroundColor: colors.canvas,
   },
-  heroBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#E3F2F2',
-    color: '#036564',
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginBottom: 12,
-    textTransform: 'uppercase',
+  headerBrand: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#031634',
-    marginBottom: 8,
+  headerTexts: {
+    flex: 1,
   },
-  emailText: {
-    fontSize: 15,
-    color: '#036564',
-    fontWeight: '500',
-    marginBottom: 12,
+  headerEyebrow: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: colors.textMuted,
   },
-  infoText: {
+  headerTitle: {
+    fontFamily: fonts.sans.extraBold,
+    fontSize: 20,
+    color: colors.textPrimary,
+  },
+  container: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: spacing.xl,
+    gap: 24,
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.light,
+    padding: 18,
+    ...shadow.card,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.secondary,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 20,
+    color: colors.textOnPrimary,
+  },
+  profileInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  profileName: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  profileEmail: {
+    fontFamily: fonts.sans.regular,
     fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
+    color: colors.textMuted,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 },
-  chip: { backgroundColor: '#F2EEE5', borderRadius: 999, color: '#033649', fontSize: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  footer: { gap: 12, marginTop: 32 },
-  quizButton: { alignItems: 'center', backgroundColor: '#036564', borderRadius: 12, paddingVertical: 16 },
-  quizButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  trailsButton: { alignItems: 'center', backgroundColor: '#CDB380', borderRadius: 12, paddingVertical: 14 },
-  trailsButtonText: { color: '#031634', fontSize: 15, fontWeight: '800' },
-  logoutButton: { alignItems: 'center', paddingVertical: 12 },
-  logoutText: { color: '#60717A', fontSize: 14 },
+  areaBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 4,
+  },
+  areaBadgeText: {
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 12,
+    color: colors.primary,
+    flexShrink: 1,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionLabel: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
+    letterSpacing: 0.9,
+    color: colors.textMuted,
+    paddingHorizontal: 4,
+  },
+  actionsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.light,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  actionRowPressed: {
+    backgroundColor: colors.creamSoft,
+  },
+  actionRowDangerPressed: {
+    backgroundColor: '#FDECEC',
+  },
+  actionIconPrimary: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.creamSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconDanger: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FDECEC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  actionTitle: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  actionTitleDanger: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 15,
+    color: colors.danger,
+  },
+  actionSubtitle: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textMuted,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.creamSoft,
+    marginHorizontal: 16,
+  },
 });

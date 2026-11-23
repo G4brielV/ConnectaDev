@@ -44,6 +44,7 @@ export function TrailMapPage() {
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<ScrollView>(null);
   const didAutoScroll = useRef(false);
+  const previousTrailRef = useRef<{ trailId: string | null; completedPhases: number } | null>(null);
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
@@ -55,6 +56,21 @@ export function TrailMapPage() {
 
       try {
         const [trailMap] = await Promise.all([fetchTrailMap(token), refresh(true)]);
+        const nextTrailId = trailMap.trail?.id ?? null;
+        const previous = previousTrailRef.current;
+        if (
+          previous &&
+          (previous.trailId !== nextTrailId ||
+            (previous.completedPhases > 0 && trailMap.completedPhases === 0))
+        ) {
+          setExpandedOverrides({});
+          didAutoScroll.current = false;
+          scrollRef.current?.scrollTo({ y: 0, animated: false });
+        }
+        previousTrailRef.current = {
+          trailId: nextTrailId,
+          completedPhases: trailMap.completedPhases,
+        };
         setMap(trailMap);
         setErrorMessage(null);
       } catch (error) {
