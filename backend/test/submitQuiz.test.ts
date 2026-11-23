@@ -1,5 +1,9 @@
 import { expect, test, vi } from "vitest";
 import { submitQuizController } from "../src/modules/quiz/controllers/submitQuiz.controller";
+import {
+  saveQuizDiagnosis,
+  SaveQuizDiagnosisTx,
+} from "../src/modules/quiz/services/saveQuizDiagnosis.service";
 
 const ANALYSIS = {
   areaPrincipal: "Desenvolvimento Web",
@@ -111,4 +115,56 @@ test("controller rejects a payload without answers", async () => {
       },
     }),
   ).rejects.toMatchObject({ message: "As respostas do quiz são obrigatórias." });
+});
+
+test("saveQuizDiagnosis persists diagnosis and resets trail progress while preserving xpAwarded", async () => {
+  const upsert = vi.fn(async () => ({}));
+  const updateMany = vi.fn(async () => ({ count: 3 }));
+  const tx: SaveQuizDiagnosisTx = {
+    vocationalDiagnosis: { upsert },
+    userTrailProgress: { updateMany },
+  };
+  const runInTransaction = vi.fn(async <T>(cb: (client: SaveQuizDiagnosisTx) => Promise<T>) =>
+    cb(tx),
+  );
+
+  await saveQuizDiagnosis(
+    "user-42",
+    {
+      areaPrincipal: "Desenvolvimento de Software",
+      areasSecundarias: ["Dados e Inteligência Artificial"],
+      justificativa: "Perfil com afinidade por construir sistemas e resolver problemas lógicos.",
+      tecnologiasSugeridas: ["TypeScript", "React"],
+    },
+    runInTransaction,
+  );
+
+  expect(runInTransaction).toHaveBeenCalledTimes(1);
+  expect(upsert).toHaveBeenCalledWith({
+    where: { userId: "user-42" },
+    create: {
+      userId: "user-42",
+      areaPrincipal: "Desenvolvimento de Software",
+      areasSecundarias: ["Dados e Inteligência Artificial"],
+      tecnologiasSugeridas: ["TypeScript", "React"],
+    },
+    update: {
+      areaPrincipal: "Desenvolvimento de Software",
+      areasSecundarias: ["Dados e Inteligência Artificial"],
+      tecnologiasSugeridas: ["TypeScript", "React"],
+    },
+  });
+  expect(updateMany).toHaveBeenCalledWith({
+    where: { userId: "user-42" },
+    data: {
+      passed: false,
+      stars: 0,
+      bestCorrect: 0,
+      bestPercentage: 0,
+      attempts: 0,
+      totalQuestions: 0,
+      completedAt: null,
+    },
+  });
+  expect(updateMany.mock.calls[0]?.[0].data).not.toHaveProperty("xpAwarded");
 });

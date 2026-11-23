@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { auth } from "../../../lib/auth";
+import { auth, ensureDevelopmentUser } from "../../../lib/auth";
 import { AppError } from "../../../shared/errors/AppError";
 import { QuizSubmitRequest } from "../schemas/quiz.schemas";
 import {
@@ -7,9 +7,10 @@ import {
   AiGatewayRequestError,
   submitQuiz,
 } from "../services/submitQuiz.service";
-import { ensureDevelopmentUser, prisma } from "../../../lib/auth";
-
-type QuizAnalysisResult = Awaited<ReturnType<typeof submitQuiz>>;
+import {
+  QuizAnalysisResult,
+  saveQuizDiagnosis,
+} from "../services/saveQuizDiagnosis.service";
 
 type SessionResolver = (context: {
   headers: Headers;
@@ -24,26 +25,6 @@ export interface SubmitQuizControllerDeps {
   saveDiagnosis?: (userId: string, result: QuizAnalysisResult) => Promise<void>;
 }
 
-const defaultSaveDiagnosis = async (
-  userId: string,
-  result: QuizAnalysisResult,
-): Promise<void> => {
-  await prisma.vocationalDiagnosis.upsert({
-    where: { userId },
-    create: {
-      userId,
-      areaPrincipal: result.areaPrincipal,
-      areasSecundarias: result.areasSecundarias,
-      tecnologiasSugeridas: result.tecnologiasSugeridas,
-    },
-    update: {
-      areaPrincipal: result.areaPrincipal,
-      areasSecundarias: result.areasSecundarias,
-      tecnologiasSugeridas: result.tecnologiasSugeridas,
-    },
-  });
-};
-
 export async function submitQuizController(
   request: FastifyRequest<{ Body: QuizSubmitRequest }>,
   reply: FastifyReply,
@@ -52,7 +33,7 @@ export async function submitQuizController(
     getSession = ({ headers }) => auth.api.getSession({ headers }),
     resolveDevelopmentUser = ensureDevelopmentUser,
     isProduction = () => process.env.NODE_ENV === "production",
-    saveDiagnosis = defaultSaveDiagnosis,
+    saveDiagnosis = saveQuizDiagnosis,
   }: SubmitQuizControllerDeps = {},
 ) {
   const headers = new Headers();
