@@ -85,13 +85,6 @@ export function HomePage() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate('Courses')}
-            style={styles.coursesButton}
-          >
-            <Text style={styles.coursesButtonText}>Meus cursos</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
             onPress={() => navigation.navigate('Trails')}
             style={styles.trailsButton}
           >
@@ -173,8 +166,6 @@ const styles = StyleSheet.create({
   footer: { gap: 12, marginTop: 32 },
   quizButton: { alignItems: 'center', backgroundColor: '#036564', borderRadius: 12, paddingVertical: 16 },
   quizButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  coursesButton: { alignItems: 'center', borderColor: '#036564', borderRadius: 12, borderWidth: 1, paddingVertical: 14 },
-  coursesButtonText: { color: '#036564', fontSize: 15, fontWeight: '700' },
   trailsButton: { alignItems: 'center', backgroundColor: '#CDB380', borderRadius: 12, paddingVertical: 14 },
   trailsButtonText: { color: '#031634', fontSize: 15, fontWeight: '800' },
   logoutButton: { alignItems: 'center', paddingVertical: 12 },

@@ -180,6 +180,25 @@ export function MainTabNavigator() {
                 </View>
                 <Feather name="chevron-right" size={20} color={colors.textMuted} />
               </Pressable>
+              <Pressable
+                style={[styles.quickAction, styles.quickActionSpaced]}
+                accessibilityRole="button"
+                onPress={() => {
+                  setIsQuickActionsVisible(false);
+                  navigation.navigate('Courses');
+                }}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Feather name="book-open" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.quickActionTexts}>
+                  <Text style={styles.quickActionTitle}>Meus cursos</Text>
+                  <Text style={styles.quickActionSubtitle}>
+                    Veja seus cursos, favoritos e avaliações.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.textMuted} />
+              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>
@@ -286,6 +305,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
     padding: 14,
     gap: 12,
+  },
+  quickActionSpaced: {
+    marginTop: 10,
   },
   quickActionIcon: {
     width: 44,
