@@ -9,28 +9,19 @@ import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { LogoutConfirmationModal } from '@/features/auth';
 import { useGamification } from '@/entities/gamification';
 import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
-import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
-import { StreakCard } from './StreakCard';
 
 export function HomePage() {
-  const { user, logout, token } = useAuth();
+  const { user, logout } = useAuth();
   const { refresh } = useGamification();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [summary, setSummary] = useState<GamificationSummary | null>(null);
 
   // Refresh XP/streak whenever Home regains focus (e.g. after finishing a review)
   useFocusEffect(
     useCallback(() => {
       void refresh();
-      if (!token) return;
-      fetchGamificationSummary(token)
-        .then(setSummary)
-        .catch(() => {
-          // Keep previous values if unable to load progress
-        });
-    }, [refresh, token]),
+    }, [refresh]),
   );
 
   const handleConfirmLogout = async () => {
@@ -55,11 +46,6 @@ export function HomePage() {
           </View>
         </View>
         <XpProgressBar />
-        <StreakCard
-          currentStreak={summary?.currentStreak ?? null}
-          longestStreak={summary?.longestStreak ?? null}
-          onPress={() => navigation.navigate('Streak')}
-        />
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE</Text>
           <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>

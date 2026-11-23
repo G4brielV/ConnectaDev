@@ -14,7 +14,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
 import { useGamification } from '@/entities/gamification';
-import { fetchGamificationSummary, GamificationSummary } from '@/shared/api/gamificationApi';
 import {
   DailyPracticeStatus,
   fetchTrailMap,
@@ -27,6 +26,7 @@ import type { RootStackParamList } from '@/app/navigation/RootNavigator';
 import { PhasePath } from './PhasePath';
 import { UnitBanner, UnitHero } from './UnitHeader';
 import { focusedUnitId, isUnitExpandedByDefault, unitState } from '../trailMapLayout';
+import { XpProgressBar } from '@/shared/ui/XpProgressBar/XpProgressBar';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -34,10 +34,9 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 export function TrailMapPage() {
   const navigation = useNavigation<NavigationProp>();
   const { token } = useAuth();
-  const { totalXp, refresh } = useGamification();
+  const { refresh } = useGamification();
 
   const [map, setMap] = useState<TrailMap | null>(null);
-  const [summary, setSummary] = useState<GamificationSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -66,12 +65,6 @@ export function TrailMapPage() {
         setIsLoading(false);
         setIsRefreshing(false);
       }
-
-      fetchGamificationSummary(token)
-        .then(setSummary)
-        .catch(() => {
-          // A ofensiva é enfeite do cabeçalho: falhar aqui não tira o mapa do ar.
-        });
     },
     [refresh, token],
   );
@@ -119,23 +112,8 @@ export function TrailMapPage() {
             <Text style={styles.headerTitle}>Sua trilha</Text>
           </View>
         </View>
-        <View style={styles.headerStats}>
-          <Pressable
-            onPress={() => navigation.navigate('Streak')}
-            style={({ pressed }) => [styles.statPill, styles.streakPill, pressed && styles.statPillPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Ver sua ofensiva: ${summary?.currentStreak ?? 0} dias`}
-            hitSlop={6}
-          >
-            <MaterialCommunityIcons name="fire" size={15} color={colors.flame} />
-            <Text style={[styles.statText, styles.streakText]}>{summary?.currentStreak ?? 0}</Text>
-          </Pressable>
-          <View style={[styles.statPill, styles.xpPill]}>
-            <MaterialCommunityIcons name="lightning-bolt" size={15} color={colors.primary} />
-            <Text style={[styles.statText, styles.xpText]}>{totalXp} XP</Text>
-          </View>
-        </View>
       </View>
+      <XpProgressBar />
 
       {map?.trail ? (
         <View style={styles.overall}>
