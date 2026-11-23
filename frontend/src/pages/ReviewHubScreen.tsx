@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Feather } from "@expo/vector-icons";
+import { colors } from "@/shared/config/theme";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { useAuth } from "../entities/session";
 import { fetchCourseRecommendations, CourseRecommendation } from "../shared/api/coursesApi";
@@ -63,7 +65,7 @@ export function ReviewHubScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.badge}>REVISÃO ATIVA 📝</Text>
+          <Text style={styles.badge}>REVISÃO ATIVA</Text>
           <Text style={styles.title}>Revisão de Conhecimento</Text>
           <Text style={styles.subtitle}>
             Responda a questionários gerados por IA para fixar o conteúdo dos seus estudos, acumular XP e manter sua ofensiva diária ativa.
@@ -73,7 +75,7 @@ export function ReviewHubScreen() {
         {/* Gamification summary card */}
         <View style={styles.statsCard}>
           <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🔥</Text>
+            <Feather name="activity" size={22} color={colors.primary} />
             <View>
               <Text style={styles.statLabel}>Ofensiva</Text>
               <Text style={styles.statValue}>
@@ -83,7 +85,7 @@ export function ReviewHubScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🏆</Text>
+            <Feather name="award" size={22} color={colors.accentInk} />
             <View>
               <Text style={styles.statLabel}>XP total</Text>
               <Text style={styles.statValue}>{summary ? `${summary.totalXp} XP` : "—"}</Text>
@@ -115,7 +117,7 @@ export function ReviewHubScreen() {
                 }
                 style={styles.startButton}
               >
-                <Text style={styles.startButtonText}>Revisar minha área 🧠</Text>
+                <Text style={styles.startButtonText}>Revisar minha área</Text>
               </Pressable>
             </View>
           </>
@@ -143,7 +145,7 @@ export function ReviewHubScreen() {
             }
             style={styles.startButton}
           >
-            <Text style={styles.startButtonText}>Iniciar Revisão 📝</Text>
+            <Text style={styles.startButtonText}>Iniciar Revisão</Text>
           </Pressable>
         </View>
 
@@ -178,7 +180,7 @@ export function ReviewHubScreen() {
                 }
                 style={styles.aiStartButton}
               >
-                <Text style={styles.aiStartButtonText}>Fazer Revisão com IA ({XP_HINT}) 🧠</Text>
+                <Text style={styles.aiStartButtonText}>Fazer Revisão com IA ({XP_HINT})</Text>
               </Pressable>
             </View>
           ))
@@ -192,7 +194,7 @@ export function ReviewHubScreen() {
               onPress={() => navigation.navigate("Quiz")}
               style={styles.quizLinkButton}
             >
-              <Text style={styles.quizLinkText}>Começar o Quiz Agora 🚀</Text>
+              <Text style={styles.quizLinkText}>Refazer diagnóstico vocacional</Text>
             </Pressable>
           </View>
         )}
