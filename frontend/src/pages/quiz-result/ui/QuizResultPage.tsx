@@ -24,13 +24,18 @@ import { buildQuizResultSummary, pickFirstCourse, FirstCourseState } from '../qu
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'QuizResult'>;
 type QuizResultRouteProp = RouteProp<RootStackParamList, 'QuizResult'>;
 
-// Layout da tela "Quiz Vocacional: Diagnóstico & Perfil" do Stitch, com dados reais da análise
+const MAX_VISIBLE_TECHS = 5;
+const MAX_SECONDARY_AREAS = 2;
+const JUSTIFICATION_COLLAPSE_THRESHOLD = 140;
+
 export function QuizResultPage() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QuizResultRouteProp>();
   const { token } = useAuth();
   const summary = useMemo(() => buildQuizResultSummary(route.params.result), [route.params.result]);
   const [firstCourse, setFirstCourse] = useState<FirstCourseState>({ status: 'loading' });
+  const [showAllTechs, setShowAllTechs] = useState(false);
+  const [showFullJustification, setShowFullJustification] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -52,89 +57,138 @@ export function QuizResultPage() {
     };
   }, [token]);
 
-  const goHome = () => navigation.navigate('Home');
+  const goHome = () => navigation.navigate('Home', { tab: 'trail' });
+
+  const visibleTechs = showAllTechs
+    ? summary.tecnologias
+    : summary.tecnologias.slice(0, MAX_VISIBLE_TECHS);
+  const hiddenTechCount = Math.max(0, summary.tecnologias.length - MAX_VISIBLE_TECHS);
+  const visibleSecondaryAreas = summary.areasSecundarias.slice(0, MAX_SECONDARY_AREAS);
+  const canExpandJustification = summary.justificativa.length > JUSTIFICATION_COLLAPSE_THRESHOLD;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
             onPress={goHome}
-            style={styles.iconButton}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
             accessibilityRole="button"
             accessibilityLabel="Fechar resultado"
           >
-            <Feather name="x" size={22} color={colors.textPrimary} />
+            <Feather name="x" size={20} color={colors.textPrimary} />
           </Pressable>
-          <Logo size={28} showWordmark={false} />
-          <Text style={styles.headerBrand}>CONNECTADEV</Text>
+          <Logo size={26} showWordmark={false} />
+          <View>
+            <Text style={styles.headerEyebrow}>CONNECTADEV</Text>
+            <Text style={styles.headerTitle}>Resultado do Quiz</Text>
+          </View>
         </View>
-        <Text style={styles.headerTitle}>Resultado{'\n'}do Quiz</Text>
+        <View style={styles.completedPill}>
+          <Feather name="award" size={13} color={colors.accentInk} />
+          <Text style={styles.completedPillText}>100%</Text>
+        </View>
       </View>
+
       <View style={styles.progressTrack}>
         <View style={styles.progressValue} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <View style={styles.completedBadge}>
-            <Feather name="award" size={16} color={colors.accent} />
-            <Text style={styles.completedBadgeText}>QUIZ CONCLUÍDO</Text>
-          </View>
-          <Text style={styles.title}>
-            Seu perfil tem match com{' '}
-            <Text style={styles.titleHighlight}>{summary.areaPrincipal}</Text>!
-          </Text>
-          <Text style={styles.subtitle}>
-            Analisamos suas respostas e já temos os próximos passos para você.
-          </Text>
-        </View>
-
-        <View style={styles.areaCard}>
+        <View style={styles.heroCard}>
           <View style={[styles.glow, styles.glowTopRight]} />
           <View style={[styles.glow, styles.glowBottomLeft]} />
-          <Text style={styles.cardLabel}>ÁREA RECOMENDADA</Text>
-          <Text style={styles.areaTitle}>{summary.areaPrincipal}</Text>
-          {summary.areasSecundarias.length > 0 && (
-            <Text style={styles.areaSecondary}>
-              Também combina com {summary.areasSecundarias.join(' • ')}
-            </Text>
-          )}
+
+          <View style={styles.heroTop}>
+            <View style={styles.completedBadge}>
+              <Feather name="award" size={14} color={colors.accentInk} />
+              <Text style={styles.completedBadgeText}>SEU MATCH PRINCIPAL</Text>
+            </View>
+            <Text style={styles.areaHeadline}>{summary.areaPrincipal}</Text>
+            <View style={styles.demandPill}>
+              <Feather name="map-pin" size={13} color={colors.primary} />
+              <Text style={styles.demandText}>Em alta no Porto Digital & Região</Text>
+            </View>
+          </View>
 
           {summary.tecnologias.length > 0 && (
-            <View style={styles.techBlock}>
-              <Text style={styles.cardLabel}>TECNOLOGIAS PARA COMEÇAR</Text>
+            <View style={styles.cardSection}>
+              <Text style={styles.sectionLabel}>TECNOLOGIAS PARA COMEÇAR</Text>
               <View style={styles.chips}>
-                {summary.tecnologias.map((technology) => (
+                {visibleTechs.map((technology) => (
                   <View key={technology} style={styles.techChip}>
                     <Text style={styles.techChipText}>{technology}</Text>
+                  </View>
+                ))}
+                {hiddenTechCount > 0 && (
+                  <Pressable
+                    onPress={() => setShowAllTechs((previous) => !previous)}
+                    style={styles.moreChip}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showAllTechs
+                        ? 'Mostrar menos tecnologias'
+                        : `Mostrar mais ${hiddenTechCount} tecnologias`
+                    }
+                  >
+                    <Text style={styles.moreChipText}>
+                      {showAllTechs ? 'Menos' : `+${hiddenTechCount}`}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          )}
+
+          {visibleSecondaryAreas.length > 0 && (
+            <View style={styles.cardSection}>
+              <Text style={styles.sectionLabel}>TAMBÉM COMBINA</Text>
+              <View style={styles.chips}>
+                {visibleSecondaryAreas.map((area) => (
+                  <View key={area} style={styles.secondaryChip}>
+                    <Text style={styles.secondaryChipText}>{area}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
-
-          <View style={styles.demandRow}>
-            <Feather name="map-pin" size={18} color={colors.primary} />
-            <Text style={styles.demandText}>
-              Alinhada à demanda do <Text style={styles.demandStrong}>Porto Digital & Região</Text>.
-            </Text>
-          </View>
         </View>
 
         {summary.justificativa.length > 0 && (
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
-              <Feather name="check-circle" size={20} color={colors.primary} />
-              <Text style={styles.cardTitle}>Pontos fortes identificados</Text>
+              <Feather name="check-circle" size={18} color={colors.primary} />
+              <Text style={styles.cardTitle}>Por que essa área?</Text>
             </View>
-            <Text style={styles.bodyText}>{summary.justificativa}</Text>
+            <Text
+              style={styles.bodyText}
+              numberOfLines={showFullJustification ? undefined : 3}
+            >
+              {summary.justificativa}
+            </Text>
+            {canExpandJustification && (
+              <Pressable
+                onPress={() => setShowFullJustification((previous) => !previous)}
+                hitSlop={8}
+                accessibilityRole="button"
+                style={styles.expandLink}
+              >
+                <Text style={styles.expandLinkText}>
+                  {showFullJustification ? 'Mostrar menos' : 'Ler mais'}
+                </Text>
+                <Feather
+                  name={showFullJustification ? 'chevron-up' : 'chevron-down'}
+                  size={15}
+                  color={colors.primary}
+                />
+              </Pressable>
+            )}
           </View>
         )}
 
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <Feather name="play-circle" size={20} color={colors.primary} />
+            <Feather name="play-circle" size={18} color={colors.primary} />
             <Text style={styles.cardTitle}>Seu primeiro curso</Text>
           </View>
           <FirstCourseCard state={firstCourse} onSeeAll={() => navigation.navigate('Courses')} />
@@ -142,11 +196,15 @@ export function QuizResultPage() {
 
         <View style={styles.actions}>
           <Button
-            title="Ver todos os cursos recomendados"
+            title="Ir para minha trilha"
             rightIcon="arrow-right"
+            onPress={goHome}
+          />
+          <Button
+            title="Ver cursos recomendados"
+            variant="soft"
             onPress={() => navigation.navigate('Courses')}
           />
-          <Button title="Ir para a Home" variant="soft" onPress={goHome} />
           <Pressable
             onPress={() => navigation.replace('Quiz')}
             style={styles.link}
@@ -176,8 +234,8 @@ function FirstCourseCard({ state, onSeeAll }: FirstCourseCardProps) {
       <View style={styles.courseFallback}>
         <Text style={styles.bodyText}>
           {state.status === 'empty'
-            ? 'Ainda não temos um curso para essa área. Veja as outras recomendações.'
-            : 'Não foi possível carregar a recomendação agora.'}
+            ? 'Ainda não temos um curso para essa área. Explore outras recomendações.'
+            : 'Não foi possível carregar o curso agora.'}
         </Text>
         <Pressable onPress={onSeeAll} hitSlop={8} accessibilityRole="button">
           <Text style={styles.courseFallbackLink}>Ver cursos →</Text>
@@ -205,23 +263,18 @@ function FirstCourseCard({ state, onSeeAll }: FirstCourseCardProps) {
         </View>
       </View>
       <View style={styles.courseBody}>
-        {course.tags.length > 0 && (
-          <Text style={styles.courseCategory}>{course.tags.slice(0, 2).join(' & ').toUpperCase()}</Text>
-        )}
-        <Text style={styles.courseTitle}>{course.title}</Text>
-        <View style={styles.chips}>
+        <Text style={styles.courseTitle} numberOfLines={2}>
+          {course.title}
+        </Text>
+        <View style={styles.courseFooterRow}>
           <View style={styles.metaChip}>
             <Feather name="bar-chart-2" size={12} color={colors.secondary} />
             <Text style={styles.metaChipText}>{course.level}</Text>
           </View>
-          <View style={styles.metaChip}>
-            <Feather name="book-open" size={12} color={colors.secondary} />
-            <Text style={styles.metaChipText}>Curso gratuito</Text>
+          <View style={styles.courseCta}>
+            <Text style={styles.courseCtaText}>Começar grátis</Text>
+            <Feather name="arrow-right" size={15} color={colors.primary} />
           </View>
-        </View>
-        <View style={styles.courseCta}>
-          <Text style={styles.courseCtaText}>Começar curso grátis</Text>
-          <Feather name="arrow-right" size={16} color={colors.primary} />
         </View>
       </View>
     </Pressable>
@@ -234,41 +287,61 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
   },
   header: {
-    height: 64,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerBrand: {
+  iconButtonPressed: {
+    backgroundColor: colors.creamSoft,
+  },
+  headerEyebrow: {
     fontFamily: fonts.mono.medium,
-    fontSize: 11,
-    letterSpacing: 1,
-    color: colors.primary,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: colors.textMuted,
   },
   headerTitle: {
-    fontFamily: fonts.sans.semiBold,
+    fontFamily: fonts.sans.bold,
     fontSize: 16,
-    lineHeight: 20,
     color: colors.textPrimary,
-    textAlign: 'right',
-    paddingRight: 8,
+  },
+  completedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  completedPillText: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
+    color: colors.accentInk,
   },
   progressTrack: {
-    height: 6,
-    marginHorizontal: 16,
-    borderRadius: 3,
+    height: 5,
+    marginHorizontal: 20,
+    borderRadius: radius.pill,
     backgroundColor: colors.light,
     overflow: 'hidden',
   },
@@ -278,135 +351,132 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 28,
+    gap: 14,
   },
-  hero: {
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 8,
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.accentSoft,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  completedBadgeText: {
-    fontFamily: fonts.mono.medium,
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#6c582d',
-  },
-  title: {
-    fontFamily: fonts.sans.extraBold,
-    fontSize: 26,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  titleHighlight: {
-    color: colors.primary,
-  },
-  subtitle: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textMuted,
-    textAlign: 'center',
-    maxWidth: 320,
-  },
-  areaCard: {
+  heroCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.light,
     padding: 20,
-    gap: 12,
+    gap: 16,
     overflow: 'hidden',
     ...shadow.card,
   },
   glow: {
     position: 'absolute',
     borderRadius: 999,
-    opacity: 0.35,
+    opacity: 0.3,
   },
   glowTopRight: {
-    width: 160,
-    height: 160,
-    top: -48,
-    right: -48,
+    width: 150,
+    height: 150,
+    top: -54,
+    right: -54,
     backgroundColor: '#bce6fe',
   },
   glowBottomLeft: {
-    width: 144,
-    height: 144,
-    bottom: -48,
-    left: -48,
+    width: 130,
+    height: 130,
+    bottom: -54,
+    left: -54,
     backgroundColor: '#a3f0ee',
   },
-  cardLabel: {
+  heroTop: {
+    gap: 8,
+  },
+  completedBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  completedBadgeText: {
     fontFamily: fonts.mono.medium,
-    fontSize: 11,
-    letterSpacing: 1,
+    fontSize: 10,
+    letterSpacing: 0.9,
+    color: colors.accentInk,
+  },
+  areaHeadline: {
+    fontFamily: fonts.sans.extraBold,
+    fontSize: 27,
+    lineHeight: 33,
+    letterSpacing: -0.5,
     color: colors.primary,
   },
-  areaTitle: {
-    fontFamily: fonts.sans.bold,
-    fontSize: 20,
-    lineHeight: 28,
-    color: colors.textPrimary,
-    marginTop: -6,
+  demandPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  areaSecondary: {
+  demandText: {
     fontFamily: fonts.sans.medium,
     fontSize: 12,
     color: colors.secondary,
-    marginTop: -6,
   },
-  techBlock: {
+  cardSection: {
     gap: 8,
-    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.creamSoft,
+  },
+  sectionLabel: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 10,
+    letterSpacing: 0.9,
+    color: colors.textMuted,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 7,
   },
   techChip: {
     backgroundColor: colors.dark,
     borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
   },
   techChipText: {
     fontFamily: fonts.mono.medium,
     fontSize: 11,
     color: colors.accent,
   },
-  demandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  moreChip: {
     backgroundColor: colors.creamSoft,
-    borderRadius: radius.md,
-    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.light,
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
   },
-  demandText: {
-    flex: 1,
-    fontFamily: fonts.sans.regular,
-    fontSize: 12,
-    color: colors.textMuted,
+  moreChipText: {
+    fontFamily: fonts.mono.medium,
+    fontSize: 11,
+    color: colors.primary,
   },
-  demandStrong: {
+  secondaryChip: {
+    backgroundColor: colors.creamSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+  },
+  secondaryChipText: {
     fontFamily: fonts.sans.semiBold,
-    color: colors.textPrimary,
+    fontSize: 12,
+    color: colors.secondary,
   },
   card: {
     backgroundColor: colors.surface,
@@ -424,17 +494,28 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: fonts.sans.bold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textPrimary,
   },
   bodyText: {
     fontFamily: fonts.sans.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.textMuted,
   },
+  expandLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  expandLinkText: {
+    fontFamily: fonts.sans.semiBold,
+    fontSize: 13,
+    color: colors.primary,
+  },
   courseLoading: {
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   courseFallback: {
     gap: 8,
@@ -452,7 +533,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   courseBanner: {
-    height: 140,
+    height: 132,
     backgroundColor: colors.creamSoft,
   },
   courseThumbnail: {
@@ -475,27 +556,27 @@ const styles = StyleSheet.create({
   },
   courseBody: {
     padding: 14,
-    gap: 8,
-  },
-  courseCategory: {
-    fontFamily: fonts.mono.medium,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.primary,
+    gap: 10,
   },
   courseTitle: {
     fontFamily: fonts.sans.bold,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 21,
     color: colors.textPrimary,
+  },
+  courseFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.light,
+    backgroundColor: colors.creamSoft,
     borderRadius: radius.pill,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
   },
   metaChipText: {
@@ -506,26 +587,25 @@ const styles = StyleSheet.create({
   courseCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 5,
   },
   courseCtaText: {
     fontFamily: fonts.sans.bold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.primary,
   },
   actions: {
-    gap: 8,
+    gap: 10,
     marginTop: 4,
   },
   link: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   linkText: {
-    fontFamily: fonts.sans.regular,
+    fontFamily: fonts.sans.medium,
     fontSize: 13,
-    color: colors.secondary,
+    color: colors.textMuted,
     textDecorationLine: 'underline',
   },
 });
