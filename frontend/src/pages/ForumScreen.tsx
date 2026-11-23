@@ -16,7 +16,6 @@ import { useAuth } from "../entities/session";
 import { fetchForumTopics, ForumTopic } from "../shared/api/forumApi";
 import type { RootStackParamList } from "../app/navigation/RootNavigator";
 import { colors, fonts, radius, shadow, spacing } from "../shared/config/theme";
-import { XpProgressBar } from "../shared/ui/XpProgressBar/XpProgressBar";
 
 export function ForumScreen() {
   const { token } = useAuth();
@@ -67,7 +66,6 @@ export function ForumScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <XpProgressBar />
       <FlatList
         data={topics}
         keyExtractor={(topic) => topic.slug}

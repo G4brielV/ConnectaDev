@@ -18,7 +18,7 @@ const REFRESH_WINDOW_MS = 10_000;
 
 interface GamificationContextData extends GamificationState {
   refresh: (force?: boolean) => Promise<void>;
-  applySummary: (summary: { totalXp: number; currentLevel: number }) => void;
+  applySummary: (summary: { totalXp: number; currentLevel: number; currentStreak?: number }) => void;
 }
 
 const GamificationContext = createContext<GamificationContextData | null>(null);
@@ -32,6 +32,7 @@ export function GamificationProvider({ children }: GamificationProviderProps) {
   const [state, setState] = useState<GamificationState>({
     totalXp: 0,
     currentLevel: 1,
+    currentStreak: 0,
     isLoading: false,
   });
   const lastLoadedAt = useRef(0);
@@ -46,7 +47,7 @@ export function GamificationProvider({ children }: GamificationProviderProps) {
     }
 
     if (!token) {
-      setState({ totalXp: 0, currentLevel: 1, isLoading: false });
+      setState({ totalXp: 0, currentLevel: 1, currentStreak: 0, isLoading: false });
       lastLoadedAt.current = 0;
       return;
     }
@@ -77,11 +78,12 @@ export function GamificationProvider({ children }: GamificationProviderProps) {
         const results = await syncPendingLessonScores(token);
         const latest = results.at(-1);
         if (latest) {
-          setState({
+          setState((current) => ({
+            ...current,
             totalXp: latest.totalXp,
             currentLevel: latest.currentLevel,
             isLoading: false,
-          });
+          }));
           lastLoadedAt.current = Date.now();
         }
       } finally {
@@ -104,8 +106,13 @@ export function GamificationProvider({ children }: GamificationProviderProps) {
   }, [token]);
 
   const applySummary = useCallback(
-    (summary: { totalXp: number; currentLevel: number }): void => {
-      setState({ ...summary, isLoading: false });
+    (summary: { totalXp: number; currentLevel: number; currentStreak?: number }): void => {
+      setState((current) => ({
+        ...current,
+        ...summary,
+        currentStreak: summary.currentStreak ?? current.currentStreak,
+        isLoading: false,
+      }));
       lastLoadedAt.current = Date.now();
     },
     [],

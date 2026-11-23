@@ -1,20 +1,23 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useGamification } from "@/entities/gamification";
-import { colors, fonts, radius, shadow } from "@/shared/config/theme";
+import type { RootStackParamList } from "@/app/navigation/RootNavigator";
+import { colors, fonts, radius } from "@/shared/config/theme";
 
 const XP_PER_LEVEL = 100;
 
 // Cartão de nível do Stitch ("Cursos Recomendados - ConnectaDev").
 export function XpProgressBar() {
-  const { totalXp, currentLevel, isLoading } = useGamification();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { totalXp, currentLevel, currentStreak, isLoading } = useGamification();
   const levelStartXp = (currentLevel - 1) * XP_PER_LEVEL;
   const nextLevelXp = currentLevel * XP_PER_LEVEL;
   const progress = Math.min(
     1,
     Math.max(0, (totalXp - levelStartXp) / (nextLevelXp - levelStartXp)),
   );
-  const missingXp = Math.max(0, nextLevelXp - totalXp);
 
   return (
     <View accessibilityLabel="Progresso de experiência" style={styles.card}>
@@ -28,8 +31,21 @@ export function XpProgressBar() {
             <Text style={styles.level}>Nível {currentLevel}</Text>
           </View>
         </View>
-        <View style={styles.xpPill}>
-          <Text style={styles.xpText}>{isLoading ? "Carregando XP…" : `${totalXp} XP`}</Text>
+        <View style={styles.metrics}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ver ofensiva de ${currentStreak} dias`}
+            hitSlop={6}
+            onPress={() => navigation.navigate("Streak")}
+            style={styles.metricPill}
+          >
+            <MaterialCommunityIcons name="fire" size={15} color={colors.flame} />
+            <Text style={styles.streakText}>{currentStreak}</Text>
+          </Pressable>
+          <View style={styles.metricPill}>
+            <MaterialCommunityIcons name="lightning-bolt" size={15} color={colors.primary} />
+            <Text style={styles.xpText}>{isLoading ? "…" : `${totalXp} XP`}</Text>
+          </View>
         </View>
       </View>
 
@@ -41,39 +57,32 @@ export function XpProgressBar() {
         <View style={[styles.value, { width: `${progress * 100}%` }]} />
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.caption}>{currentLevel === 1 ? "Início da jornada" : "Em evolução"}</Text>
-        <Text style={styles.goal}>
-          Faltam {missingXp} XP para o <Text style={styles.goalLevel}>Nível {currentLevel + 1}</Text>
-        </Text>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.light,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: 14,
-    ...shadow.card,
+    backgroundColor: "transparent",
+    borderBottomColor: colors.light,
+    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   heading: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   levelGroup: { alignItems: "center", flexDirection: "row", gap: 8 },
   levelIcon: {
     alignItems: "center",
     backgroundColor: `${colors.primaryTint}55`,
     borderRadius: 8,
-    height: 28,
+    height: 24,
     justifyContent: "center",
-    width: 28,
+    width: 24,
   },
   eyebrow: {
     color: colors.textMuted,
@@ -82,19 +91,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   level: { color: colors.textPrimary, fontFamily: fonts.sans.bold, fontSize: 14 },
-  xpPill: {
+  metrics: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  metricPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
     backgroundColor: `${colors.primaryTint}40`,
     borderColor: `${colors.primarySoft}80`,
     borderRadius: radius.pill,
     borderWidth: 1,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 5,
   },
+  streakText: { color: colors.flame, fontFamily: fonts.sans.bold, fontSize: 12 },
   xpText: { color: colors.primary, fontFamily: fonts.sans.bold, fontSize: 12 },
   track: {
     backgroundColor: colors.creamSoft,
     borderRadius: radius.pill,
-    height: 8,
+    height: 6,
     overflow: "hidden",
   },
   value: {
@@ -102,13 +122,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     height: "100%",
   },
-  footer: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 6,
-  },
-  caption: { color: colors.textMuted, fontFamily: fonts.sans.medium, fontSize: 11 },
-  goal: { color: colors.textBody, fontFamily: fonts.sans.semiBold, fontSize: 11 },
-  goalLevel: { color: colors.primary, fontFamily: fonts.sans.bold },
 });
