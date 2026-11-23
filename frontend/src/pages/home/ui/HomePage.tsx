@@ -61,7 +61,7 @@ export function HomePage() {
           onPress={() => navigation.navigate('Streak')}
         />
         <View style={styles.heroCard}>
-          <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE ✨</Text>
+          <Text style={styles.heroBadge}>RECOMENDAÇÃO INTELIGENTE</Text>
           <Text style={styles.greeting}>Cursos certos e vagas reais para seu perfil</Text>
           <Text style={styles.emailText}>
             {user?.email ? `Olá, ${user.email}` : 'Seu próximo passo na tecnologia começa aqui.'}
@@ -70,8 +70,8 @@ export function HomePage() {
             Faça o Quiz Vocacional para receber recomendações alinhadas aos seus interesses.
           </Text>
           <View style={styles.chips}>
-            <Text style={styles.chip}>🎓 Cursos gratuitos</Text>
-            <Text style={styles.chip}>💼 Vagas locais</Text>
+            <Text style={styles.chip}>Cursos gratuitos</Text>
+            <Text style={styles.chip}>Vagas locais</Text>
           </View>
         </View>
 
@@ -81,7 +81,7 @@ export function HomePage() {
             onPress={() => navigation.navigate('Quiz')}
             style={styles.quizButton}
           >
-            <Text style={styles.quizButtonText}>Começar o Quiz Agora 🚀</Text>
+            <Text style={styles.quizButtonText}>Refazer diagnóstico vocacional</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"

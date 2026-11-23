@@ -54,9 +54,9 @@ export function currentCombo(results: readonly boolean[]): number {
   return combo;
 }
 
-/** "Combo x3! 🔥" a partir do mínimo; abaixo dele, nada na tela. */
+/** "Combo x3!" a partir do mínimo; abaixo dele, nada na tela. */
 export function comboLabel(combo: number): string | null {
-  return combo >= COMBO_MIN ? `Combo x${combo}! 🔥` : null;
+  return combo >= COMBO_MIN ? `Combo x${combo}!` : null;
 }
 
 export type OptionTone = 'idle' | 'selected' | 'correct' | 'wrong' | 'dimmed';

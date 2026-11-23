@@ -382,7 +382,6 @@ export function KnowledgeReviewScreen() {
           {isCurrentConfirmed && (
             <View style={styles.explanationCard}>
               <View style={styles.explanationHeader}>
-                <Text style={styles.explanationIcon}>💡</Text>
                 <Text style={styles.explanationTitle}>
                   {currentSelectedOptionId === currentQuestion.correctOptionId
                     ? "Parabéns, resposta correta!"

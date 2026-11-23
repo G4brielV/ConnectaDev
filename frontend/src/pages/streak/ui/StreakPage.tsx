@@ -462,7 +462,7 @@ function MilestonesCard({ overview }: { overview: StreakOverview }) {
                   {milestone.title}
                 </Text>
                 {milestone.isNew ? (
-                  <Text style={styles.milestoneNewText}>Novo! 🎉</Text>
+                  <Text style={styles.milestoneNewText}>Novo!</Text>
                 ) : milestone.achieved ? (
                   <Text style={styles.milestoneDoneText}>Conquistado ✓</Text>
                 ) : isNext ? (

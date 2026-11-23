@@ -52,7 +52,7 @@ export function CourseCard({
               <Text style={[styles.chipText, { color: tone.text }]}>{course.level}</Text>
             </View>
             <View style={[styles.chip, styles.chipFree]}>
-              <Text style={[styles.chipText, styles.chipFreeText]}>🎓 Curso gratuito</Text>
+              <Text style={[styles.chipText, styles.chipFreeText]}>Curso gratuito</Text>
             </View>
             {featured ? (
               <View style={[styles.chip, styles.chipNeutral]}>
@@ -111,7 +111,7 @@ export function CourseCard({
               accessibilityRole="button"
               accessibilityLabel={`Fazer revisão com IA do curso ${course.title}`}
             >
-              <Text style={styles.reviewEmoji}>🧠</Text>
+              <Feather name="book-open" size={16} color={colors.primary} />
               <Text style={styles.reviewText}>Fazer Revisão com IA</Text>
               <View style={styles.reviewXp}>
                 <Text style={styles.reviewXpText}>+50 XP</Text>
@@ -177,7 +177,7 @@ function FeaturedHeader({ course, areaLabel, onOpen }: HeaderProps & { areaLabel
       ) : null}
 
       <View style={styles.matchSoft}>
-        <Text style={styles.matchEmoji}>🎯</Text>
+        <Feather name="check" size={12} color={colors.primary} />
         <Text style={styles.matchSoftText}>Match</Text>
       </View>
 
@@ -223,7 +223,7 @@ function ImageHeader({ course, onOpen }: HeaderProps) {
 
       <View style={styles.imageTopRow}>
         <View style={styles.matchSolid}>
-          <Text style={styles.matchEmoji}>👍</Text>
+          <Feather name="check" size={12} color={colors.textOnPrimary} />
           <Text style={styles.matchSolidText}>MATCH</Text>
         </View>
         <View style={styles.providerPill}>

@@ -39,27 +39,27 @@ export function streakFeedback(
   switch (status) {
     case 'INCREMENTED': {
       const bonus = xpAmountOf(items, 'STREAK_DAILY');
-      const base = `Chama acesa! 🔥 ${currentStreak} dias seguidos de foco!`;
+      const base = `Sequência ativa: ${currentStreak} dias seguidos de foco!`;
       return bonus > 0 ? `${base} +${bonus} XP de bônus diário` : base;
     }
     case 'KEPT':
-      return 'Ofensiva do dia já garantida! 🔥';
+      return 'Ofensiva do dia já garantida!';
     case 'RESTARTED':
-      return 'Que bom ter você de volta! Você reacendeu sua chama de estudos: Dia 1 🔥. Estude amanhã para continuar sua sequência!';
+      return 'Que bom ter você de volta! Sua sequência foi reiniciada: dia 1. Estude amanhã para continuar evoluindo!';
     case 'STARTED':
-      return 'Sua chama de estudos acendeu: Dia 1 🔥. Estude amanhã para começar uma sequência!';
+      return 'Sua sequência começou: dia 1. Estude amanhã para continuar evoluindo!';
   }
 }
 
 const MILESTONE_HEADLINES: Record<number, string> = {
-  3: 'Faísca acesa! 🔥',
-  7: 'Uma semana em chamas! 🔥',
-  14: 'Duas semanas de hábito! 🔥',
-  30: 'Lenda da ofensiva! 🔥',
+  3: 'Nova sequência!',
+  7: 'Uma semana de estudos!',
+  14: 'Duas semanas de hábito!',
+  30: 'Um mês de ofensiva!',
 };
 
 export function milestoneHeadline(milestone: StreakMilestoneReward): string {
-  return MILESTONE_HEADLINES[milestone.days] ?? `${milestone.days} dias em chamas! 🔥`;
+  return MILESTONE_HEADLINES[milestone.days] ?? `${milestone.days} dias de sequência!`;
 }
 
 export function milestoneMessage(milestone: StreakMilestoneReward): string {

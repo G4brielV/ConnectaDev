@@ -371,7 +371,7 @@ function Summary({ result, onClose, onTrainMore }: SummaryProps) {
           {result.correctCount} de {result.totalQuestions} acertos
         </Text>
         {result.bestCombo >= COMBO_MIN ? (
-          <Text style={styles.bestCombo}>Melhor combo: x{result.bestCombo} 🔥</Text>
+          <Text style={styles.bestCombo}>Melhor combo: x{result.bestCombo}</Text>
         ) : null}
 
         <XpBreakdown items={result.xpBreakdown} />

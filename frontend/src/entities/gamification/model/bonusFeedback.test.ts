@@ -19,25 +19,25 @@ test("o extrato nomeia cada linha e soma o total", () => {
   assert.equal(totalXpOf([]), 0);
 });
 
-test("manter a ofensiva mostra a chama e o bônus do dia", () => {
+test("manter a ofensiva mostra a sequência e o bônus do dia", () => {
   assert.equal(
     streakFeedback("INCREMENTED", 3, [{ kind: "STREAK_DAILY", amount: 5 }]),
-    "Chama acesa! 🔥 3 dias seguidos de foco! +5 XP de bônus diário",
+    "Sequência ativa: 3 dias seguidos de foco! +5 XP de bônus diário",
   );
 });
 
 test("segunda atividade do dia avisa que a ofensiva já está garantida", () => {
-  assert.equal(streakFeedback("KEPT", 3, []), "Ofensiva do dia já garantida! 🔥");
+  assert.equal(streakFeedback("KEPT", 3, []), "Ofensiva do dia já garantida!");
 });
 
-test("voltar depois de perder a ofensiva reacende no dia 1", () => {
-  assert.match(streakFeedback("RESTARTED", 1, []), /Que bom ter você de volta!.*Dia 1 🔥/);
-  assert.match(streakFeedback("STARTED", 1, []), /Dia 1 🔥/);
+test("voltar depois de perder a ofensiva reinicia no dia 1", () => {
+  assert.match(streakFeedback("RESTARTED", 1, []), /Que bom ter você de volta!.*dia 1/);
+  assert.match(streakFeedback("STARTED", 1, []), /dia 1/);
 });
 
 test("o marco de 7 dias comemora a semana e mostra o bônus", () => {
   const milestone = { days: 7, title: "Fogo!", xp: 30 };
-  assert.equal(milestoneHeadline(milestone), "Uma semana em chamas! 🔥");
+  assert.equal(milestoneHeadline(milestone), "Uma semana de estudos!");
   assert.equal(
     milestoneMessage(milestone),
     "Você completou 7 dias seguidos de estudos e ganhou +30 XP de bonificação especial!",

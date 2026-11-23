@@ -96,7 +96,7 @@ export function ReviewResultScreen() {
           ]}
         >
           <View style={styles.trophyCircle}>
-            <Text style={styles.trophyIcon}>{isPerfectScore ? "🏆" : "🎉"}</Text>
+            <Text style={styles.trophyIcon}>Concluído</Text>
           </View>
           <Text style={styles.congratsTitle}>
             {isPerfectScore ? "Excelente Desempenho!" : "Revisão Concluída!"}
@@ -121,7 +121,7 @@ export function ReviewResultScreen() {
             <Text style={styles.rewardBadge}>RECOMPENSA</Text>
             {result.currentStreak > 0 && (
               <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>🔥 {result.currentStreak} dias seguidos</Text>
+                <Text style={styles.streakText}>{result.currentStreak} dias seguidos</Text>
               </View>
             )}
           </View>
@@ -129,7 +129,7 @@ export function ReviewResultScreen() {
           <View style={styles.rewardContent}>
             {result.isFirstCompletion === false ? (
               <>
-                <Text style={styles.rewardXpText}>Treino concluído 💪</Text>
+                <Text style={styles.rewardXpText}>Treino concluído</Text>
                 <Text style={styles.totalXpSubtext}>
                   O XP deste tópico já foi conquistado. Total acumulado: {result.totalXp} XP
                 </Text>
@@ -162,7 +162,6 @@ export function ReviewResultScreen() {
               onPress={() => setIsAccordionOpen((prev) => !prev)}
             >
               <View style={styles.accordionTitleRow}>
-                <Text style={styles.accordionIcon}>🔍</Text>
                 <Text style={styles.accordionTitle}>
                   Revisar Respostas ({wrongAnswers.length} {wrongAnswers.length === 1 ? "erro" : "erros"})
                 </Text>
