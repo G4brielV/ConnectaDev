@@ -211,7 +211,7 @@ export function ForumCreatePostScreen() {
           onPress={() => void handleSubmit()}
           style={({ pressed }) => [styles.submitButton, (isSubmitting || isLoadingTopics) && styles.submitButtonDisabled, pressed && styles.submitButtonPressed]}
         >
-          {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>Publicar Post</Text>}
+          {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>Publicar</Text>}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
