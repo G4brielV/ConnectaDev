@@ -23,10 +23,12 @@ describe("getGamificationSummaryService", () => {
 
     expect(summary).toEqual({
       totalXp: 0,
+      availableXp: 0,
       currentLevel: 1,
       levelName: LEVEL_NAME,
       currentStreak: 0,
       longestStreak: 0,
+      streakShields: 0,
       lastActivityDate: null,
       completedReviews: 0,
     });
@@ -56,10 +58,12 @@ describe("getGamificationSummaryService", () => {
 
     expect(summary).toEqual({
       totalXp: 120,
+      availableXp: 120,
       currentLevel: 2,
       levelName: LEVEL_NAME,
       currentStreak: 3,
       longestStreak: 7,
+      streakShields: 0,
       lastActivityDate: "2026-09-17T10:00:00.000Z",
       completedReviews: 4,
     });
@@ -87,5 +91,29 @@ describe("getGamificationSummaryService", () => {
 
     expect(summary.currentStreak).toBe(0);
     expect(summary.longestStreak).toBe(7);
+  });
+
+  it("mantém a ofensiva efetiva quando há escudo cobrindo o dia ausente", async () => {
+    const repository = makeRepository({
+      findGamification: vi.fn().mockResolvedValue({
+        totalXp: 300,
+        xpSpent: 150,
+        currentLevel: 4,
+        currentStreak: 3,
+        longestStreak: 7,
+        streakShields: 1,
+        lastActivityDate: new Date("2026-09-17T10:00:00Z"),
+      }),
+    });
+
+    const summary = await getGamificationSummaryService(
+      "user-1",
+      repository,
+      new Date("2026-09-19T15:00:00Z"),
+    );
+
+    expect(summary.currentStreak).toBe(3);
+    expect(summary.availableXp).toBe(150);
+    expect(summary.streakShields).toBe(1);
   });
 });
