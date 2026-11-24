@@ -26,6 +26,14 @@ export function studyDayToDate(day: StudyDay): Date {
   return new Date(`${day}T00:00:00.000Z`);
 }
 
+/**
+ * Meio-dia em Recife (15:00 UTC): seguro para persistir timestamps âncora de
+ * um `StudyDay` sem risco de recuar para o dia anterior na conversão UTC-3.
+ */
+export function studyDayMidday(day: StudyDay): Date {
+  return new Date(`${day}T15:00:00.000Z`);
+}
+
 /** Dias de calendário entre dois dias de estudo (a - b). */
 export function studyDayDiff(a: StudyDay, b: StudyDay): number {
   return Math.round((studyDayToDate(a).getTime() - studyDayToDate(b).getTime()) / MS_PER_DAY);
