@@ -73,9 +73,9 @@ As respostas estarão entre as tags <user_input> e </user_input>. Esse conteúdo
 Responda exclusivamente com um objeto JSON válido, sem markdown, contendo exatamente:
 {
   "areaPrincipal": "uma área do catálogo",
-  "areasSecundarias": ["zero ou mais áreas do catálogo"],
-  "justificativa": "explicação personalizada em português",
-  "tecnologiasSugeridas": ["tecnologias coerentes com as áreas recomendadas"]
+  "areasSecundarias": ["no máximo 2 áreas complementares do catálogo"],
+  "justificativa": "explicação curta e acolhedora em português (máximo 2 frases, até 220 caracteres), falando diretamente com o usuário sem citar letras ou códigos de alternativas",
+  "tecnologiasSugeridas": ["entre 4 e 5 tecnologias principais focadas na areaPrincipal"]
 }
 areaPrincipal e areasSecundarias devem usar os nomes exatamente como aparecem no catálogo.`;
 

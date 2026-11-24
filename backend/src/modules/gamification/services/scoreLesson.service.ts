@@ -170,8 +170,25 @@ export async function scoreLesson(
       });
     }
 
-    // Bônus de gabarito: só na primeira vez que a fase sai com 100%.
-    const perfectXp = perfectBonus(lesson.xpReward, perfect, previousProgress?.bestPercentage ?? 0);
+    // Bônus de gabarito: só na primeira vez que a fase sai com 100%,
+    // mesmo após a trilha ser reiniciada por um novo diagnóstico vocacional.
+    const candidatePerfectXp = perfectBonus(
+      lesson.xpReward,
+      perfect,
+      previousProgress?.bestPercentage ?? 0,
+    );
+    const alreadyEarnedPerfect =
+      candidatePerfectXp > 0
+        ? (await transaction.xpEvent.findFirst({
+            where: {
+              userId,
+              source: TRAIL_LESSON_PERFECT_SOURCE,
+              referenceId: lessonId,
+            },
+            select: { id: true },
+          })) !== null
+        : false;
+    const perfectXp = alreadyEarnedPerfect ? 0 : candidatePerfectXp;
     if (perfectXp > 0) {
       await transaction.xpEvent.create({
         data: {

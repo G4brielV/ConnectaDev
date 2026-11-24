@@ -54,6 +54,12 @@ export function MainTabNavigator() {
     }
   }, [route.params?.tab]);
 
+  const isMoreActive =
+    isQuickActionsVisible ||
+    activeTab === 'events' ||
+    activeTab === 'forum' ||
+    activeTab === 'profile';
+
   return (
     <TabContext.Provider value={{ activeTab, setActiveTab }}>
       <View style={styles.container}>
@@ -105,15 +111,26 @@ export function MainTabNavigator() {
             );
           })}
           <Pressable
-            style={styles.plusButtonContainer}
+            style={styles.tabButton}
             onPress={() => setIsQuickActionsVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Abrir hub de ações"
+            accessibilityState={{ selected: isMoreActive }}
+            accessibilityLabel="Mais opções"
           >
-            <View style={styles.plusButton}>
-              <Feather name="plus" size={28} color={colors.textOnPrimary} />
-            </View>
-            <Text style={styles.plusLabel}>Mais</Text>
+            <Feather
+              name="plus"
+              size={22}
+              color={isMoreActive ? colors.primary : colors.textMuted}
+              style={styles.icon}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                isMoreActive ? styles.tabLabelActive : styles.tabLabelInactive,
+              ]}
+            >
+              Mais
+            </Text>
           </Pressable>
         </View>
 
@@ -275,31 +292,6 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginBottom: 4,
-  },
-  plusButtonContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  plusButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -24,
-    elevation: 6,
-    shadowColor: colors.dark,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-  },
-  plusLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontFamily: fonts.sans.semiBold,
-    marginTop: 1,
   },
   quickActionsOverlay: {
     flex: 1,
