@@ -59,11 +59,17 @@ export function shiftMonth(month: string, amount: number): string {
   return shifted.toISOString().slice(0, 7);
 }
 
-export type DayCellState = 'todayActive' | 'today' | 'active' | 'past' | 'future';
+export type DayCellState = 'todayActive' | 'today' | 'active' | 'shielded' | 'past' | 'future';
 
-export function dayCellState(day: string, activeDays: ReadonlySet<string>, today: string): DayCellState {
+export function dayCellState(
+  day: string,
+  activeDays: ReadonlySet<string>,
+  today: string,
+  shieldedDays: ReadonlySet<string> = new Set(),
+): DayCellState {
   if (day === today) return activeDays.has(day) ? 'todayActive' : 'today';
   if (activeDays.has(day)) return 'active';
+  if (shieldedDays.has(day)) return 'shielded';
   return day < today ? 'past' : 'future';
 }
 
@@ -73,13 +79,20 @@ export function streakHeadline(currentStreak: number): string {
 }
 
 /** Mensagem do topo conforme o que a pessoa precisa fazer hoje. */
-export function streakMessage(overview: Pick<StreakOverview, 'currentStreak' | 'activeToday' | 'atRisk'>): string {
+export function streakMessage(
+  overview: Pick<StreakOverview, 'currentStreak' | 'activeToday' | 'atRisk'> & {
+    shield?: Pick<StreakOverview['shield'], 'count'>;
+  },
+): string {
   if (overview.activeToday) {
     return overview.currentStreak > 1
       ? `Você estudou ${overview.currentStreak} dias seguidos. Volte amanhã para manter o fogo aceso!`
       : 'Primeiro dia registrado! Volte amanhã para a ofensiva crescer.';
   }
   if (overview.atRisk) {
+    if ((overview.shield?.count ?? 0) > 0) {
+      return 'Estude hoje para sua ofensiva crescer — se não puder, seu escudo protege 1 dia.';
+    }
     return `Estude hoje para não perder sua ofensiva de ${overview.currentStreak} ${
       overview.currentStreak === 1 ? 'dia' : 'dias'
     }.`;

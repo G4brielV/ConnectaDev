@@ -34,11 +34,13 @@ test("título do mês em português e navegação que cruza o ano", () => {
 
 test("estado de cada dia do calendário", () => {
   const active = new Set(["2026-09-20", "2026-09-24"]);
-  assert.equal(dayCellState("2026-09-24", active, "2026-09-24"), "todayActive");
-  assert.equal(dayCellState("2026-09-24", new Set(), "2026-09-24"), "today");
-  assert.equal(dayCellState("2026-09-20", active, "2026-09-24"), "active");
-  assert.equal(dayCellState("2026-09-21", active, "2026-09-24"), "past");
-  assert.equal(dayCellState("2026-09-25", active, "2026-09-24"), "future");
+  const shielded = new Set(["2026-09-22"]);
+  assert.equal(dayCellState("2026-09-24", active, "2026-09-24", shielded), "todayActive");
+  assert.equal(dayCellState("2026-09-24", new Set(), "2026-09-24", shielded), "today");
+  assert.equal(dayCellState("2026-09-20", active, "2026-09-24", shielded), "active");
+  assert.equal(dayCellState("2026-09-22", active, "2026-09-24", shielded), "shielded");
+  assert.equal(dayCellState("2026-09-21", active, "2026-09-24", shielded), "past");
+  assert.equal(dayCellState("2026-09-25", active, "2026-09-24", shielded), "future");
 });
 
 test("títulos e mensagens acompanham o estado da ofensiva", () => {
@@ -48,6 +50,10 @@ test("títulos e mensagens acompanham o estado da ofensiva", () => {
 
   assert.match(streakMessage({ currentStreak: 7, activeToday: true, atRisk: false }), /7 dias seguidos/);
   assert.match(streakMessage({ currentStreak: 3, activeToday: false, atRisk: true }), /não perder sua ofensiva de 3 dias/);
+  assert.match(
+    streakMessage({ currentStreak: 3, activeToday: false, atRisk: true, shield: { count: 1 } }),
+    /seu escudo protege 1 dia/,
+  );
   assert.match(streakMessage({ currentStreak: 0, activeToday: false, atRisk: false }), /acender/);
 });
 

@@ -13,7 +13,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/entities/session';
-import { fetchStreakOverview, StreakOverview, StreakWeekDay } from '@/shared/api/streakApi';
+import { useGamification } from '@/entities/gamification';
+import {
+  fetchStreakOverview,
+  purchaseStreakShield,
+  StreakOverview,
+  StreakWeekDay,
+} from '@/shared/api/streakApi';
 import { DailyPracticeStatus, fetchTrailMap, TrailMapPhase } from '@/shared/api/trailMapApi';
 import { chunky, colors, fonts, radius, shadow } from '@/shared/config/theme';
 import type { RootStackParamList } from '@/app/navigation/RootNavigator';
@@ -27,16 +33,18 @@ import {
   streakMessage,
   weekDoneCount,
 } from '../streakCalendar';
+import { StreakShieldCard } from './StreakShieldCard';
+import { PurchaseShieldModal } from './PurchaseShieldModal';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Streak'>;
 
 const MASCOT = require('../../../../assets/streak/streak-mascot.jpg');
 
-// Layout da tela "Minha Ofensiva - ConnectaDev" do Stitch (sem Bloqueio de
-// Ofensiva e sem bônus de XP, que ainda não existem no produto).
+// Layout da tela "Minha Ofensiva - ConnectaDev" do Stitch, incluindo o Escudo de Ofensiva.
 export function StreakPage() {
   const navigation = useNavigation<NavigationProp>();
   const { token } = useAuth();
+  const { refresh: refreshGamification } = useGamification();
 
   const [overview, setOverview] = useState<StreakOverview | null>(null);
   const [month, setMonth] = useState<string | null>(null);
@@ -45,6 +53,10 @@ export function StreakPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [nextPhase, setNextPhase] = useState<TrailMapPhase | null>(null);
   const [practice, setPractice] = useState<DailyPracticeStatus | null>(null);
+  const [isShieldModalVisible, setIsShieldModalVisible] = useState(false);
+  const [isPurchasingShield, setIsPurchasingShield] = useState(false);
+  const [shieldFeedback, setShieldFeedback] = useState<string | null>(null);
+  const [shieldError, setShieldError] = useState<string | null>(null);
 
   const load = useCallback(
     async (targetMonth?: string) => {
@@ -94,6 +106,41 @@ export function StreakPage() {
     void load(shiftMonth(month, amount));
   };
 
+  const handleConfirmPurchaseShield = async () => {
+    if (!token || isPurchasingShield) return;
+    setIsPurchasingShield(true);
+    setShieldError(null);
+    setShieldFeedback(null);
+
+    try {
+      const purchased = await purchaseStreakShield(token);
+      setOverview((current) =>
+        current
+          ? {
+              ...current,
+              shield: {
+                count: purchased.streakShields,
+                max: purchased.maxShields,
+                cost: purchased.shieldCost,
+                availableXp: purchased.availableXp,
+              },
+            }
+          : current,
+      );
+      setIsShieldModalVisible(false);
+      setShieldFeedback('Escudo ativado! Sua ofensiva agora está protegida.');
+      void refreshGamification(true);
+      void load(month ?? undefined);
+    } catch (error) {
+      setIsShieldModalVisible(false);
+      setShieldError(
+        error instanceof Error ? error.message : 'Não foi possível resgatar o escudo agora.',
+      );
+    } finally {
+      setIsPurchasingShield(false);
+    }
+  };
+
   const close = () => {
     if (navigation.canGoBack()) navigation.goBack();
     else navigation.navigate('Home', { tab: 'trail' });
@@ -140,6 +187,17 @@ export function StreakPage() {
           <>
             <Hero overview={overview} />
             <WeekCard week={overview.week} />
+            <StreakShieldCard
+              shield={overview.shield}
+              feedbackMessage={shieldFeedback}
+              errorMessage={shieldError}
+              isPurchasing={isPurchasingShield}
+              onPressPurchase={() => {
+                setShieldError(null);
+                setShieldFeedback(null);
+                setIsShieldModalVisible(true);
+              }}
+            />
             <CalendarCard
               overview={overview}
               isChangingMonth={isChangingMonth}
@@ -150,6 +208,17 @@ export function StreakPage() {
           </>
         ) : null}
       </ScrollView>
+
+      {overview ? (
+        <PurchaseShieldModal
+          visible={isShieldModalVisible}
+          cost={overview.shield.cost}
+          availableXp={overview.shield.availableXp}
+          isLoading={isPurchasingShield}
+          onConfirm={() => void handleConfirmPurchaseShield()}
+          onCancel={() => setIsShieldModalVisible(false)}
+        />
+      ) : null}
 
       <View style={styles.footer}>
         {practice ? (
@@ -231,6 +300,14 @@ function Hero({ overview }: { overview: StreakOverview }) {
               <Text style={[styles.statusText, styles.statusTextRisk]}>Em risco hoje</Text>
             </View>
           ) : null}
+          {overview.shield.count > 0 ? (
+            <View style={[styles.statusChip, styles.statusShield]}>
+              <Feather name="shield" size={13} color={colors.secondary} />
+              <Text style={[styles.statusText, styles.statusTextShield]}>
+                {overview.shield.count === 1 ? '1 escudo ativo' : `${overview.shield.count} escudos ativos`}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -267,6 +344,7 @@ function WeekCard({ week }: { week: StreakWeekDay[] }) {
 function WeekBubble({ day }: { day: StreakWeekDay }) {
   const description = {
     done: 'estudou',
+    shielded: 'protegido por escudo',
     pending: 'ainda não estudou',
     missed: 'não estudou',
     upcoming: 'ainda não chegou',
@@ -280,6 +358,9 @@ function WeekBubble({ day }: { day: StreakWeekDay }) {
   } else if (day.status === 'done') {
     style = styles.bubbleDone;
     content = <Feather name="check" size={18} color={colors.accentFixed} />;
+  } else if (day.status === 'shielded') {
+    style = styles.bubbleShielded;
+    content = <Feather name="shield" size={17} color="#E5F2F6" />;
   } else if (day.status === 'pending') {
     style = styles.bubblePending;
     content = <MaterialCommunityIcons name="fire" size={20} color={colors.lockedNode} />;
@@ -308,6 +389,10 @@ interface CalendarCardProps {
 function CalendarCard({ overview, isChangingMonth, onPrevious, onNext }: CalendarCardProps) {
   const grid = useMemo(() => buildMonthGrid(overview.month.month), [overview.month.month]);
   const activeDays = useMemo(() => new Set(overview.month.activeDays), [overview.month.activeDays]);
+  const shieldedDays = useMemo(
+    () => new Set(overview.month.shieldedDays ?? []),
+    [overview.month.shieldedDays],
+  );
 
   return (
     <View style={styles.card}>
@@ -352,13 +437,14 @@ function CalendarCard({ overview, isChangingMonth, onPrevious, onNext }: Calenda
         <View key={weekIndex} style={styles.calendarRow}>
           {week.map((cell, cellIndex) => {
             if (!cell.day) return <View key={cellIndex} style={styles.calendarCell} />;
-            const state = dayCellState(cell.day, activeDays, overview.today);
+            const state = dayCellState(cell.day, activeDays, overview.today, shieldedDays);
             return (
               <View key={cell.day} style={styles.calendarCell}>
                 <View
                   style={[
                     styles.dayDot,
                     state === 'active' && styles.dayActive,
+                    state === 'shielded' && styles.dayShielded,
                     state === 'todayActive' && styles.dayTodayActive,
                     state === 'today' && styles.dayToday,
                   ]}
@@ -368,6 +454,7 @@ function CalendarCard({ overview, isChangingMonth, onPrevious, onNext }: Calenda
                       styles.dayText,
                       state === 'past' && styles.dayTextPast,
                       state === 'active' && styles.dayTextActive,
+                      state === 'shielded' && styles.dayTextShielded,
                       state === 'todayActive' && styles.dayTextTodayActive,
                       state === 'today' && styles.dayTextToday,
                     ]}
@@ -383,17 +470,32 @@ function CalendarCard({ overview, isChangingMonth, onPrevious, onNext }: Calenda
 
       <View style={styles.legend}>
         <LegendItem color={colors.primary} label="Hoje" />
-        <LegendItem color={colors.accentFixed} label="Dia estudado" />
+        <LegendItem color={colors.accentFixed} label="Estudado" />
+        <LegendItem color="#D6ECF2" borderColor={colors.secondary} label="Protegido" />
         <LegendItem color={colors.lockedSurface} label="Sem estudo" />
       </View>
     </View>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendItem({
+  color,
+  borderColor,
+  label,
+}: {
+  color: string;
+  borderColor?: string;
+  label: string;
+}) {
   return (
     <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <View
+        style={[
+          styles.legendDot,
+          { backgroundColor: color },
+          borderColor ? { borderWidth: 1.5, borderColor } : null,
+        ]}
+      />
       <Text style={styles.legendText}>{label}</Text>
     </View>
   );
@@ -592,9 +694,11 @@ const styles = StyleSheet.create({
   },
   statusDone: { backgroundColor: `${colors.primaryTint}66` },
   statusRisk: { backgroundColor: colors.flameSoft },
+  statusShield: { backgroundColor: '#E5F2F6' },
   statusText: { fontFamily: fonts.mono.medium, fontSize: 12 },
   statusTextDone: { color: colors.primary },
   statusTextRisk: { color: colors.flame },
+  statusTextShield: { color: colors.secondary },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -616,6 +720,7 @@ const styles = StyleSheet.create({
   weekLabelToday: { fontFamily: fonts.sans.extraBold, color: colors.primary },
   bubble: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   bubbleDone: { backgroundColor: colors.accentInk },
+  bubbleShielded: { backgroundColor: colors.secondary },
   bubbleToday: {
     backgroundColor: colors.primary,
     borderBottomWidth: 3,
@@ -652,11 +757,17 @@ const styles = StyleSheet.create({
   calendarCell: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
   dayDot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   dayActive: { backgroundColor: colors.accentFixed },
+  dayShielded: {
+    backgroundColor: '#D6ECF2',
+    borderWidth: 1.5,
+    borderColor: colors.secondary,
+  },
   dayTodayActive: { backgroundColor: colors.primary },
   dayToday: { borderWidth: 2, borderColor: colors.primary },
   dayText: { fontFamily: fonts.sans.semiBold, fontSize: 13, color: colors.textPrimary },
   dayTextPast: { color: colors.lockedNode },
   dayTextActive: { fontFamily: fonts.sans.extraBold, color: colors.accentInk },
+  dayTextShielded: { fontFamily: fonts.sans.extraBold, color: colors.secondary },
   dayTextTodayActive: { fontFamily: fonts.sans.extraBold, color: colors.textOnPrimary },
   dayTextToday: { fontFamily: fonts.sans.extraBold, color: colors.primary },
   legend: {
