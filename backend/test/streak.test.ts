@@ -143,8 +143,35 @@ describe("getStreakOverview", () => {
     expect(overview.atRisk).toBe(true);
     // 22 vem do contador (dia anterior da ofensiva), 02 e 23 do histórico
     expect(overview.month.activeDays).toEqual(["2026-09-02", "2026-09-22", "2026-09-23"]);
+    expect(overview.month.shieldedDays).toEqual([]);
+    expect(overview.shield).toEqual({ count: 0, max: 2, cost: 150, availableXp: 0 });
     expect(repository.findActivityDays).toHaveBeenCalledWith("user-1", "2026-09-01", "2026-09-30");
     expect(repository.findActivityDays).toHaveBeenCalledWith("user-1", "2026-09-21", "2026-09-27");
+  });
+
+  it("separa dias protegidos por escudo dos dias estudados na semana e no mês", async () => {
+    const repository = makeRepository({
+      findGamification: vi.fn().mockResolvedValue({
+        totalXp: 350,
+        xpSpent: 150,
+        currentStreak: 3,
+        longestStreak: 5,
+        streakShields: 1,
+        lastActivityDate: new Date("2026-09-23T15:00:00Z"),
+      }),
+      findActivityDays: vi.fn().mockResolvedValue([
+        { day: "2026-09-21", kind: "STUDY" },
+        { day: "2026-09-22", kind: "STUDY" },
+        { day: "2026-09-23", kind: "SHIELD" },
+      ]),
+    });
+
+    const overview = await getStreakOverview("user-1", undefined, repository, now);
+
+    expect(overview.shield).toEqual({ count: 1, max: 2, cost: 150, availableXp: 200 });
+    expect(overview.month.shieldedDays).toEqual(["2026-09-23"]);
+    expect(overview.month.activeDays).toEqual(["2026-09-21", "2026-09-22"]);
+    expect(overview.week.find((d) => d.day === "2026-09-23")?.status).toBe("shielded");
   });
 
   it("mostra meses anteriores, mas recusa futuro e formato inválido", async () => {

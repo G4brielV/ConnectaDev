@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { getGamificationController } from "../controllers/getGamification.controller";
 import { scoreLessonController } from "../controllers/scoreLesson.controller";
 import { getStreakController } from "../controllers/getStreak.controller";
+import { purchaseStreakShieldController } from "../controllers/purchaseStreakShield.controller";
 import {
   answerPracticeQuestionController,
   completeDailyPracticeController,
@@ -17,6 +18,7 @@ import {
 export async function gamificationRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get("/api/gamification/me", getGamificationController);
   fastify.get("/api/gamification/streak", getStreakController);
+  fastify.post("/api/gamification/streak/shield", purchaseStreakShieldController);
   fastify.post(
     "/api/trails/lessons/:lessonId/score",
     scoreLessonController,

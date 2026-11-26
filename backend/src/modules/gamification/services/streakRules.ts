@@ -1,13 +1,98 @@
-import { addDays, StudyDay, studyDayDiff, toStudyDay, weekStart } from "./studyDay";
+import { addDays, StudyDay, studyDayDiff, studyDayMidday, toStudyDay, weekStart } from "./studyDay";
+
+export const STREAK_SHIELD_COST = 150;
+export const MAX_STREAK_SHIELDS = 2;
+export const STREAK_SHIELD_PURCHASE_SOURCE = "STREAK_SHIELD_PURCHASE";
+
+export type ActivityDayKind = "STUDY" | "SHIELD";
+
+export function availableXp(totalXp: number, xpSpent: number): number {
+  return Math.max(0, totalXp - xpSpent);
+}
 
 /**
- * A ofensiva gravada só muda quando a pessoa estuda; ler o número cru faria
- * quem parou há dias continuar vendo a ofensiva antiga. Viva é quem estudou
- * hoje ou ontem.
+ * A ofensiva gravada só muda quando a pessoa estuda (ou reconcilia escudos);
+ * ler o número cru faria quem parou há dias continuar vendo a ofensiva antiga.
+ * Viva é quem estudou hoje, ontem, ou tem escudos suficientes para cobrir
+ * todos os dias perdidos no intervalo.
  */
-export function effectiveStreak(stored: number, lastActivityDate: Date | null, now: Date): number {
+export function effectiveStreak(
+  stored: number,
+  lastActivityDate: Date | null,
+  now: Date,
+  streakShields = 0,
+): number {
   if (!lastActivityDate || stored <= 0) return 0;
-  return studyDayDiff(toStudyDay(now), toStudyDay(lastActivityDate)) <= 1 ? stored : 0;
+  const diff = studyDayDiff(toStudyDay(now), toStudyDay(lastActivityDate));
+  return diff <= 1 + Math.max(0, streakShields) ? stored : 0;
+}
+
+export type ShieldGapStatus = "NONE" | "ALIVE" | "SHIELDED" | "EXPIRED";
+
+export interface ShieldGapResolution {
+  status: ShieldGapStatus;
+  /** Dias perdidos que serão marcados como protegidos (vazio se não cobrir a lacuna inteira). */
+  daysToShield: StudyDay[];
+  /** Escudos restantes após aplicar a proteção (ou intactos se a ofensiva já expirou). */
+  remainingShields: number;
+  /** Âncora efetiva da última atividade/proteção para cálculo da ofensiva. */
+  effectiveLastActivityDate: Date | null;
+}
+
+/**
+ * Avalia se há dias perdidos entre a última atividade e hoje, e decide se os
+ * escudos disponíveis cobrem a lacuna inteira. Se os escudos não forem
+ * suficientes para salvar a ofensiva, eles NÃO são desperdiçados.
+ */
+export function resolveShieldGap(
+  storedStreak: number,
+  lastActivityDate: Date | null,
+  streakShields: number,
+  now: Date,
+): ShieldGapResolution {
+  const safeShields = Math.max(0, streakShields);
+  if (!lastActivityDate || storedStreak <= 0) {
+    return {
+      status: "NONE",
+      daysToShield: [],
+      remainingShields: safeShields,
+      effectiveLastActivityDate: lastActivityDate,
+    };
+  }
+
+  const today = toStudyDay(now);
+  const lastDay = toStudyDay(lastActivityDate);
+  const diff = studyDayDiff(today, lastDay);
+
+  if (diff <= 1) {
+    return {
+      status: "ALIVE",
+      daysToShield: [],
+      remainingShields: safeShields,
+      effectiveLastActivityDate: lastActivityDate,
+    };
+  }
+
+  const missedCount = diff - 1;
+  if (safeShields >= missedCount) {
+    const daysToShield = Array.from({ length: missedCount }, (_, index) =>
+      addDays(lastDay, index + 1),
+    );
+    const lastShieldedDay = daysToShield[daysToShield.length - 1];
+    return {
+      status: "SHIELDED",
+      daysToShield,
+      remainingShields: safeShields - missedCount,
+      effectiveLastActivityDate: studyDayMidday(lastShieldedDay),
+    };
+  }
+
+  return {
+    status: "EXPIRED",
+    daysToShield: [],
+    remainingShields: safeShields,
+    effectiveLastActivityDate: lastActivityDate,
+  };
 }
 
 /**
@@ -21,7 +106,7 @@ export function derivedStreakDays(storedStreak: number, lastActivityDate: Date |
   return Array.from({ length: storedStreak }, (_, index) => addDays(last, index - storedStreak + 1));
 }
 
-export type WeekDayStatus = "done" | "pending" | "missed" | "upcoming";
+export type WeekDayStatus = "done" | "shielded" | "pending" | "missed" | "upcoming";
 
 export interface WeekDay {
   day: StudyDay;
@@ -33,13 +118,18 @@ export interface WeekDay {
 const WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
 
 /** Semana atual, de segunda a domingo. */
-export function buildWeek(today: StudyDay, activeDays: ReadonlySet<StudyDay>): WeekDay[] {
+export function buildWeek(
+  today: StudyDay,
+  activeDays: ReadonlySet<StudyDay>,
+  shieldedDays: ReadonlySet<StudyDay> = new Set(),
+): WeekDay[] {
   const monday = weekStart(today);
   return WEEKDAY_LABELS.map((label, index) => {
     const day = addDays(monday, index);
     const position = studyDayDiff(day, today);
     let status: WeekDayStatus;
     if (activeDays.has(day)) status = "done";
+    else if (shieldedDays.has(day)) status = "shielded";
     else if (position === 0) status = "pending";
     else if (position < 0) status = "missed";
     else status = "upcoming";

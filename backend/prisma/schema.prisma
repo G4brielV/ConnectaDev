@@ -383,9 +383,11 @@ model TrailPracticeItem {
 model UserGamification {
   userId           String    @id @map("user_id")
   totalXp          Int       @default(0) @map("total_xp")
+  xpSpent          Int       @default(0) @map("xp_spent")
   currentLevel     Int       @default(1) @map("current_level")
   currentStreak    Int       @default(0) @map("current_streak")
   longestStreak    Int       @default(0) @map("longest_streak")
+  streakShields    Int       @default(0) @map("streak_shields")
   lastActivityDate DateTime? @map("last_activity_date")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
@@ -413,6 +415,8 @@ model UserActivityDay {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   day       DateTime @db.Date
+  // "STUDY" | "SHIELD" — diferencia dia estudado de dia protegido pelo escudo
+  kind      String   @default("STUDY")
   createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

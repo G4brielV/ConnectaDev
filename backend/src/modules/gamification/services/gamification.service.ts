@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { calculateLevel } from "../constants/xpLevel";
 import { StreakMilestoneReward, StreakStatus, streakReward, sumXp, XpBreakdownItem } from "./bonusRules";
+import { resolveShieldGap } from "./streakRules";
 import { studyDayDiff, studyDayToDate, toStudyDay } from "./studyDay";
 
 export interface UpdateGamificationParams {
@@ -44,7 +45,7 @@ export async function recordActivityDay(
   date: Date,
 ): Promise<boolean> {
   const { count } = await client.userActivityDay.createMany({
-    data: [{ userId, day: studyDayToDate(toStudyDay(date)) }],
+    data: [{ userId, day: studyDayToDate(toStudyDay(date)), kind: "STUDY" }],
     skipDuplicates: true,
   });
   return count > 0;
@@ -136,14 +137,34 @@ export async function applyStudyActivity(
       currentLevel: true,
       currentStreak: true,
       longestStreak: true,
+      streakShields: true,
       lastActivityDate: true,
     },
   });
 
   const previousLevel = previous?.currentLevel ?? 1;
   const previousLongest = previous?.longestStreak ?? 0;
-  const streak = calculateNewStreak(
+  const storedShields = previous?.streakShields ?? 0;
+  const shieldResolution = resolveShieldGap(
+    previous?.currentStreak ?? 0,
     previous?.lastActivityDate ?? null,
+    storedShields,
+    now,
+  );
+
+  if (shieldResolution.status === "SHIELDED" && shieldResolution.daysToShield.length > 0) {
+    await transaction.userActivityDay.createMany({
+      data: shieldResolution.daysToShield.map((day) => ({
+        userId,
+        day: studyDayToDate(day),
+        kind: "SHIELD",
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  const streak = calculateNewStreak(
+    shieldResolution.effectiveLastActivityDate,
     previous?.currentStreak ?? 0,
     previousLongest,
     now,
@@ -175,6 +196,7 @@ export async function applyStudyActivity(
     currentLevel,
     currentStreak: streak.newCurrentStreak,
     longestStreak: streak.newLongestStreak,
+    streakShields: shieldResolution.remainingShields,
     lastActivityDate: now,
   };
   await transaction.userGamification.upsert({
